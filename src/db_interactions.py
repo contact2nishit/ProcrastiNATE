@@ -24,6 +24,11 @@ class User(BaseModel):
 class UserInDB(User):
     hashed_password: str
 
+class LoginData(BaseModel):
+    username: str
+    password: str
+
+
 def connect():
     dotenv.load_dotenv()
     return psycopg.connect(f'dbname={os.getenv("DB_NAME")} user={os.getenv("DB_USER")} password={os.getenv("DB_PASSWORD")} host={os.getenv("DB_HOST")} port={os.getenv("DB_PORT")}')
