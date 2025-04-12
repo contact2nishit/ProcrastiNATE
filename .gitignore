@@ -9,6 +9,7 @@ dist/
 web-build/
 expo-env.d.ts
 src/venv
+src/__pycache__
 
 # Native
 *.orig.*
