@@ -5,7 +5,7 @@ import { useNavigation } from 'expo-router';
 import {StyleSheet} from 'react-native';
 
 
-export default function Meeting() 
+export default function Assignment() 
 {
     const navigation = useNavigation();
 
