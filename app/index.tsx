@@ -1,22 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
 import { Button, View, Text, StyleSheet, TouchableOpacity, TextInput, Touchable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from 'expo-router';
 
 export default function App() {
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const navigation = useNavigation();
 
   const handleSubmit = () => {
     // Handle form submission here
     console.log('Username:', username);
     console.log('Password:', password);
+
+    // If user clicks on the sign in button, redirect to the home page:
+    navigation.replace('Home');
+
     // You can send the data to a server or perform other actions
   };
+
+  const handleSignup = () => {
+    navigation.navigate('Signup');
+  }
+
 
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.welcomeText}>Welcome to ProcrastiNATE!</Text>
-
+      
       <View style={styles.loginBox}>
 
         <View style={styles.inputContainer}>
@@ -47,7 +59,7 @@ export default function App() {
           <Text style={styles.loginButtonText}>Sign In</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress ={() => console.log('Forgot Password Pressed')}>
+        <TouchableOpacity onPress ={handleSignup}>
           <Text style = {styles.noAccount}>
             Don't have an account? <Text style = {styles.signupButtonText}>Sign Up</Text>
           </Text>
