@@ -27,28 +27,6 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-@app.post("/register")
-async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREATED):
-    if not data.username or not data.email or not data.pwd:
-        status_code = status.HTTP_400_BAD_REQUEST
-        return {"error": "Username, email, or password missing"}
-    user = data.username
-    mail = data.email
-    pwd = data.pwd
-    try:
-        with connect() as conn:
-            with conn.cursor() as curs: 
-                curs.execute("SELECT id FROM users WHERE username = %s OR email = %s", (user, mail))
-                user1 = curs.fetchone()
-                if user1: 
-                    status_code = status.HTTP_409_CONFLICT
-                    return {"error": "already exists"}
-                hash = get_password_hash(pwd)
-                curs.execute("INSERT INTO users(username, email, password_hash) VALUES(%s, %s, %s)", (user, mail, hash))
-                conn.commit()
-                return {"message": "Account created"}
-    except Exception:
-        return {"message": "something is wrong"}
 
 def authenticate_user(username: str, password: str):
     """Verify username and password against the database"""
@@ -80,22 +58,6 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
-
-@app.post("/login", response_model=Token)
-async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], status_code=status.HTTP_200_OK):
-    """Authenticate user and provide an access token"""
-    user = authenticate_user(form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
 
 # For protected routes, you'd use this to get the current user
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
@@ -129,3 +91,46 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
                 return User(username=user_data[0], email=user_data[1])
     except Exception:
         raise credentials_exception
+
+@app.post("/register")
+async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREATED):
+    if not data.username or not data.email or not data.pwd:
+        status_code = status.HTTP_400_BAD_REQUEST
+        return {"error": "Username, email, or password missing"}
+    user = data.username
+    mail = data.email
+    pwd = data.pwd
+    try:
+        with connect() as conn:
+            with conn.cursor() as curs: 
+                curs.execute("SELECT id FROM users WHERE username = %s OR email = %s", (user, mail))
+                user1 = curs.fetchone()
+                if user1: 
+                    status_code = status.HTTP_409_CONFLICT
+                    return {"error": "already exists"}
+                hash = get_password_hash(pwd)
+                curs.execute("INSERT INTO users(username, email, password_hash) VALUES(%s, %s, %s)", (user, mail, hash))
+                conn.commit()
+                return {"message": "Account created"}
+    except Exception:
+        return {"message": "something is wrong"}
+
+
+
+@app.post("/login", response_model=Token)
+async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], status_code=status.HTTP_200_OK):
+    """Authenticate user and provide an access token"""
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
