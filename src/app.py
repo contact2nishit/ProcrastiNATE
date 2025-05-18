@@ -82,13 +82,13 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     try:
         with connect() as conn:
             with conn.cursor() as curs:
-                curs.execute("SELECT username, email FROM users WHERE username = %s", (token_data.username,))
+                curs.execute("SELECT username, user_id, email FROM users WHERE username = %s", (token_data.username,))
                 user_data = curs.fetchone()
                 
                 if user_data is None:
                     raise credentials_exception
                 
-                return User(username=user_data[0], email=user_data[1])
+                return User(username=user_data[0], id=user_data[1], email=user_data[2])
     except Exception:
         raise credentials_exception
 
