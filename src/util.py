@@ -9,6 +9,7 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
+from data_models import *
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -87,31 +88,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     except Exception:
         raise credentials_exception
 
-class RegistrationDataModel(BaseModel):
-    username: str
-    email: str
-    pwd: str
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
-class TokenData(BaseModel):
-    username: str | None = None
-
-
-class User(BaseModel):
-    username: str
-    id: int
-    email: str | None = None
-
-class UserInDB(User):
-    hashed_password: str
-
-class LoginData(BaseModel):
-    username: str
-    password: str
 
 
 def connect():
