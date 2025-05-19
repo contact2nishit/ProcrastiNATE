@@ -61,28 +61,34 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], stat
 
 @app.post("/schedule")
 async def schedule(sched: ScheduleRequest, status_code=status.HTTP_201_CREATED) -> ScheduleResponseFormat:
+    """Sets in stone the meetings in the request, and then returns a list of possible ways to arrange times to work on assignments and chores"""
     pass
 
 @app.post("/setSchedule")
 async def set_schedule(chosen_schedule: Schedule, status_code=status.HTTP_201_CREATED) -> MessageResponseDataModel:
+    """Picks a "schedule" (a list of possible ways to arrange times to work on assignments and chores) and sets it in stone"""
     pass
 
 @app.post("/markSessionCompleted")
 async def mark_session_completed(complete: SessionCompletionDataModel) -> MessageResponseDataModel:
+    """Mark one session of time allocated to work on an assignment (could be multiple sessions per assignment) as complete or incomplete"""
     pass
 
 @app.post("/update")
 async def update(changes: UpdateRequestDataModel) -> UpdateResponseDataModel:
+    """Updates the time, name, and location/video call link of one ocurrence of a meeting. Can optionally
+    also alter name, and location/video call link of all future ocurrences, but not time of all future ocurrences"""
     pass
 
 @app.post("/delete")
 async def delete(deletion: DeleteRequestDataModel) -> MessageResponseDataModel:
+    """Delete one ocurrence of a meeting. Optionally, also delete all future ocurrences"""
     pass
 
 @app.get("/fetch")
 async def fetch(start_time: str, end_time: str, meetings: bool, assignments: bool, chores: bool) -> FetchResponse:
     """
-    Fetches everything between start and end timestamps. Every input is a query parameter
+    Fetches everything (chores, assignments, meetings) between start and end timestamps. Every input is a query parameter
         Args
             start_time(str): ISO-formatted timestamp
             end_time(str): ISO-formatted imestamp

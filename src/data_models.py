@@ -27,37 +27,62 @@ class LoginData(BaseModel):
     password: str
 
 class DeleteRequestDataModel(BaseModel):
+    """
+    Delete the meeting with the given occurence id in the database
+    remove_all_future set to true removes future ocurrences of recurring meeting
+    """
     occurence_id: int
     remove_all_future: bool
 
 class UpdateRequestDataModel(BaseModel):
+    """
+        future_occurences: Boolean that represents whether the changed name and changed location should apply to future 
+        occurences of the same meeting (time changes will not apply for now)
+        meeting_id: The meetingID is a unique numeric ID for the meeting. It is returned in the MeetingInResponse schema
+        ocurrence_id: Unique ID for each ocurrence of the meeting. The ocurrence with this ID will be the only one with its time changed
+        Check MeetingInResponse schema to learn more
+    """
     future_occurences: bool
     meeting_id: int 
+    ocurrence_id: int
     new_name: str | None = None,
     new_time: datetime | None = None
     new_loc_or_link: str | None = None,
 
 class AssignmentInRequest(BaseModel):
+    """
+    Name, due date, and effort (minutes of work) for an assignment
+    """
     name: str
     effort: int # approximate minutes of work
     due_date: datetime
 
 class MeetingInRequest(BaseModel):
+    """
+    Name, start and end times of each ocurrence
+    start_end_times is a list of lists. Each sub-list should have exactly 2 timestamps, denoting the start and end time of a specific ocurrence
+    Each sub-list in the larger list corresponds to one ocurrence
+    Example: [[2PM, 3PM], [4PM, 5PM]] would mean 2 ocurrences: 2-3 PM one, and the 4-5 PM one
+    Link or location of meeting
+    """
     name: str
     start_end_times: List[List[datetime]]
     link_or_loc: str | None = None
 
 class ChoreInRequest(BaseModel): 
+    """Name, window in which the chore needs to be completed, and the minutes taken to complete"""
     name: str
     window: List[datetime] # start/end time
     effort: int
 
 class ScheduleRequest(BaseModel):
+    """Request to Schedule each assignment in the list, each meeting, and each chore"""
     assignments: List[AssignmentInRequest]
     meetings: List[MeetingInRequest]
     chores: List[ChoreInRequest]
 
 class SessionCompletionDataModel(BaseModel):
+    """Mark the assignment work session with occurence_id as completed or incomplete"""
     occurence_id: int
     completed: bool
 
@@ -68,29 +93,59 @@ class Token(BaseModel):
     token_type: str
 
 class UpdateResponseDataModel(BaseModel): 
+    """Contains an optional message and a boolean (clashed) representing whether the updated time clashes with something else
+    If it clashed, the time will not be updated (for now)
+    Can only update the time of a meeting for now
+    """
     clashed: bool
     message: str | None = None
 
 class MessageResponseDataModel(BaseModel):
+    """Simple message response"""
     message: str
 
 class MeetingInResponse(MeetingInRequest):
+    """Contains a list of unique ocurrence IDs IN THE SAME ORDER as ocurrences were mentioned in the start_end_time field of MeetingInRequest
+    Also has a unique ID for the meeting as a whole
+    """
     ocurrence_ids: List[int]
+    meeting_id: int
 
 class ChoreInResponse(ChoreInRequest):
+    """Contains a list of unique ocurrence IDs, a unique chore ID, and a start_end_time list
+    These function the same way as they do. Check MeetingInRequest and MeetingInResponse for the way the start_end_times, chore_id, and ocurrence_ids are formatted
+    An occurrence is one block of time set aside to work on a chore, and there can be multiple for the same assignment
+    """
     start_end_times: List[List[datetime]]
+    chore_id: int
     ocurrence_ids: List[int]
 
 class AssignmentInResponse(AssignmentInRequest):
+    """Contains a list of unique ocurrence IDs, a unique assignment ID, and a start_end_time list
+    These function the same way as they do. Check MeetingInRequest and MeetingInResponse for the way the start_end_times, chore_id, and ocurrence_ids are formatted
+    An occurrence is one block of time set aside to work on an assignment, and there can be multiple for the same assignment
+    """
     start_end_times: List[List[datetime]]
+    assignment_id: int
     ocurrence_ids: List[int]
 
 class Schedule(BaseModel):
+    """
+    A schedule is a list of AssignmentInResponse and a list of ChoreInResponse
+    Essentially, it's a list of assignments and a list of chores, where each element denotes a specific set of times
+    to work on the assignment/chore
+    """
     assignments: List[AssignmentInResponse]
     chores: List[ChoreInResponse]
-    # this one is used in both request and response
 
 class ScheduleResponseFormat(BaseModel):
+    """Main element of response: a list of schedules
+    conflicting_meetings: has the string names of meetings that couldn't be scheduled at all because they conflict with other meetings
+    conflicting_assignemnts: Not possible to find a schedule in which there is time to work on these assignments
+    conflicting_chores: Not possible to find a schedule in which there is time to work on these chores
+    not_enough_time_assignments: Can work on these for a little bit, but not enough to meet the amount of time required
+    same idea for chores
+    """
     conflicting_meetings: List[str]
     conflicting_assignments: List[str]
     conflicting_chores: List[str]
@@ -100,6 +155,7 @@ class ScheduleResponseFormat(BaseModel):
     schedules: List[Schedule]
 
 class FetchResponse(BaseModel):
+    """A list of assignments, chores, and meetings, with ocurrences, ocurrence IDs, and chore/assignment/meeting IDs"""
     assignments: List[AssignmentInResponse] | None = None
     chores: List[ChoreInResponse] | None = None
     meetings: List[MeetingInResponse] | None = None
