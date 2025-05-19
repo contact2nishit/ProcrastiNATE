@@ -13,10 +13,8 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 
 app = FastAPI()
+
 dotenv.load_dotenv()
-SECRET_KEY = os.getenv("SECRET_KEY") 
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 3000
 
 
 
@@ -45,8 +43,8 @@ async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREA
 
 
 
-@app.post("/login", response_model=Token)
-async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], status_code=status.HTTP_200_OK):
+@app.post("/login")
+async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], status_code=status.HTTP_200_OK) -> Token:
     """Authenticate user and provide an access token"""
     user = authenticate_user(form_data.username, form_data.password)
     if not user:
@@ -61,4 +59,35 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], stat
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+@app.post("/schedule")
+async def schedule(sched: ScheduleRequest, status_code=status.HTTP_201_CREATED) -> ScheduleResponseFormat:
+    pass
 
+@app.post("/setSchedule")
+async def set_schedule(chosen_schedule: Schedule, status_code=status.HTTP_201_CREATED) -> MessageResponseDataModel:
+    pass
+
+@app.post("/markSessionCompleted")
+async def mark_session_completed(complete: SessionCompletionDataModel) -> MessageResponseDataModel:
+    pass
+
+@app.post("/update")
+async def update(changes: UpdateRequestDataModel) -> UpdateResponseDataModel:
+    pass
+
+@app.post("/delete")
+async def delete(deletion: DeleteRequestDataModel) -> MessageResponseDataModel:
+    pass
+
+@app.get("/fetch")
+async def fetch(start_time: str, end_time: str, meetings: bool, assignments: bool, chores: bool) -> FetchResponse:
+    """
+    Fetches everything between start and end timestamps. Every input is a query parameter
+        Args
+            start_time(str): ISO-formatted timestamp
+            end_time(str): ISO-formatted imestamp
+            meetings(bool): Include meetings?
+            assignments(bool): Include assignments?
+            chores(bool): Include chores?
+    """
+    pass

@@ -11,9 +11,11 @@ from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
 from data_models import *
 
-
+dotenv.load_dotenv()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+SECRET_KEY = os.getenv("SECRET_KEY") 
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 3000
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 def verify_password(plain_password, hashed_password):
@@ -25,18 +27,24 @@ def get_password_hash(password):
 
 
 def authenticate_user(username: str, password: str):
-    """Verify username and password against the database"""
+    """Verify username and password against the database
+        Args: 
+            username(str): the username to check
+            password(str): the password to check
+        Returns:
+            UserInDB
+    """
     try:
         with connect() as conn:
             with conn.cursor() as curs:
-                curs.execute("SELECT username, email, password_hash FROM users WHERE username = %s", (username,))
+                curs.execute("SELECT username, id, email, password_hash FROM users WHERE username = %s", (username,))
                 user_data = curs.fetchone()
                 if not user_data:
                     return False
-                username_db, email_db, hashed_password = user_data
+                username_db, user_id, email_db, hashed_password = user_data
                 if not verify_password(password, hashed_password):
                     return False
-                return UserInDB(username=username_db, email=email_db, hashed_password=hashed_password)
+                return UserInDB(username=username_db, id=user_id, email=email_db, hashed_password=hashed_password)
     except Exception as e:
         # Log the error for debugging
         print(f"Authentication error: {str(e)}")
