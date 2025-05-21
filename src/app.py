@@ -11,23 +11,22 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
 from pydantic import BaseModel
-
-app = FastAPI()
+from contextlib import asynccontextmanager
 
 dotenv.load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     app.state.pool = await asyncpg.create_pool(
-        dsn = DATABASE_URL,
-        max_size = 10,
+        dsn=DATABASE_URL,
+        max_size=10,
     )
-
-@app.on_event("shutdown")
-async def shutdown():
+    yield
     await app.state.pool.close()
+
+app = FastAPI(lifespan=lifespan)
 
 @app.post("/register")
 async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREATED):
