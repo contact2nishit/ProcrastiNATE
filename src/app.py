@@ -20,7 +20,10 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 @app.on_event("startup")
 async def startup():
-    app.state.pool = await asyncpg.create_pool(DATABASE_URL)
+    app.state.pool = await asyncpg.create_pool(
+        dsn = DATABASE_URL,
+        max_size = 10,
+    )
 
 @app.on_event("shutdown")
 async def shutdown():
