@@ -11,12 +11,16 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from db import async_session
 
 app = FastAPI()
 
 dotenv.load_dotenv()
 
-
+async def get_session() -> AsyncSession:
+    async with async_session() as session:
+        yield session
 
 @app.post("/register")
 async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREATED):
@@ -65,7 +69,7 @@ async def schedule(sched: ScheduleRequest, status_code=status.HTTP_201_CREATED) 
 
 @app.post("/setSchedule")
 async def set_schedule(chosen_schedule: Schedule, status_code=status.HTTP_201_CREATED) -> MessageResponseDataModel:
-    pass
+    
 
 @app.post("/markSessionCompleted")
 async def mark_session_completed(complete: SessionCompletionDataModel) -> MessageResponseDataModel:
