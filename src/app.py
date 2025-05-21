@@ -38,17 +38,14 @@ async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREA
     mail = data.email
     pwd = data.pwd
     try:
-        with connect() as conn:
-            with conn.cursor() as curs: 
-                curs.execute("SELECT id FROM users WHERE username = %s OR email = %s", (user, mail))
-                user1 = curs.fetchone()
-                if user1: 
-                    status_code = status.HTTP_409_CONFLICT
-                    return {"error": "already exists"}
-                hash = get_password_hash(pwd)
-                curs.execute("INSERT INTO users(username, email, password_hash) VALUES(%s, %s, %s)", (user, mail, hash))
-                conn.commit()
-                return {"message": "Account created"}
+        async with app.state.pool.acquire() as conn:
+            user1 = await conn.fetchrow("SELECT id FROM users WHERE username = %s OR email = %s", (user, mail))
+            if user1: 
+                status_code = status.HTTP_409_CONFLICT
+                return {"error": "An account is already registered with the given username or email"}
+            hash = get_password_hash(pwd)
+            await conn.execute("INSERT INTO users(username, email, password_hash) VALUES(%s, %s, %s)", (user, mail, hash))
+            return {"message": "Account created successfully!"}
     except Exception:
         return {"message": "something is wrong"}
 
