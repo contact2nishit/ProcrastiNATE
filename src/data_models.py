@@ -11,7 +11,7 @@ class RegistrationDataModel(BaseModel):
 
 
 class TokenData(BaseModel):
-    username: str | None = None
+    user_id: int | None = None
 
 
 class User(BaseModel):

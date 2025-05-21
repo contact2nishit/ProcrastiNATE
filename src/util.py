@@ -63,7 +63,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 # For protected routes, you'd use this to get the current user
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+async def get_current_user(token: Annotated[int, Depends(oauth2_scheme)], pool):
     """Validate the access token and return the current user"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -73,32 +73,21 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        user_id: int = payload.get("sub")
         
-        if username is None:
+        if user_id is None:
             raise credentials_exception
         
-        token_data = TokenData(username=username)
+        token_data = TokenData(user_id=user_id)
     except InvalidTokenError:
         raise credentials_exception
     
     try:
-        with connect() as conn:
-            with conn.cursor() as curs:
-                curs.execute("SELECT username, user_id, email FROM users WHERE username = %s", (token_data.username,))
-                user_data = curs.fetchone()
-                
-                if user_data is None:
-                    raise credentials_exception
-                
-                return User(username=user_data[0], id=user_data[1], email=user_data[2])
+        with pool.acquire() as conn:
+            user_data = conn.fetchrow("SELECT username, user_id, email FROM users WHERE user_id = %s", (token_data.user_id,))
+            if user_data is None:
+                raise credentials_exception
+            return User(username=user_data[0], id=user_data[1], email=user_data[2])
     except Exception:
         raise credentials_exception
-
-
-
-
-def connect():
-    dotenv.load_dotenv()
-    return psycopg.connect(f'dbname={os.getenv("DB_NAME")} user={os.getenv("DB_USER")} password={os.getenv("DB_PASSWORD")} host={os.getenv("DB_HOST")} port={os.getenv("DB_PORT")}')
 
