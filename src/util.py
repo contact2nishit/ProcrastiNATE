@@ -1,6 +1,6 @@
 import dotenv
 import os
-import psycopg
+import asyncpg
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Union
@@ -26,25 +26,24 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def authenticate_user(username: str, password: str):
+async def authenticate_user(pool, username: str, password: str):
     """Verify username and password against the database
         Args: 
             username(str): the username to check
             password(str): the password to check
+            pool(app.state.pool): the asyncpg pool
         Returns:
-            UserInDB
+            UserInDB or False
     """
     try:
-        with connect() as conn:
-            with conn.cursor() as curs:
-                curs.execute("SELECT username, id, email, password_hash FROM users WHERE username = %s", (username,))
-                user_data = curs.fetchone()
-                if not user_data:
-                    return False
-                username_db, user_id, email_db, hashed_password = user_data
-                if not verify_password(password, hashed_password):
-                    return False
-                return UserInDB(username=username_db, id=user_id, email=email_db, hashed_password=hashed_password)
+        async with pool.acquire() as conn:
+            user_data = conn.fetchrow("SELECT username, id, email, password_hash FROM users WHERE username = %s", (username,))
+            if not user_data:
+                return False
+            username_db, user_id, email_db, hashed_password = user_data
+            if not verify_password(password, hashed_password):
+                return False
+            return UserInDB(username=username_db, id=user_id, email=email_db, hashed_password=hashed_password)
     except Exception as e:
         # Log the error for debugging
         print(f"Authentication error: {str(e)}")
