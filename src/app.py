@@ -53,7 +53,7 @@ async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREA
 @app.post("/login")
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], status_code=status.HTTP_200_OK) -> Token:
     """Authenticate user and provide an access token"""
-    user = authenticate_user(form_data.username, form_data.password)
+    user = authenticate_user(form_data.username, form_data.password, app.state.pool)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
