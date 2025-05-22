@@ -38,14 +38,16 @@ async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREA
     pwd = data.pwd
     try:
         async with app.state.pool.acquire() as conn:
-            user1 = await conn.fetchrow("SELECT id FROM users WHERE username = %s OR email = %s", (user, mail))
+            print("here")
+            user1 = await conn.fetchrow("SELECT user_id FROM users WHERE username = $1 OR email = $2", user, mail)
             if user1: 
                 status_code = status.HTTP_409_CONFLICT
                 return {"error": "An account is already registered with the given username or email"}
             hash = get_password_hash(pwd)
-            await conn.execute("INSERT INTO users(username, email, password_hash) VALUES(%s, %s, %s)", (user, mail, hash))
+            await conn.execute("INSERT INTO users(username, email, password_hash) VALUES($1, $2, $3)", user, mail, hash)
             return {"message": "Account created successfully!"}
-    except Exception:
+    except Exception as e:
+        print(e)
         return {"message": "something is wrong"}
 
 
@@ -53,7 +55,7 @@ async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREA
 @app.post("/login")
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], status_code=status.HTTP_200_OK) -> Token:
     """Authenticate user and provide an access token"""
-    user = authenticate_user(form_data.username, form_data.password, app.state.pool)
+    user = await authenticate_user(form_data.username, form_data.password, app.state.pool)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

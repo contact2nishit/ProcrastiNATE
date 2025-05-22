@@ -26,7 +26,7 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-async def authenticate_user(pool, username: str, password: str):
+async def authenticate_user(username: str, password: str, pool,):
     """Verify username and password against the database
         Args: 
             username(str): the username to check
@@ -37,13 +37,13 @@ async def authenticate_user(pool, username: str, password: str):
     """
     try:
         async with pool.acquire() as conn:
-            user_data = conn.fetchrow("SELECT username, id, email, password_hash FROM users WHERE username = %s", (username,))
+            user_data = await conn.fetchrow("SELECT username, user_id, email, password_hash FROM users WHERE username = $1", username)
             if not user_data:
                 return False
-            username_db, user_id, email_db, hashed_password = user_data
+            username_db, id, email_db, hashed_password = user_data
             if not verify_password(password, hashed_password):
                 return False
-            return UserInDB(username=username_db, id=user_id, email=email_db, hashed_password=hashed_password)
+            return UserInDB(username=username_db, user_id=id, email=email_db, hashed_password=hashed_password)
     except Exception as e:
         # Log the error for debugging
         print(f"Authentication error: {str(e)}")
@@ -84,7 +84,7 @@ async def get_current_user(token: Annotated[int, Depends(oauth2_scheme)], pool):
     
     try:
         with pool.acquire() as conn:
-            user_data = conn.fetchrow("SELECT username, user_id, email FROM users WHERE user_id = %s", (token_data.user_id,))
+            user_data = await conn.fetchrow("SELECT username, user_id, email FROM users WHERE user_id = $1", token_data.user_id)
             if user_data is None:
                 raise credentials_exception
             return User(username=user_data[0], id=user_data[1], email=user_data[2])
