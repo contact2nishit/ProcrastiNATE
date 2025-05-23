@@ -74,7 +74,7 @@ async def schedule(sched: ScheduleRequest, status_code=status.HTTP_201_CREATED) 
     pass
 
 @app.post("/setSchedule")
-async def set_schedule(chosen_schedule: Schedule, status_code=status.HTTP_201_CREATED) -> MessageResponseDataModel:
+async def set_schedule(chosen_schedule: Schedule, status_code=status.HTTP_201_CREATED) -> ScheduleSetInStone:
     """Picks a "schedule" (a list of possible ways to arrange times to work on assignments and chores) and sets it in stone"""
     pass
 
