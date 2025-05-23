@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
 from typing import Annotated, Union, List
+from collections import defaultdict
 
 # Request data models
 
@@ -55,7 +56,7 @@ class AssignmentInRequest(BaseModel):
     """
     name: str
     effort: int # approximate minutes of work
-    due_date: datetime
+    due: datetime
 
 class MeetingInRequest(BaseModel):
     """
@@ -134,23 +135,24 @@ class Schedule(BaseModel):
     A schedule is a list of AssignmentInResponse and a list of ChoreInResponse
     Essentially, it's a list of assignments and a list of chores, where each element denotes a specific set of times
     to work on the assignment/chore
-    """
-    assignments: List[AssignmentInResponse]
-    chores: List[ChoreInResponse]
-
-class ScheduleResponseFormat(BaseModel):
-    """Main element of response: a list of schedules
-    conflicting_meetings: has the string names of meetings that couldn't be scheduled at all because they conflict with other meetings
     conflicting_assignemnts: Not possible to find a schedule in which there is time to work on these assignments
     conflicting_chores: Not possible to find a schedule in which there is time to work on these chores
     not_enough_time_assignments: Can work on these for a little bit, but not enough to meet the amount of time required
     same idea for chores
     """
-    conflicting_meetings: List[str]
+    assignments: List[AssignmentInResponse]
+    chores: List[ChoreInResponse]
     conflicting_assignments: List[str]
     conflicting_chores: List[str]
     not_enough_time_assignments: List[str]
     not_enough_time_chores: List[str]
+
+class ScheduleResponseFormat(BaseModel):
+    """Main element of response: a list of schedules
+    conflicting_meetings: has the string names of meetings that couldn't be scheduled at all because they conflict with other meetings
+    
+    """
+    conflicting_meetings: List[str]
     meetings: List[MeetingInResponse]
     schedules: List[Schedule]
 
