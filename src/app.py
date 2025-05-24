@@ -75,7 +75,7 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
     # TODO: Ensure assignments/chores don't conflict with other assignments/chores. Right now, only checks meetings within the same request
     # TODO: Should be able to interleave tasks: looks like this forces all tasks to be completed before moving to next
     # TODO: Check the use of random.sample() for chores. It might pick k samples (may repeat)
-    pass
+    
 
 @app.post("/setSchedule")
 async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleSetInStone:

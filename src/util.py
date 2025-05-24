@@ -26,7 +26,7 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-async def authenticate_user(username: str, password: str, pool,):
+async def authenticate_user(username: str, password: str, pool):
     """Verify username and password against the database
         Args: 
             username(str): the username to check
@@ -63,7 +63,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 # For protected routes, you'd use this to get the current user
-async def get_current_user(token: Annotated[int, Depends(oauth2_scheme)], pool):
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], pool):
     """Validate the access token and return the current user"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -83,7 +83,7 @@ async def get_current_user(token: Annotated[int, Depends(oauth2_scheme)], pool):
         raise credentials_exception
     
     try:
-        with pool.acquire() as conn:
+        async with pool.acquire() as conn:
             user_data = await conn.fetchrow("SELECT username, user_id, email FROM users WHERE user_id = $1", token_data.user_id)
             if user_data is None:
                 raise credentials_exception
