@@ -105,4 +105,28 @@ async def fetch(start_time: str, end_time: str, meetings: bool, assignments: boo
             assignments(bool): Include assignments?
             chores(bool): Include chores?
     """
-    pass
+    try:
+        async with app.state.pool.acquire() as conn:
+            start_time = datetime.fromisoformat(start_time)
+            end_time = datetime.fromisoformat(end_time)
+            if start_time > end_time:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Start time must be before end time")
+            if meetings:
+                meetings = await conn.fetch("SELECT meeting_id, occurrence_id FROM meeting_occurences WHERE start_time>$1 AND end_time<$2", start_time, end_time)
+            else:
+                meetings = []
+            if assignments:
+                assignments = await conn.fetch("SELECT assignment_id, occurrence_id FROM assignment_occurences WHERE start_time>$1 AND end_time<$2", start_time, end_time)
+            else:
+                assignments = []
+            if chores:
+                print("fetching chores")
+                chores = await conn.fetch("SELECT chore_id, occurrence_id FROM chore_occurences WHERE start_time>$1 AND end_time<$2", start_time, end_time)
+            else:
+                chores = []
+            print(meetings, assignments, chores)
+            return FetchResponse(meetings=meetings, assignments=assignments, chores=chores)
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
