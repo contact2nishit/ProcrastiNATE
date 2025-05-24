@@ -69,33 +69,37 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], stat
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/schedule")
-async def schedule(sched: ScheduleRequest, status_code=status.HTTP_201_CREATED) -> ScheduleResponseFormat:
+async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleResponseFormat:
     """Sets in stone the meetings in the request, and then returns a list of possible ways to arrange times to work on assignments and chores"""
+    # TODO: Major improvements needed to scheduling algo
+    # TODO: Ensure assignments/chores don't conflict with other assignments/chores. Right now, only checks meetings within the same request
+    # TODO: Should be able to interleave tasks: looks like this forces all tasks to be completed before moving to next
+    # TODO: Check the use of random.sample() for chores. It might pick k samples (may repeat)
     pass
 
 @app.post("/setSchedule")
-async def set_schedule(chosen_schedule: Schedule, status_code=status.HTTP_201_CREATED) -> ScheduleSetInStone:
+async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleSetInStone:
     """Picks a "schedule" (a list of possible ways to arrange times to work on assignments and chores) and sets it in stone"""
     pass
 
 @app.post("/markSessionCompleted")
-async def mark_session_completed(complete: SessionCompletionDataModel) -> MessageResponseDataModel:
+async def mark_session_completed(complete: SessionCompletionDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> MessageResponseDataModel:
     """Mark one session of time allocated to work on an assignment (could be multiple sessions per assignment) as complete or incomplete"""
     pass
 
 @app.post("/update")
-async def update(changes: UpdateRequestDataModel) -> UpdateResponseDataModel:
+async def update(changes: UpdateRequestDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> UpdateResponseDataModel:
     """Updates the time, name, and location/video call link of one ocurrence of a meeting. Can optionally
     also alter name, and location/video call link of all future ocurrences, but not time of all future ocurrences"""
     pass
 
 @app.post("/delete")
-async def delete(deletion: DeleteRequestDataModel) -> MessageResponseDataModel:
+async def delete(deletion: DeleteRequestDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> MessageResponseDataModel:
     """Delete one ocurrence of a meeting. Optionally, also delete all future ocurrences"""
     pass
 
 @app.get("/fetch")
-async def fetch(start_time: str, end_time: str, meetings: bool, assignments: bool, chores: bool) -> FetchResponse:
+async def fetch(start_time: str, end_time: str, meetings: bool, assignments: bool, chores: bool, token: Annotated[str, Depends(oauth2_scheme)]) -> FetchResponse:
     """
     Fetches everything (chores, assignments, meetings) between start and end timestamps. Every input is a query parameter
         Args

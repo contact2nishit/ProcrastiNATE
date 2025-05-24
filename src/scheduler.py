@@ -5,7 +5,6 @@ from data_models import *
 import random
 from datetime import datetime, timedelta
 
-# Assume "now" is when you're running this test
 
 # ---- Constants ----
 CHUNK_MINUTES = 15
@@ -14,6 +13,7 @@ SLEEP_HOURS = (23, 7)
 # ---- Scheduling Logic ----
 
 def generate_available_slots(meetings: List[Tuple[datetime, datetime]], from_time: datetime, to_time: datetime) -> List[Tuple[datetime, datetime]]:
+    """Returns a time slot """
     step = timedelta(minutes=CHUNK_MINUTES)
     slots = []
     t = from_time
@@ -65,13 +65,17 @@ def schedule_tasks(
     now = datetime.now()
     latest_time = max([a.due for a in assignments] + [c.window[1] for c in chores])
 
+    # creates a list of tuple of meeting start and end times
     all_meeting_times: List[Tuple[datetime, datetime]] = [
         (interval[0], interval[1]) for m in meetings for interval in m.start_end_times
     ]
-
+    # TODO: Ensure assignments/chores don't conflict with other assignments/chores
+    # TODO: Should be able to interleave tasks: looks like this forces all tasks to be completed before moving to next
     schedules_results = []
 
+    # loop over number to generate
     for _ in range(num_schedules):
+        # creates a set with just all the slots that are currently used by meetings
         used_slots = set(
             slot for start, end in all_meeting_times
             for slot in generate_available_slots([], start, end)
@@ -85,9 +89,12 @@ def schedule_tasks(
         not_enough_time_assignments = []
         not_enough_time_chores = []
 
+        # Loosely sort assignments, by due date
         prioritized_assignments = loosely_sort_assignments(assignments)
+        # randomly sample chores
         randomized_chores = random.sample(chores, k=len(chores))
 
+        # list of tuples -> 1st says assi or chore, next contains request objects
         task_queue: List[Tuple[Literal["assignment", "chore"], Union[AssignmentInRequest, ChoreInRequest]]] = (
             [("assignment", a) for a in prioritized_assignments] +
             [("chore", c) for c in randomized_chores]
@@ -95,6 +102,7 @@ def schedule_tasks(
 
         for task_type, task in task_queue:
             time_range = (now, task.due) if task_type == "assignment" else (task.window[0], task.window[1])
+            # Pass in all meeting times, unpack time range tuple
             available = generate_available_slots(all_meeting_times, *time_range)
             available = [s for s in available if s not in used_slots]
 
