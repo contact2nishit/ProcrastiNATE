@@ -16,7 +16,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = os.getenv("SECRET_KEY") 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 3000
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
@@ -33,7 +33,7 @@ async def authenticate_user(username: str, password: str, pool):
             password(str): the password to check
             pool(app.state.pool): the asyncpg pool
         Returns:
-            UserInDB or False
+            UserInDB (contains all user data including pw hash) or False
     """
     try:
         async with pool.acquire() as conn:
@@ -63,31 +63,38 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 # For protected routes, you'd use this to get the current user
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], pool):
+async def get_current_user(token: str, pool):
+    # print(SECRET_KEY)
     """Validate the access token and return the current user"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+    # print(f"hello {token}")
     try:
+        #print("before")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = payload.get("sub")
-        
+        #print("mid")
+        user_id: int = int(payload.get("sub"))
+        #print("after")
         if user_id is None:
             raise credentials_exception
         
         token_data = TokenData(user_id=user_id)
-    except InvalidTokenError:
+    except InvalidTokenError as e:
+        print(e)
         raise credentials_exception
     
     try:
         async with pool.acquire() as conn:
-            user_data = await conn.fetchrow("SELECT username, user_id, email FROM users WHERE user_id = $1", token_data.user_id)
-            if user_data is None:
+            # print(f"here {user_id}")
+            nom, id, mail = await conn.fetchrow("SELECT username, user_id, email FROM users WHERE user_id = $1", user_id)
+            if nom is None:
+                # print("here2")
                 raise credentials_exception
-            return User(username=user_data[0], id=user_data[1], email=user_data[2])
-    except Exception:
+            return User(username=nom, user_id=id, email=mail)
+    except Exception as e:
+        print(e)
         raise credentials_exception
 

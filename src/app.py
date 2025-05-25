@@ -12,6 +12,9 @@ from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
+from fastapi.middleware.cors import CORSMiddleware
+
+
 
 dotenv.load_dotenv()
 
@@ -27,6 +30,13 @@ async def lifespan(app: FastAPI):
     await app.state.pool.close()
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/register")
 async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREATED):
@@ -38,7 +48,6 @@ async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREA
     pwd = data.pwd
     try:
         async with app.state.pool.acquire() as conn:
-            print("here")
             user1 = await conn.fetchrow("SELECT user_id FROM users WHERE username = $1 OR email = $2", user, mail)
             if user1: 
                 status_code = status.HTTP_409_CONFLICT
@@ -64,9 +73,20 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], stat
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.user_id}, expires_delta=access_token_expires
+        data={"sub": str(user.user_id)}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+"""@app.post("/getuser")
+async def getuser(token: Annotated[str, Depends(oauth2_scheme)]) -> MessageResponseDataModel:
+    try:
+        # print(SECRET_KEY)
+        user = await get_current_user(token.strip(), app.state.pool)
+        return {"message": user.username}
+    except Exception as e: 
+        print(e)
+        return {"message": "something is wrong"}"""
+
 
 @app.post("/schedule")
 async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleResponseFormat:
