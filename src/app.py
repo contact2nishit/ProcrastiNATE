@@ -110,10 +110,10 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
         async with app.state.pool.acquire() as conn:
             for meeting in sched.meetings:
                 recurs: bool = len(meeting.start_end_times) > 1
-                meeting_id1: int = await conn.execute("INSERT INTO meetings(user_id, meeting_name, recurs) VALUES($1, $2, $3) RETURNING meeting_id", user.user_id, meeting.name, recurs)
+                meeting_id1: int = await conn.fetchval("INSERT INTO meetings(user_id, meeting_name, recurs) VALUES($1, $2, $3) RETURNING meeting_id", user.user_id, meeting.name, recurs)
                 occurence_ids = []
                 for times in meeting.start_end_times:
-                    occurence_id: int = await conn.execute("INSERT INTO meeting_occurences(user_id, meeting_id, start_time, end_time) VALUES($1, $2, $3, $4) RETURNING occurrence_id", user.user_id, meeting_id1, times[0], times[1])
+                    occurence_id: int = await conn.fetchval("INSERT INTO meeting_occurences(user_id, meeting_id, start_time, end_time) VALUES($1, $2, $3, $4) RETURNING occurrence_id", user.user_id, meeting_id1, times[0], times[1])
                     occurence_ids += [occurence_id]
                 meeting_response = MeetingInResponse(ocurrence_ids=occurence_ids, meeting_id=meeting_id1, name=meeting.name, start_end_times=meeting.start_end_times, link_or_loc=meeting.link_or_loc)
                 meeting_resp += [meeting_response]

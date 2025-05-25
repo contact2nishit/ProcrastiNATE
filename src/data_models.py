@@ -78,7 +78,7 @@ class AssignmentInRequest(BaseModel):
 class ChoreInRequest(BaseModel): 
     """Name, window in which the chore needs to be completed, and the minutes taken to complete"""
     name: str
-    window: List[datetime] # start/end time
+    window: List[datetime] # start/end time; MUST HAVE exactly 2 elements
     effort: int
 
 class ScheduleRequest(BaseModel):
