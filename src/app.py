@@ -13,6 +13,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
+from scheduler import *
 
 
 
@@ -83,6 +84,8 @@ async def getuser(token: Annotated[str, Depends(oauth2_scheme)]) -> MessageRespo
         # print(SECRET_KEY)
         user = await get_current_user(token.strip(), app.state.pool)
         return {"message": user.username}
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e: 
         print(e)
         return {"message": "something is wrong"}"""
@@ -92,9 +95,38 @@ async def getuser(token: Annotated[str, Depends(oauth2_scheme)]) -> MessageRespo
 async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleResponseFormat:
     """Sets in stone the meetings in the request, and then returns a list of possible ways to arrange times to work on assignments and chores"""
     # TODO: Major improvements needed to scheduling algo
-    # TODO: Ensure assignments/chores don't conflict with other assignments/chores. Right now, only checks meetings within the same request
+    # TODO: Ensure assignments/chores don't conflict with other assignments/chores. Right now, only checks meetings within the same request, need to also go into DB before
     # TODO: Should be able to interleave tasks: looks like this forces all tasks to be completed before moving to next
     # TODO: Check the use of random.sample() for chores. It might pick k samples (may repeat)
+    # TODO: check for conflicting meetings
+    # TODO: insert link_or_loc if not None
+    # TODO: clean up confusing naming
+    try:
+        user = await get_current_user(token.strip(), app.state.pool)
+        schedules = schedule_tasks(sched.meetings, sched.assignments, sched.chores) # 3 schedules for now
+        # for each meeting
+            # create a meeting in response object in parallel list
+        meeting_resp = []
+        async with app.state.pool.acquire() as conn:
+            for meeting in sched.meetings:
+                recurs: bool = len(meeting.start_end_times) > 1
+                meeting_id1: int = await conn.execute("INSERT INTO meetings(user_id, meeting_name, recurs) VALUES($1, $2, $3) RETURNING meeting_id", user.user_id, meeting.name, recurs)
+                occurence_ids = []
+                for times in meeting.start_end_times:
+                    occurence_id: int = await conn.execute("INSERT INTO meeting_occurences(user_id, meeting_id, start_time, end_time) VALUES($1, $2, $3, $4) RETURNING occurrence_id", user.user_id, meeting_id1, times[0], times[1])
+                    occurence_ids += [occurence_id]
+                meeting_response = MeetingInResponse(ocurrence_ids=occurence_ids, meeting_id=meeting_id1, name=meeting.name, start_end_times=meeting.start_end_times, link_or_loc=meeting.link_or_loc)
+                meeting_resp += [meeting_response]
+        return {"conflicting_meetings": [], "meetings": meeting_resp, "schedules": schedules}
+    except HTTPException as http_exc:
+        # Pass through known HTTP exceptions like 401
+        raise http_exc
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Something went wrong on the backend, please check the logs"
+        )
     
 
 @app.post("/setSchedule")
