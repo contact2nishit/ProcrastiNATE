@@ -18,7 +18,6 @@ dotenv.load_dotenv()
 
 
 
-
 @app.post("/register")
 async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREATED):
     if not data.username or not data.email or not data.pwd:

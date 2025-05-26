@@ -1,21 +1,34 @@
-import React, { useState } from 'react';
-import {
-  View,
-  SafeAreaView,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,
-  ScrollView,
-  Platform
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, SafeAreaView, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, Platform } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import DropDownPicker from 'react-native-dropdown-picker';
 
 export default function EventSelection() {
+
   const [selected, setSelected] = useState('Meeting');
+
+  // Use a useEffect state hook to reset all input fields when selected changes:
+  useEffect(() => {
+    setHour1('01');
+    setMinute1('00');
+    setPeriod1('AM');
+    setHour2('01');
+    setMinute2('00');
+    setPeriod2('AM');
+    setName('');
+    setAssignment('');
+    setRecurrence(null);
+  }, [selected]);
+
+  const [open, setOpen] = useState(false);
+  const [recurrence, setRecurrence] = useState(null);
+  const [items, setItems] = useState([
+    { label: 'Daily', value: 'Daily' },
+    { label: 'Weekly', value: 'Weekly' }
+  ]);
 
   const [hour1, setHour1] = useState('01');
   const [minute1, setMinute1] = useState('00');
@@ -26,7 +39,6 @@ export default function EventSelection() {
   const [name, setName] = useState('');
 
   const [assignment, setAssignment] = useState('');
-  const [number, setNumber] = useState('');
 
   const hours = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
   const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
@@ -65,10 +77,36 @@ export default function EventSelection() {
 
   const handleMeeting = () => {
 
-    console.log("Start time: " + hour1 + ":" + minute1 + ":" + period1);
-    console.log("End time: " + hour2 + ":" + minute2 + ":" + period2);
-    console.log("Meeting name: " + name);
+    // Validate whether the user has entered all of the required fields:
+    // First check if the start time is before the end time:
+    const startTime = new Date();
+    startTime.setHours(parseInt(hour1), parseInt(minute1), 0);
+    const endTime = new Date();
+    endTime.setHours(parseInt(hour2), parseInt(minute2), 0);
+    if (period1 === 'PM') 
+    {
+      startTime.setHours(startTime.getHours() + 12);
+    }
+    if (period2 === 'PM') 
+    {
+      endTime.setHours(endTime.getHours() + 12);
+    }
+    if (startTime >= endTime) 
+    {
+      alert('End time must be after start time.');
+      return;
+    }
 
+    if (hour1 === '' || minute1 === '' || period1 === '' || hour2 === '' || minute2 === '' || period2 === '' || name === '') {
+      alert('Please fill in all fields.');
+      return;
+    }
+    else{
+      alert('Meeting added successfully!');
+      console.log("Start time: " + hour1 + ":" + minute1 + ":" + period1);
+      console.log("End time: " + hour2 + ":" + minute2 + ":" + period2);
+      console.log("Meeting name: " + name);
+    }
      //Reset the start and end times and AM/PM to default settings:
      setHour1('01');
      setMinute1('00');
@@ -77,6 +115,33 @@ export default function EventSelection() {
      setHour2('01');
      setMinute2('00');
      setPeriod2('AM');
+     setName('');
+  }
+
+  const handleAssignment = () => {
+    //First check if the date is valid (check if the date is NOT in the past):
+    const currentDate = new Date();
+    if (date < currentDate) {
+      alert('Please select a valid date and time.');
+      return;
+    }
+    
+    // Validate whether the user has entered all of the required fields:
+    if (assignment === '' || recurrence === '' || date === null) {
+      alert('Please fill in all fields.');
+      return;
+    }
+    else{
+      alert('Assignment added successfully!');
+      console.log("Assignment Name: " + assignment);
+      console.log("Assignment Deadline: " + formatDate(date));
+      console.log("Assignment Recurrence: " + recurrence);
+    }
+
+    // Reset the assignment name and recurrence to default settings:
+    setAssignment('');
+    setRecurrence(null);
+    setDate(new Date());
   }
 
 
@@ -116,7 +181,7 @@ export default function EventSelection() {
 
       {selected === 'Meeting' && (
         <ScrollView contentContainerStyle={styles.containerMeeting}>
-          <Text style={styles.header}>Set Up a Meeting</Text>
+          <Text style={styles.header}>Set up a Meeting</Text>
 
           <Text style={styles.meetingTime}>
             Start Time: {hour1}:{minute1} {period1}
@@ -177,58 +242,71 @@ export default function EventSelection() {
 
       {selected === "Assignment" && (
         <>
-            <ScrollView>
+            {/* <ScrollView> */}
                 <SafeAreaView>
                     <Text style = {styles.header}>
-                        Set Up an Assignment
+                        Set up an Assignment
                     </Text>
 
                     <Text style={styles.assignmentName}>Assignment Name:</Text>
                     <TextInput
-                        style={styles.input}
+                        style={styles.input2}
                         placeholder="Assignment"
                         placeholderTextColor="#aaa"
                         value={assignment}
                         onChangeText={setAssignment}
                     />
 
-                    <Text style = {styles.assignmentNum}># of Assignments:</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Enter a number"
-                        placeholderTextColor="#aaa"
-                        value={number}
-                        onChangeText={setNumber}
-                        keyboardType='number-pad'
-                    />
-
                     <Text style = {styles.assignmentDeadline}>Assignment Deadline:</Text>
-                    {/* Calendar Popup */}
-                    <TouchableOpacity 
-                        style={styles.dateButton} 
-                        onPress={showDatepicker}
-                    >
-                        <Text style={styles.dateButtonText}>
-                            {formatDate(date)}
-                        </Text>
+                    <View style={styles.pickerWrapper}>
+                      <DateTimePicker
+                        testID="dateTimePicker"
+                        value={date}
+                        mode="datetime"
+                        display="compact" // or 'compact' if you want a more compact style
+                        textColor="white" // Only works on iOS
+                        onChange={onDateChange}
+                        style={styles.pickerIOS}
+                      />
+                    </View>
+
+                    <Text style = {styles.assignmentDeadline}>Assignment Recurrence:</Text>
+                    <View style={styles.pickerAssignmentWrapper}>
+                      {/* Have a dropdown which has two options: daily and weekly */}
+                      <DropDownPicker
+                        open={open}
+                        value={recurrence}
+                        items={items}
+                        setOpen={setOpen}
+                        setValue={setRecurrence}
+                        setItems={setItems}
+                        placeholder="Select Frequency"
+                        textStyle={{ color: 'black', fontSize: 16 }}
+                        style={styles.pickerAssignment}
+                        dropDownContainerStyle={{ zIndex: 1000, width: 200}}
+                      />
+
+                    </View>
+
+                    {/* Button to add the event */}
+                    <TouchableOpacity style={styles.addAssignment} onPress={() => {
+                        handleAssignment();
+                    }}>
+                      <Text style={styles.eventText}>Add Event</Text>
                     </TouchableOpacity>
 
-                    {showDatePicker && (
-                        <DateTimePicker
-                            testID="dateTimePicker"
-                            value={date}
-                            mode="date"
-                            is24Hour={true}
-                            display="default"
-                            onChange={onDateChange}
-                            style = {styles.calendar}
-                        />
-                    )}
+                    <TouchableOpacity 
+                        style={styles.backButton2} 
+                        onPress={() => {
+                          navigation.replace('Home');
+                        }}
+                      >
+                      <Text style={styles.eventText}>Go to home</Text>
+                    </TouchableOpacity>
+                    
                 </SafeAreaView>
 
-            </ScrollView>
-
-        
+            {/* </ScrollView> */}
         </>
       )}
 
@@ -370,6 +448,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#222',
   },
 
+  input2:{
+    borderWidth: 1,
+    borderColor: '#888',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+    color: 'white',
+    backgroundColor: '#222',
+    marginLeft: 10,
+    width: '90%',
+  },
 
   addButton: {
     backgroundColor: 'white',
@@ -399,6 +488,25 @@ const styles = StyleSheet.create({
     fontSize:20,
     color:'white',
     marginBottom:10,
+    marginLeft: 10,
+  },
+
+  addAssignment:{
+    backgroundColor:'white',
+    borderRadius:8,
+    paddingVertical:12,
+    marginTop:150,
+    width:'80%',
+    alignSelf:'center',
+  },
+
+  backButton2:{
+    backgroundColor:'white',
+    borderRadius:8,
+    paddingVertical:12,
+    marginTop:8,
+    width:'80%',
+    alignSelf:'center',
   },
 
   assignmentNum:{
@@ -406,6 +514,7 @@ const styles = StyleSheet.create({
     color:'white',
     marginBottom:10,
     marginTop:20,
+    marginLeft: 10,
   },
 
   assignmentDeadline:{
@@ -413,35 +522,37 @@ const styles = StyleSheet.create({
     color:'white',
     marginBottom:10,
     marginTop:20,
+    marginLeft: 10,
   },
 
 
-  dateButton:{
-    backgroundColor:'white',
-    width: 100,
-    height:30,
+  pickerWrapper: {
+    backgroundColor: '#222',
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    marginLeft: 10,
   },
 
-  dateButtonText:{
-    textAlignVertical:'center',
-    fontSize:15,
-    alignContent:'center',
+  pickerIOS: {
+    backgroundColor: 'gray',
+    borderRadius:10,
+    width: 'auto',
   },
 
-  calendar:{
-    backgroundColor:'white',
-    marginLeft:150,
-    marginTop:-30,
-    padding: 0,
-  }
+  pickerAssignmentWrapper:{
+    backgroundColor: 'black',
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    marginLeft: 10,
+  },
 
-
-
-
-
-    
-    
-
+  pickerAssignment:{
+    marginVertical: 5, 
+    zIndex: 1000, 
+    width: 200,
+  },
 
 
 });
