@@ -21,6 +21,7 @@ export default function EventSelection() {
     setName('');
     setAssignment('');
     setRecurrence(null);
+    setDate(new Date());
   }, [selected]);
 
   const [open, setOpen] = useState(false);
@@ -54,17 +55,12 @@ export default function EventSelection() {
 
 
   const [date, setDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  // const [showDatePicker, setShowDatePicker] = useState(false);
 
   const onDateChange = (event, selectedDate) => {
     const currDate = selectedDate || date;
-    setShowDatePicker(Platform.OS === 'ios');
     setDate(currDate);
   }
-
-  const showDatepicker = () => {
-    setShowDatePicker(true);
-  };
 
    const formatDate = (date) => {
     return date.toLocaleDateString('en-US', {
@@ -77,6 +73,10 @@ export default function EventSelection() {
 
   const handleMeeting = () => {
 
+    if (hour1 === '' || minute1 === '' || period1 === '' || hour2 === '' || minute2 === '' || period2 === '' || name === '') {
+      alert('Please fill in all fields.');
+      return;
+    }
     // Validate whether the user has entered all of the required fields:
     // First check if the start time is before the end time:
     const startTime = new Date();
@@ -91,14 +91,10 @@ export default function EventSelection() {
     {
       endTime.setHours(endTime.getHours() + 12);
     }
+
     if (startTime >= endTime) 
     {
       alert('End time must be after start time.');
-      return;
-    }
-
-    if (hour1 === '' || minute1 === '' || period1 === '' || hour2 === '' || minute2 === '' || period2 === '' || name === '') {
-      alert('Please fill in all fields.');
       return;
     }
     else{
@@ -119,19 +115,20 @@ export default function EventSelection() {
   }
 
   const handleAssignment = () => {
-    //First check if the date is valid (check if the date is NOT in the past):
-    const currentDate = new Date();
-    if (date < currentDate) {
-      alert('Please select a valid date and time.');
-      return;
-    }
     
     // Validate whether the user has entered all of the required fields:
     if (assignment === '' || recurrence === '' || date === null) {
       alert('Please fill in all fields.');
       return;
     }
-    else{
+    //Second check if the date is valid (check if the date is NOT in the past):
+    const currentDate = new Date();
+    if (date < currentDate) {
+      alert('Please select a valid date and time.');
+      return;
+    }
+    else
+    {
       alert('Assignment added successfully!');
       console.log("Assignment Name: " + assignment);
       console.log("Assignment Deadline: " + formatDate(date));
@@ -219,7 +216,7 @@ export default function EventSelection() {
             </Picker>
           </View>
 
-          <Text style={styles.meetingName}>Meeting Name:</Text>
+          <Text style={styles.meetingName}>Name:</Text>
           <TextInput
             style={styles.input}
             placeholder="Meeting"
@@ -248,7 +245,7 @@ export default function EventSelection() {
                         Set up an Assignment
                     </Text>
 
-                    <Text style={styles.assignmentName}>Assignment Name:</Text>
+                    <Text style={styles.assignmentName}>Name:</Text>
                     <TextInput
                         style={styles.input2}
                         placeholder="Assignment"
@@ -257,7 +254,7 @@ export default function EventSelection() {
                         onChangeText={setAssignment}
                     />
 
-                    <Text style = {styles.assignmentDeadline}>Assignment Deadline:</Text>
+                    <Text style = {styles.assignmentDeadline}>Deadline:</Text>
                     <View style={styles.pickerWrapper}>
                       <DateTimePicker
                         testID="dateTimePicker"
@@ -270,7 +267,7 @@ export default function EventSelection() {
                       />
                     </View>
 
-                    <Text style = {styles.assignmentDeadline}>Assignment Recurrence:</Text>
+                    <Text style = {styles.assignmentDeadline}>Recurrence:</Text>
                     <View style={styles.pickerAssignmentWrapper}>
                       {/* Have a dropdown which has two options: daily and weekly */}
                       <DropDownPicker
@@ -313,14 +310,68 @@ export default function EventSelection() {
 
       {selected === "Chore/Study" && (
         <>
-            <ScrollView>
-                <SafeAreaView>
-                    <Text style = {styles.header}>
-                        Set Up Chore/Study
-                    </Text>
+              <SafeAreaView>
+                  <Text style = {styles.header}>
+                      Set up Chore/Study
+                  </Text>
 
-                </SafeAreaView>
-            </ScrollView>
+                  <Text style={styles.assignmentName}>Name:</Text>
+                    <TextInput
+                        style={styles.input2}
+                        placeholder="Chore"
+                        placeholderTextColor="#aaa"
+                        value={assignment}
+                        onChangeText={setAssignment}
+                    />
+
+                    <Text style = {styles.assignmentDeadline}>Deadline:</Text>
+                    <View style={styles.pickerWrapper}>
+                      <DateTimePicker
+                        testID="dateTimePicker"
+                        value={date}
+                        mode="datetime"
+                        display="compact" // or 'compact' if you want a more compact style
+                        textColor="white" // Only works on iOS
+                        onChange={onDateChange}
+                        style={styles.pickerIOS}
+                      />
+                    </View>
+
+                    <Text style = {styles.assignmentDeadline}>Recurrence:</Text>
+                    <View style={styles.pickerAssignmentWrapper}>
+                      {/* Have a dropdown which has two options: daily and weekly */}
+                      <DropDownPicker
+                        open={open}
+                        value={recurrence}
+                        items={items}
+                        setOpen={setOpen}
+                        setValue={setRecurrence}
+                        setItems={setItems}
+                        placeholder="Select Frequency"
+                        textStyle={{ color: 'black', fontSize: 16 }}
+                        style={styles.pickerAssignment}
+                        dropDownContainerStyle={{ zIndex: 1000, width: 200}}
+                      />
+
+                    </View>
+
+                    {/* Button to add the event */}
+                    <TouchableOpacity style={styles.addAssignment} onPress={() => {
+                        handleAssignment();
+                    }}>
+                      <Text style={styles.eventText}>Add Event</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={styles.backButton2} 
+                        onPress={() => {
+                          navigation.replace('Home');
+                        }}
+                      >
+                      <Text style={styles.eventText}>Go to home</Text>
+                    </TouchableOpacity>
+
+              </SafeAreaView>
         
         </>
       )}
@@ -370,8 +421,8 @@ const styles = StyleSheet.create({
 
   containerMeeting: {
     backgroundColor: 'black',
-    padding: 20,
-    paddingBottom: 60,
+    paddingHorizontal: 20,
+    paddingTop: 30,
     marginTop:-20,
   },
   header: {
@@ -463,7 +514,7 @@ const styles = StyleSheet.create({
   addButton: {
     backgroundColor: 'white',
     borderRadius: 8,
-    marginTop: 30,
+    marginTop: 60,
     paddingVertical: 12,
   },
 
