@@ -92,6 +92,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     except Exception:
         raise credentials_exception
 
+
 @app.post("/register")
 async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREATED):
     if not data.username or not data.email or not data.pwd:

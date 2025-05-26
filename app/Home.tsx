@@ -5,41 +5,45 @@ import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
 
-export default function Home() {
+export default function Home() 
+{
   const navigation = useNavigation();
   const [modalVisible, setModalVisible] = useState(false);
 
-  const handleBack = () => {
+  const handleBack = () => 
+  {
     navigation.navigate('index');
   };
 
-  const handleOption = (option) => {
-    
-    if(option == 'Option 1') 
-    {
-      navigation.navigate('Meeting');
-      setModalVisible(false);
-    }
+  const handleAddEvent = () => {
+    navigation.navigate('eventSelection');
+  }
 
-    else if(option == 'Option 2') 
-    {
-      navigation.navigate('Assignment');
-      setModalVisible(false);
-    }
-
-    else if(option == 'Option 3') 
-    {
-      navigation.navigate('ChoreStudy');
-      setModalVisible(false);
-    }
+  // const handleOption = (option) => {
     
-  };
+  //   if(option == 'Option 1') 
+  //   {
+  //     navigation.navigate('Meeting');
+  //     setModalVisible(false);
+  //   }
+
+  //   else if(option == 'Option 2') 
+  //   {
+  //     navigation.navigate('Assignment');
+  //     setModalVisible(false);
+  //   }
+
+  //   else if(option == 'Option 3') 
+  //   {
+  //     navigation.navigate('ChoreStudy');
+  //     setModalVisible(false);
+  //   }
 
   return (
     <SafeAreaView>
       <Text style={styles.welcomeText}>To Do List for Today (Testing):</Text>
 
-      <TouchableOpacity onPress={() => setModalVisible(true)}>
+      <TouchableOpacity onPress={handleAddEvent}>
         <Text style={styles.plus}>+</Text>
       </TouchableOpacity>
 
@@ -47,7 +51,7 @@ export default function Home() {
         <Text style={styles.buttonBack}>Back to Login</Text>
       </TouchableOpacity>
 
-      <Modal
+      {/* <Modal
         animationType="fade"
         transparent
         visible={modalVisible}
@@ -74,7 +78,7 @@ export default function Home() {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </Modal> */}
     </SafeAreaView>
   );
 }
