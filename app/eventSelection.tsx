@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Alert, View, SafeAreaView, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, Platform } from 'react-native';
+import { KeyboardAvoidingView, Alert, View, SafeAreaView, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, Platform } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from 'expo-router';
@@ -29,18 +29,17 @@ export default function EventSelection()
     startTime: string;
     endTime: string;
     name: string;
+    recurrence: null | string;
   };
 
   type Assignment = {
     name: string;
     deadline: string;
-    recurrence: null | string;
   };
 
   type Chore = {
     name: string;
     deadline: string;
-    recurrence: null | string;
   }
 
   const [open, setOpen] = useState(false);
@@ -101,7 +100,7 @@ export default function EventSelection()
   const handleMeeting = () => 
   {
 
-    if (hour1 === '' || minute1 === '' || period1 === '' || hour2 === '' || minute2 === '' || period2 === '' || name === '') {
+    if (hour1 === '' || minute1 === '' || period1 === '' || hour2 === '' || minute2 === '' || period2 === '' || name === '' || recurrence === null) {
       alert('Please fill in all fields.');
       return;
     }
@@ -130,6 +129,7 @@ export default function EventSelection()
       console.log("Start time: " + hour1 + ":" + minute1 + ":" + period1);
       console.log("End time: " + hour2 + ":" + minute2 + ":" + period2);
       console.log("Meeting name: " + name);
+      console.log("Recurrence: " + recurrence);
     }
 
     // Now, we need to add the meeting to the meetings list:
@@ -138,6 +138,7 @@ export default function EventSelection()
       startTime: `${hour1}:${minute1} ${period1}`,
       endTime: `${hour2}:${minute2} ${period2}`,
       name: name,
+      recurrence: recurrence,
     };
 
     setMeetings([...meetings, newMeeting]);
@@ -152,6 +153,7 @@ export default function EventSelection()
      setMinute2('00');
      setPeriod2('AM');
      setName('');
+     setRecurrence(null);
   }
 
 
@@ -159,7 +161,7 @@ export default function EventSelection()
   const handleAssignment = () => {
     
     // Validate whether the user has entered all of the required fields:
-    if (assignment === '' || recurrence === '' || date === null) {
+    if (assignment === '' || date === null) {
       alert('Please fill in all fields.');
       return;
     }
@@ -174,27 +176,24 @@ export default function EventSelection()
       alert('Assignment added successfully!');
       console.log("Assignment Name: " + assignment);
       console.log("Assignment Deadline: " + formatDate(date));
-      console.log("Assignment Recurrence: " + recurrence);
     }
     // Now, we need to add the assignment to the assignments list:
     const newAssignment = {
       name: assignment,
       deadline: formatDate(date),
-      recurrence: recurrence,
     };
 
     setAssignments([...assignments, newAssignment]);
 
     // Reset the assignment name and recurrence to default settings:
     setAssignment('');
-    setRecurrence(null);
     setDate(new Date());
   }
 
   const handleChore = () => 
   {
     // Validate whether the user has entered all of the required fields:
-    if (chore === '' || recurrence === '' || date === null) {
+    if (chore === '' || date === null) {
       alert('Please fill in all fields.');
       return;
     }
@@ -209,20 +208,17 @@ export default function EventSelection()
       alert('Chore added successfully!');
       console.log("Chore Name: " + chore);
       console.log("Chore Deadline: " + formatDate(date));
-      console.log("Chore Recurrence: " + recurrence);
     }
     // Now, we need to add the chore to the chores list:
     const newChore = {
       name: chore,
       deadline: formatDate(date),
-      recurrence: recurrence,
     };
 
     setChores([...chores, newChore]);
 
     // Reset the chore name and recurrence to default settings:
     setChore('');
-    setRecurrence(null);
     setDate(new Date());
   };
 
@@ -283,7 +279,7 @@ export default function EventSelection()
     // Show an alert with options to edit or delete the assignment
     Alert.alert(
       'Assignment Options',
-      `Assignment: ${assignment.name}\nDeadline: ${assignment.deadline}\nRecurrence: ${assignment.recurrence}`,
+      `Assignment: ${assignment.name}\nDeadline: ${assignment.deadline}`,
       [
         {
           text: 'Edit',
@@ -320,13 +316,14 @@ export default function EventSelection()
     // Show an alert with options to edit or delete the chore
     Alert.alert(
       'Chore Options',
-      `Chore: ${chore.name}\nDeadline: ${chore.deadline}\nRecurrence: ${chore.recurrence}`,
+      `Chore: ${chore.name}\nDeadline: ${chore.deadline}`,
       [
         {
           text: 'Edit',
           onPress: () => {
             console.log('Edit chore');
             // Implement edit functionality here
+            navigation.navigate('ChoreEdit', { chore, chores, setChores});
           },
         },
         {
@@ -379,63 +376,84 @@ export default function EventSelection()
       </View>
 
       {selected === 'Meeting' && (
-        <ScrollView contentContainerStyle={styles.containerMeeting}>
-          <Text style={styles.header}>Set up a Meeting</Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <ScrollView contentContainerStyle={styles.containerMeeting} keyboardShouldPersistTaps="handled">
+            <Text style={styles.header}>Set up a Meeting</Text>
 
-          <Text style={styles.meetingTime}>
-            Start Time: {hour1}:{minute1} {period1}
-          </Text>
+            <Text style={styles.meetingTime}>
+              Start Time: {hour1}:{minute1} {period1}
+            </Text>
 
-          <View style={styles.pickerRow}>
-            <Picker selectedValue={hour1} onValueChange={setHour1} style={styles.picker} itemStyle={styles.pickerItem}>
-            {hours.map((h) => <Picker.Item key={h} label={h} value={h}/>)}
-            </Picker>
-            <Text style={styles.colon}>:</Text>
-            <Picker selectedValue={minute1} onValueChange={setMinute1} style={styles.picker} itemStyle={styles.pickerItem}>
-              {minutes.map((m) => <Picker.Item key={m} label={m} value={m} />)}
-            </Picker>
-            <Picker selectedValue={period1} onValueChange={setPeriod1} style={styles.pickerLast} itemStyle={styles.pickerItem}>
-              <Picker.Item label="AM" value="AM" />
-              <Picker.Item label="PM" value="PM" />
-            </Picker>
-          </View>
-
-          <Text style={styles.meetingTime2}>
-            End Time: {hour2}:{minute2} {period2}
-          </Text>
-
-          <View style={styles.pickerRow}>
-            <Picker selectedValue={hour2} onValueChange={setHour2} style={styles.picker} itemStyle={styles.pickerItem}>
+            <View style={styles.pickerRow}>
+              <Picker selectedValue={hour1} onValueChange={setHour1} style={styles.picker} itemStyle={styles.pickerItem}>
               {hours.map((h) => <Picker.Item key={h} label={h} value={h}/>)}
-            </Picker>
-            <Text style={styles.colon}>:</Text>
-            <Picker selectedValue={minute2} onValueChange={setMinute2} style={styles.picker} itemStyle={styles.pickerItem}>
-              {minutes.map((m) => <Picker.Item key={m} label={m} value={m} />)}
-            </Picker>
-            <Picker selectedValue={period2} onValueChange={setPeriod2} style={styles.pickerLast} itemStyle={styles.pickerItem}>
-              <Picker.Item label="AM" value="AM" />
-              <Picker.Item label="PM" value="PM" />
-            </Picker>
-          </View>
+              </Picker>
+              <Text style={styles.colon}>:</Text>
+              <Picker selectedValue={minute1} onValueChange={setMinute1} style={styles.picker} itemStyle={styles.pickerItem}>
+                {minutes.map((m) => <Picker.Item key={m} label={m} value={m} />)}
+              </Picker>
+              <Picker selectedValue={period1} onValueChange={setPeriod1} style={styles.pickerLast} itemStyle={styles.pickerItem}>
+                <Picker.Item label="AM" value="AM" />
+                <Picker.Item label="PM" value="PM" />
+              </Picker>
+            </View>
 
-          <Text style={styles.meetingName}>Name:</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Meeting"
-            placeholderTextColor="#aaa"
-            value={name}
-            onChangeText={setName}
-          />
+            <Text style={styles.meetingTime2}>
+              End Time: {hour2}:{minute2} {period2}
+            </Text>
 
-          <TouchableOpacity style={styles.addButton} onPress = {handleMeeting}>
-            <Text style={styles.eventText}>Add Event</Text>
-          </TouchableOpacity>
+            <View style={styles.pickerRow}>
+              <Picker selectedValue={hour2} onValueChange={setHour2} style={styles.picker} itemStyle={styles.pickerItem}>
+                {hours.map((h) => <Picker.Item key={h} label={h} value={h}/>)}
+              </Picker>
+              <Text style={styles.colon}>:</Text>
+              <Picker selectedValue={minute2} onValueChange={setMinute2} style={styles.picker} itemStyle={styles.pickerItem}>
+                {minutes.map((m) => <Picker.Item key={m} label={m} value={m} />)}
+              </Picker>
+              <Picker selectedValue={period2} onValueChange={setPeriod2} style={styles.pickerLast} itemStyle={styles.pickerItem}>
+                <Picker.Item label="AM" value="AM" />
+                <Picker.Item label="PM" value="PM" />
+              </Picker>
+            </View>
 
-          <TouchableOpacity style={styles.backButton} onPress = {handlePrev}>
-            <Text style={styles.eventText}>Go to Home</Text>
-          </TouchableOpacity>
+            <Text style={styles.meetingName}>Name:</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Meeting"
+              placeholderTextColor="#aaa"
+              value={name}
+              onChangeText={setName}
+            />
 
-        </ScrollView>
+            {/* Place to add the dropdown for meeting recurrence: */}
+            <Text style={styles.meetingRecurrence}>Recurrence:</Text>
+              <View style={styles.pickerWrapperMeeting}>
+                <Picker
+                  selectedValue={recurrence}
+                  onValueChange={setRecurrence}
+                  style={styles.pickerMeeting}
+                  itemStyle={styles.pickerMeetingItem}
+                >
+                  <Picker.Item label="Select Frequency" value={null} />
+                  <Picker.Item label="Daily" value="daily" />
+                  <Picker.Item label="Weekly" value="weekly" />
+                  <Picker.Item label="Once" value="once" />
+                </Picker>
+              </View>
+
+            <TouchableOpacity style={styles.addButton} onPress = {handleMeeting}>
+              <Text style={styles.eventText}>Add Event</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.backButton} onPress = {handlePrev}>
+              <Text style={styles.eventText}>Go to Home</Text>
+            </TouchableOpacity>
+
+          </ScrollView>
+        </KeyboardAvoidingView>
       )}
 
 
@@ -469,9 +487,9 @@ export default function EventSelection()
                       />
                     </View>
 
-                    <Text style = {styles.assignmentDeadline}>Recurrence:</Text>
+                    {/* <Text style = {styles.assignmentDeadline}>Recurrence:</Text>
                     <View style={styles.pickerAssignmentWrapper}>
-                      {/* Have a dropdown which has two options: daily and weekly */}
+                      
                       <DropDownPicker
                         open={open}
                         value={recurrence}
@@ -485,7 +503,7 @@ export default function EventSelection()
                         dropDownContainerStyle={{ zIndex: 1000, width: 200}}
                       />
 
-                    </View>
+                    </View> */}
 
                     {/* Button to add the event */}
                     <TouchableOpacity style={styles.addAssignment} onPress={() => {
@@ -539,9 +557,8 @@ export default function EventSelection()
                       />
                     </View>
 
-                    <Text style = {styles.assignmentDeadline}>Recurrence:</Text>
+                    {/* <Text style = {styles.assignmentDeadline}>Recurrence:</Text>
                     <View style={styles.pickerChoreWrapper}>
-                      {/* Have a dropdown which has two options: daily and weekly */}
                       <DropDownPicker
                         open={open}
                         value={recurrence}
@@ -554,11 +571,10 @@ export default function EventSelection()
                         style={styles.pickerChore}
                         dropDownContainerStyle={{ zIndex: 1000, width: 200}}
                       />
-
-                    </View>
+                    </View> */}
 
                     {/* Button to add the event */}
-                    <TouchableOpacity style={styles.addAssignment} onPress={() => {
+                    <TouchableOpacity style={styles.addChore} onPress={() => {
                         handleChore();
                     }}>
                       <Text style={styles.eventText}>Add Event</Text>
@@ -754,6 +770,36 @@ const styles = StyleSheet.create({
     marginLeft:15,
   },
 
+  pickerWrapperMeeting: {
+    backgroundColor: '#222',
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginTop: 10,
+  },
+
+  pickerMeeting: {
+    height: 130,
+    width: 220,
+    color: 'white',
+    backgroundColor: '#222',
+    borderRadius: 20,
+  },
+
+  pickerMeetingItem: {
+    fontSize: 20,
+    color: 'white',
+    textAlign: 'center',
+    height: 120,
+    lineHeight: 120,
+  },
+
+  meetingRecurrence:{
+    fontSize: 18,
+    color: 'white',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+
   meetingName: {
     fontSize: 18,
     color: 'white',
@@ -815,6 +861,15 @@ const styles = StyleSheet.create({
   },
 
   addAssignment:{
+    backgroundColor:'white',
+    borderRadius:8,
+    paddingVertical:12,
+    marginTop:150,
+    width:'80%',
+    alignSelf:'center',
+  },
+
+  addChore:{
     backgroundColor:'white',
     borderRadius:8,
     paddingVertical:12,
