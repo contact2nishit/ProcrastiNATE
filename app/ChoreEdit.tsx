@@ -43,7 +43,7 @@ export default function ChoreEdit() {
         // This screen is for editing (start/end times, meeting name) a meething which has been passed from the Meeting screen
         <View style={styles.container}>
             <ScrollView>
-                <Text style={styles.title}>Edit Chore</Text>
+                <Text style={styles.title}>Edit Chfore</Text>
                 
                 <TextInput
                     style={styles.input}

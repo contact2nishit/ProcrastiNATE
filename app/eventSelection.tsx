@@ -5,6 +5,7 @@ import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import DropDownPicker from 'react-native-dropdown-picker';
+import { useRef } from 'react';
 
 export default function EventSelection() 
 {
@@ -13,14 +14,16 @@ export default function EventSelection()
 
   // Use a useEffect state hook to reset all input fields when selected changes:
   useEffect(() => {
-    setHour1('01');
-    setMinute1('00');
-    setPeriod1('AM');
-    setHour2('01');
-    setMinute2('00');
-    setPeriod2('AM');
+    setStartDateTime(new Date());
+    setEndDateTime(new Date());
+    setMeetingRepeatEnd(new Date());
     setName('');
     setAssignment('');
+    setAssignmentEffort('');
+    setChore('');
+    setChoreEffort('');
+    setChoreWindowStart(new Date());
+    setChoreWindowEnd(new Date());
     setRecurrence(null);
     setDate(new Date());
   }, [selected]);
@@ -35,11 +38,14 @@ export default function EventSelection()
   type Assignment = {
     name: string;
     deadline: string;
+    effort: number;
   };
 
   type Chore = {
     name: string;
-    deadline: string;
+    windowStart: string;
+    windowEnd: string;
+    effort: number;
   }
 
   const [open, setOpen] = useState(false);
@@ -50,19 +56,21 @@ export default function EventSelection()
     { label: 'Once', value: 'Once' }
   ]);
 
-  const [hour1, setHour1] = useState('01');
-  const [minute1, setMinute1] = useState('00');
-  const [period1, setPeriod1] = useState('AM');
-  const [hour2, setHour2] = useState('01');
-  const [minute2, setMinute2] = useState('00');
-  const [period2, setPeriod2] = useState('AM');
+  const [startDateTime, setStartDateTime] = useState(new Date());
+  const [endDateTime, setEndDateTime] = useState(new Date());
   const [name, setName] = useState('');
 
   const [assignment, setAssignment] = useState('');
   const [chore, setChore] = useState('');
 
-  const hours = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
-  const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+  // Assignment and Chore state for new fields
+  const [assignmentEffort, setAssignmentEffort] = useState('');
+  const [choreEffort, setChoreEffort] = useState('');
+  const [choreWindowStart, setChoreWindowStart] = useState(new Date());
+  const [choreWindowEnd, setChoreWindowEnd] = useState(new Date());
+
+  // Add state for end repeat date for meetings
+  const [meetingRepeatEnd, setMeetingRepeatEnd] = useState(new Date());
 
   const navItems = [
     { label: 'Meeting', icon: 'calendar-alt' },
@@ -80,8 +88,39 @@ export default function EventSelection()
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [chores, setChores] = useState<Chore[]>([]);
 
+  // Maintain a JSON object matching the backend schemas
+  const [backendJSON, setBackendJSON] = useState({
+    meetings: [],
+    assignments: [],
+    chores: [],
+  });
 
-
+  // Helper to update backendJSON after adding an item
+  const updateBackendJSON = (type, item, recurrence = null) => {
+    setBackendJSON(prev => {
+      const updated = { ...prev };
+      // For meetings, handle recurrence: add a new occurrence if meeting with same name exists
+      if (type === 'meetings' && recurrence) {
+        // Find if meeting with same name exists
+        const idx = updated.meetings.findIndex(m => m.name === item.name);
+        if (idx !== -1) {
+          // Append occurrence to start_end_times
+          updated.meetings[idx] = {
+            ...updated.meetings[idx],
+            start_end_times: [
+              ...updated.meetings[idx].start_end_times,
+              ...item.start_end_times
+            ]
+          };
+        } else {
+          updated.meetings = [...updated.meetings, item];
+        }
+      } else {
+        updated[type] = [...updated[type], item];
+      }
+      return updated;
+    });
+  };
 
   const onDateChange = (event, selectedDate) => {
     const currDate = selectedDate || date;
@@ -100,126 +139,160 @@ export default function EventSelection()
   const handleMeeting = () => 
   {
 
-    if (hour1 === '' || minute1 === '' || period1 === '' || hour2 === '' || minute2 === '' || period2 === '' || name === '' || recurrence === null) {
+    if (!name || !recurrence || !startDateTime || !endDateTime) {
       alert('Please fill in all fields.');
       return;
     }
-    // Validate whether the user has entered all of the required fields:
-    // First check if the start time is before the end time:
-    const startTime = new Date();
-    startTime.setHours(parseInt(hour1), parseInt(minute1), 0);
-    const endTime = new Date();
-    endTime.setHours(parseInt(hour2), parseInt(minute2), 0);
-    if (period1 === 'PM') 
-    {
-      startTime.setHours(startTime.getHours() + 12);
-    }
-    if (period2 === 'PM') 
-    {
-      endTime.setHours(endTime.getHours() + 12);
-    }
-
-    if (startTime >= endTime) 
-    {
+    if (startDateTime >= endDateTime) {
       alert('End time must be after start time.');
       return;
     }
-    else{
-      alert('Meeting added successfully!');
-      console.log("Start time: " + hour1 + ":" + minute1 + ":" + period1);
-      console.log("End time: " + hour2 + ":" + minute2 + ":" + period2);
-      console.log("Meeting name: " + name);
-      console.log("Recurrence: " + recurrence);
+    if ((recurrence === "daily" || recurrence === "weekly") && meetingRepeatEnd <= startDateTime) {
+      alert('Repeat end date must be after start date for recurring meetings.');
+      return;
     }
+    alert('Meeting added successfully!');
+    console.log("Start time: " + startDateTime.toString());
+    console.log("End time: " + endDateTime.toString());
+    console.log("Meeting name: " + name);
+    console.log("Recurrence: " + recurrence);
 
-    // Now, we need to add the meeting to the meetings list:
-    // Meeting information should include start/end times and name for now:
     const newMeeting = {
-      startTime: `${hour1}:${minute1} ${period1}`,
-      endTime: `${hour2}:${minute2} ${period2}`,
+      startTime: startDateTime.toString(),
+      endTime: endDateTime.toString(),
       name: name,
       recurrence: recurrence,
     };
 
     setMeetings([...meetings, newMeeting]);
 
+    // Generate all occurrences for MeetingInRequest
+    const start_end_times = generateMeetingOccurrences(
+      startDateTime,
+      endDateTime,
+      recurrence && typeof recurrence === "string" ? recurrence.toLowerCase() : null,
+      meetingRepeatEnd
+    );
 
-     //Reset the start and end times and AM/PM to default settings:
-     setHour1('01');
-     setMinute1('00');
-     setPeriod1('AM');
+    updateBackendJSON(
+      'meetings',
+      {
+        name,
+        start_end_times,
+        link_or_loc: null,
+      }
+    );
 
-     setHour2('01');
-     setMinute2('00');
-     setPeriod2('AM');
-     setName('');
-     setRecurrence(null);
+    setStartDateTime(new Date());
+    setEndDateTime(new Date());
+    setMeetingRepeatEnd(new Date());
+    setName('');
+    setRecurrence(null);
   }
 
+  // Helper to generate start_end_times for recurring meetings
+  function generateMeetingOccurrences(start: Date, end: Date, recurrence: string | null, repeatEnd: Date) {
+    const occurrences: [string, string][] = [];
+    let currStart = new Date(start);
+    let currEnd = new Date(end);
 
+    if (!recurrence || recurrence === "once") {
+      occurrences.push([currStart.toISOString(), currEnd.toISOString()]);
+      return occurrences;
+    }
+
+    // Ensure repeatEnd is after start
+    if (repeatEnd <= currStart) {
+      occurrences.push([currStart.toISOString(), currEnd.toISOString()]);
+      return occurrences;
+    }
+
+    let step: number;
+    if (recurrence === "daily") {
+      step = 1;
+    } else if (recurrence === "weekly") {
+      step = 7;
+    } else {
+      occurrences.push([currStart.toISOString(), currEnd.toISOString()]);
+      return occurrences;
+    }
+
+    while (currStart <= repeatEnd) {
+      occurrences.push([currStart.toISOString(), currEnd.toISOString()]);
+      currStart = new Date(currStart.getTime() + step * 24 * 60 * 60 * 1000);
+      currEnd = new Date(currEnd.getTime() + step * 24 * 60 * 60 * 1000);
+    }
+    return occurrences;
+  }
 
   const handleAssignment = () => {
-    
-    // Validate whether the user has entered all of the required fields:
-    if (assignment === '' || date === null) {
+    if (assignment === '' || assignmentEffort === '' || date === null) {
       alert('Please fill in all fields.');
       return;
     }
-    //Second check if the date is valid (check if the date is NOT in the past):
     const currentDate = new Date();
     if (date < currentDate) {
       alert('Please select a valid date and time.');
       return;
     }
-    else
-    {
-      alert('Assignment added successfully!');
-      console.log("Assignment Name: " + assignment);
-      console.log("Assignment Deadline: " + formatDate(date));
+    if (isNaN(Number(assignmentEffort)) || Number(assignmentEffort) <= 0) {
+      alert('Effort must be a positive number.');
+      return;
     }
-    // Now, we need to add the assignment to the assignments list:
+    alert('Assignment added successfully!');
     const newAssignment = {
       name: assignment,
-      deadline: formatDate(date),
+      deadline: date.toISOString(),
+      effort: Number(assignmentEffort),
     };
-
     setAssignments([...assignments, newAssignment]);
 
-    // Reset the assignment name and recurrence to default settings:
+    // Backend schema: AssignmentInRequest
+    updateBackendJSON('assignments', {
+      name: assignment,
+      effort: Number(assignmentEffort),
+      due: date.toISOString(),
+    });
+
     setAssignment('');
+    setAssignmentEffort('');
     setDate(new Date());
+    console.log(backendJSON);
   }
 
-  const handleChore = () => 
-  {
-    // Validate whether the user has entered all of the required fields:
-    if (chore === '' || date === null) {
+  const handleChore = () => {
+    if (chore === '' || choreEffort === '' || !choreWindowStart || !choreWindowEnd) {
       alert('Please fill in all fields.');
       return;
     }
-    //Second check if the date is valid (check if the date is NOT in the past):
-    const currentDate = new Date();
-    if (date < currentDate) {
-      alert('Please select a valid date and time.');
+    if (choreWindowStart >= choreWindowEnd) {
+      alert('End time must be after start time.');
       return;
     }
-    else
-    {
-      alert('Chore added successfully!');
-      console.log("Chore Name: " + chore);
-      console.log("Chore Deadline: " + formatDate(date));
+    if (isNaN(Number(choreEffort)) || Number(choreEffort) <= 0) {
+      alert('Effort must be a positive number.');
+      return;
     }
-    // Now, we need to add the chore to the chores list:
+    alert('Chore added successfully!');
     const newChore = {
       name: chore,
-      deadline: formatDate(date),
+      windowStart: choreWindowStart.toISOString(),
+      windowEnd: choreWindowEnd.toISOString(),
+      effort: Number(choreEffort),
     };
-
     setChores([...chores, newChore]);
 
-    // Reset the chore name and recurrence to default settings:
+    // Backend schema: ChoreInRequest
+    updateBackendJSON('chores', {
+      name: chore,
+      window: [choreWindowStart.toISOString(), choreWindowEnd.toISOString()],
+      effort: Number(choreEffort),
+    });
+
     setChore('');
-    setDate(new Date());
+    setChoreEffort('');
+    setChoreWindowStart(new Date());
+    setChoreWindowEnd(new Date());
   };
 
 
@@ -353,7 +426,9 @@ export default function EventSelection()
               styles.navButton,
               selected === item.label && styles.navButtonSelected,
             ]}
-            onPress={() => setSelected(item.label)}
+            onPress={() => {setSelected(item.label);
+              console.log(backendJSON);
+            }}
             // Don't want flickers when switching between tabs
             activeOpacity={0.8}
           >
@@ -384,40 +459,60 @@ export default function EventSelection()
             <Text style={styles.header}>Set up a Meeting</Text>
 
             <Text style={styles.meetingTime}>
-              Start Time: {hour1}:{minute1} {period1}
+              Start Time:
             </Text>
-
-            <View style={styles.pickerRow}>
-              <Picker selectedValue={hour1} onValueChange={setHour1} style={styles.picker} itemStyle={styles.pickerItem}>
-              {hours.map((h) => <Picker.Item key={h} label={h} value={h}/>)}
-              </Picker>
-              <Text style={styles.colon}>:</Text>
-              <Picker selectedValue={minute1} onValueChange={setMinute1} style={styles.picker} itemStyle={styles.pickerItem}>
-                {minutes.map((m) => <Picker.Item key={m} label={m} value={m} />)}
-              </Picker>
-              <Picker selectedValue={period1} onValueChange={setPeriod1} style={styles.pickerLast} itemStyle={styles.pickerItem}>
-                <Picker.Item label="AM" value="AM" />
-                <Picker.Item label="PM" value="PM" />
-              </Picker>
+            <View style={styles.pickerWrapperMeeting}>
+              <DateTimePicker
+                testID="meetingStartTimePicker"
+                value={startDateTime}
+                mode="datetime"
+                display="compact"
+                textColor="white"
+                onChange={(event, selectedDate) => {
+                  if (selectedDate) setStartDateTime(selectedDate);
+                }}
+                style={styles.pickerMeeting}
+              />
             </View>
 
             <Text style={styles.meetingTime2}>
-              End Time: {hour2}:{minute2} {period2}
+              End Time:
             </Text>
-
-            <View style={styles.pickerRow}>
-              <Picker selectedValue={hour2} onValueChange={setHour2} style={styles.picker} itemStyle={styles.pickerItem}>
-                {hours.map((h) => <Picker.Item key={h} label={h} value={h}/>)}
-              </Picker>
-              <Text style={styles.colon}>:</Text>
-              <Picker selectedValue={minute2} onValueChange={setMinute2} style={styles.picker} itemStyle={styles.pickerItem}>
-                {minutes.map((m) => <Picker.Item key={m} label={m} value={m} />)}
-              </Picker>
-              <Picker selectedValue={period2} onValueChange={setPeriod2} style={styles.pickerLast} itemStyle={styles.pickerItem}>
-                <Picker.Item label="AM" value="AM" />
-                <Picker.Item label="PM" value="PM" />
-              </Picker>
+            <View style={styles.pickerWrapperMeeting}>
+              <DateTimePicker
+                testID="meetingEndTimePicker"
+                value={endDateTime}
+                mode="datetime"
+                display="compact"
+                textColor="white"
+                onChange={(event, selectedDate) => {
+                  if (selectedDate) setEndDateTime(selectedDate);
+                }}
+                style={styles.pickerMeeting}
+              />
             </View>
+
+            {/* Add End Repeat Date Picker for recurring meetings */}
+            {(recurrence === "daily" || recurrence === "weekly") && (
+              <>
+                <Text style={styles.meetingTime2}>
+                  End Repeat Date:
+                </Text>
+                <View style={styles.pickerWrapperMeeting}>
+                  <DateTimePicker
+                    testID="meetingRepeatEndPicker"
+                    value={meetingRepeatEnd}
+                    mode="date"
+                    display="compact"
+                    textColor="white"
+                    onChange={(event, selectedDate) => {
+                      if (selectedDate) setMeetingRepeatEnd(selectedDate);
+                    }}
+                    style={styles.pickerMeeting}
+                  />
+                </View>
+              </>
+            )}
 
             <Text style={styles.meetingName}>Name:</Text>
             <TextInput
@@ -456,141 +551,130 @@ export default function EventSelection()
         </KeyboardAvoidingView>
       )}
 
-
       {selected === "Assignment" && (
         <>
-            {/* <ScrollView> */}
-                <SafeAreaView>
-                    <Text style = {styles.header}>
-                        Set up an Assignment
-                    </Text>
+          <SafeAreaView>
+            <Text style={styles.header}>
+              Set up an Assignment
+            </Text>
 
-                    <Text style={styles.assignmentName}>Name:</Text>
-                    <TextInput
-                        style={styles.input2}
-                        placeholder="Assignment"
-                        placeholderTextColor="#aaa"
-                        value={assignment}
-                        onChangeText={setAssignment}
-                    />
+            <Text style={styles.assignmentName}>Name:</Text>
+            <TextInput
+              style={styles.input2}
+              placeholder="Assignment"
+              placeholderTextColor="#aaa"
+              value={assignment}
+              onChangeText={setAssignment}
+            />
 
-                    <Text style = {styles.assignmentDeadline}>Deadline:</Text>
-                    <View style={styles.pickerWrapper2}>
-                      <DateTimePicker
-                        testID="dateTimePicker"
-                        value={date}
-                        mode="datetime"
-                        display="compact" // or 'compact' if you want a more compact style
-                        textColor="white" // Only works on iOS
-                        onChange={onDateChange}
-                        style={styles.pickerIOS2}
-                      />
-                    </View>
+            <Text style={styles.assignmentName}>Effort (minutes):</Text>
+            <TextInput
+              style={styles.input2}
+              placeholder="Effort in minutes"
+              placeholderTextColor="#aaa"
+              keyboardType="numeric"
+              value={assignmentEffort}
+              onChangeText={setAssignmentEffort}
+            />
 
-                    {/* <Text style = {styles.assignmentDeadline}>Recurrence:</Text>
-                    <View style={styles.pickerAssignmentWrapper}>
-                      
-                      <DropDownPicker
-                        open={open}
-                        value={recurrence}
-                        items={items}
-                        setOpen={setOpen}
-                        setValue={setRecurrence}
-                        setItems={setItems}
-                        placeholder="Select Frequency"
-                        textStyle={{ color: 'black', fontSize: 16 }}
-                        style={styles.pickerAssignment}
-                        dropDownContainerStyle={{ zIndex: 1000, width: 200}}
-                      />
+            <Text style={styles.assignmentDeadline}>Deadline:</Text>
+            <View style={styles.pickerWrapper2}>
+              <DateTimePicker
+                testID="dateTimePicker"
+                value={date}
+                mode="datetime"
+                display="compact"
+                textColor="white"
+                onChange={onDateChange}
+                style={styles.pickerIOS2}
+              />
+            </View>
 
-                    </View> */}
+            <TouchableOpacity style={styles.addAssignment} onPress={handleAssignment}>
+              <Text style={styles.eventText}>Add Event</Text>
+            </TouchableOpacity>
 
-                    {/* Button to add the event */}
-                    <TouchableOpacity style={styles.addAssignment} onPress={() => {
-                        handleAssignment();
-                    }}>
-                      <Text style={styles.eventText}>Add Event</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                        style={styles.backButton2} 
-                        onPress={() => {
-                          navigation.replace('Home');
-                        }}
-                      >
-                      <Text style={styles.eventText}>Go to home</Text>
-                    </TouchableOpacity>
-                    
-                </SafeAreaView>
-
-            {/* </ScrollView> */}
+            <TouchableOpacity 
+              style={styles.backButton2} 
+              onPress={() => {
+                navigation.replace('Home');
+              }}
+            >
+              <Text style={styles.eventText}>Go to home</Text>
+            </TouchableOpacity>
+          </SafeAreaView>
         </>
       )}
 
-
       {selected === "Chore/Study" && (
         <>
-              <SafeAreaView>
-                  <Text style = {styles.header}>
-                      Set up Chore/Study
-                  </Text>
+          <SafeAreaView>
+            <Text style={styles.header}>
+              Set up Chore/Study
+            </Text>
 
-                  <Text style={styles.assignmentName}>Name:</Text>
-                    <TextInput
-                        style={styles.input2}
-                        placeholder="Chore"
-                        placeholderTextColor="#aaa"
-                        value={chore}
-                        onChangeText={setChore}
-                    />
+            <Text style={styles.assignmentName}>Name:</Text>
+            <TextInput
+              style={styles.input2}
+              placeholder="Chore"
+              placeholderTextColor="#aaa"
+              value={chore}
+              onChangeText={setChore}
+            />
 
-                    <Text style = {styles.assignmentDeadline}>Deadline:</Text>
-                    <View style={styles.pickerWrapper}>
-                      <DateTimePicker
-                        testID="dateTimePicker"
-                        value={date}
-                        mode="datetime"
-                        display="compact" // or 'compact' if you want a more compact style
-                        textColor="white" // Only works on iOS
-                        onChange={onDateChange}
-                        style={styles.pickerIOS}
-                      />
-                    </View>
+            <Text style={styles.assignmentName}>Effort (minutes):</Text>
+            <TextInput
+              style={styles.input2}
+              placeholder="Effort in minutes"
+              placeholderTextColor="#aaa"
+              keyboardType="numeric"
+              value={choreEffort}
+              onChangeText={setChoreEffort}
+            />
 
-                    {/* <Text style = {styles.assignmentDeadline}>Recurrence:</Text>
-                    <View style={styles.pickerChoreWrapper}>
-                      <DropDownPicker
-                        open={open}
-                        value={recurrence}
-                        items={items}
-                        setOpen={setOpen}
-                        setValue={setRecurrence}
-                        setItems={setItems}
-                        placeholder="Select Frequency"
-                        textStyle={{ color: 'black', fontSize: 16 }}
-                        style={styles.pickerChore}
-                        dropDownContainerStyle={{ zIndex: 1000, width: 200}}
-                      />
-                    </View> */}
+            <Text style={styles.assignmentDeadline}>Window Start:</Text>
+            <View style={styles.pickerWrapper}>
+              <DateTimePicker
+                testID="choreWindowStartPicker"
+                value={choreWindowStart}
+                mode="datetime"
+                display="compact"
+                textColor="white"
+                onChange={(event, selectedDate) => {
+                  if (selectedDate) setChoreWindowStart(selectedDate);
+                }}
+                style={styles.pickerIOS}
+              />
+            </View>
 
-                    {/* Button to add the event */}
-                    <TouchableOpacity style={styles.addChore} onPress={() => {
-                        handleChore();
-                    }}>
-                      <Text style={styles.eventText}>Add Event</Text>
-                    </TouchableOpacity>
+            <Text style={styles.assignmentDeadline}>Window End:</Text>
+            <View style={styles.pickerWrapper}>
+              <DateTimePicker
+                testID="choreWindowEndPicker"
+                value={choreWindowEnd}
+                mode="datetime"
+                display="compact"
+                textColor="white"
+                onChange={(event, selectedDate) => {
+                  if (selectedDate) setChoreWindowEnd(selectedDate);
+                }}
+                style={styles.pickerIOS}
+              />
+            </View>
 
-                    <TouchableOpacity 
-                        style={styles.backButton2} 
-                        onPress={() => {
-                          navigation.replace('Home');
-                        }}
-                      >
-                      <Text style={styles.eventText}>Go to home</Text>
-                    </TouchableOpacity>
+            <TouchableOpacity style={styles.addChore} onPress={handleChore}>
+              <Text style={styles.eventText}>Add Event</Text>
+            </TouchableOpacity>
 
-              </SafeAreaView>
-        
+            <TouchableOpacity 
+              style={styles.backButton2} 
+              onPress={() => {
+                navigation.replace('Home');
+              }}
+            >
+              <Text style={styles.eventText}>Go to home</Text>
+            </TouchableOpacity>
+          </SafeAreaView>
         </>
       )}
 
