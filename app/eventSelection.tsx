@@ -595,7 +595,7 @@ export default function EventSelection()
               onChangeText={setAssignment}
             />
 
-            <Text style={styles.assignmentName}>Effort (minutes):</Text>
+            <Text style={styles.assignmentEffort}>Effort (minutes):</Text>
             <TextInput
               style={styles.input2}
               placeholder="Effort in minutes"
@@ -641,7 +641,7 @@ export default function EventSelection()
               Set up Chore/Study
             </Text>
 
-            <Text style={styles.assignmentName}>Name:</Text>
+            <Text style={styles.choreName}>Name:</Text>
             <TextInput
               style={styles.input2}
               placeholder="Chore"
@@ -650,7 +650,7 @@ export default function EventSelection()
               onChangeText={setChore}
             />
 
-            <Text style={styles.assignmentName}>Effort (minutes):</Text>
+            <Text style={styles.choreEffort}>Effort (minutes):</Text>
             <TextInput
               style={styles.input2}
               placeholder="Effort in minutes"
@@ -660,7 +660,7 @@ export default function EventSelection()
               onChangeText={setChoreEffort}
             />
 
-            <Text style={styles.assignmentDeadline}>Window Start:</Text>
+            <Text style={styles.choreStartDeadline}>Window Start:</Text>
             <View style={styles.pickerWrapper}>
               <DateTimePicker
                 testID="choreWindowStartPicker"
@@ -675,7 +675,7 @@ export default function EventSelection()
               />
             </View>
 
-            <Text style={styles.assignmentDeadline}>Window End:</Text>
+            <Text style={styles.choreEndDeadline}>Window End:</Text>
             <View style={styles.pickerWrapper}>
               <DateTimePicker
                 testID="choreWindowEndPicker"
@@ -850,13 +850,13 @@ const styles = StyleSheet.create({
   meetingTime: {
     fontSize: 18,
     color: 'white',
-    marginBottom: 10,
+    marginBottom: -2,
   },
   meetingTime2: {
     fontSize: 18,
     color: 'white',
     marginTop: 30,
-    marginBottom: 10,
+    marginBottom: -2,
   },
 
   pickerRow: {
@@ -908,7 +908,7 @@ const styles = StyleSheet.create({
     height: 130,
     width: 220,
     color: 'white',
-    backgroundColor: '#222',
+    backgroundColor: 'gray',
     borderRadius: 20,
   },
 
@@ -978,6 +978,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
+  eventText3:{
+    color: 'black',
+    fontSize: 16,
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+
 
   // Assignment Components:
   assignmentName:{
@@ -987,11 +994,34 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
 
+  assignmentEffort:{
+    fontSize:20,
+    color:'white',
+    marginBottom:10,
+    marginLeft: 10,
+    marginTop:20,
+  },
+
+  choreName:{
+    fontSize:20,
+    color:'white',
+    marginBottom:10,
+    marginLeft: 10,
+  },
+
+  choreEffort:{
+    fontSize:20,
+    color:'white',
+    marginBottom:10,
+    marginLeft: 10,
+    marginTop:20,
+  },
+
   addAssignment:{
     backgroundColor:'white',
     borderRadius:8,
     paddingVertical:12,
-    marginTop:150,
+    marginTop:140,
     width:'80%',
     alignSelf:'center',
   },
@@ -1000,7 +1030,7 @@ const styles = StyleSheet.create({
     backgroundColor:'white',
     borderRadius:8,
     paddingVertical:12,
-    marginTop:150,
+    marginTop:110,
     width:'80%',
     alignSelf:'center',
   },
@@ -1030,6 +1060,21 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
 
+  choreStartDeadline:{
+    fontSize:20,
+    color:'white',
+    marginBottom:-2,
+    marginTop:20,
+    marginLeft: 10,
+  },
+
+  choreEndDeadline:{
+    fontSize:20,
+    color:'white',
+    marginBottom:-2,
+    marginTop:20,
+    marginLeft: 10,
+  },
 
   pickerWrapper: {
     backgroundColor: '#222',
