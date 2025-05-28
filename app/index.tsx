@@ -11,15 +11,34 @@ export default function App() {
   const [backendURL, setBackendURL] = useState('');
   const navigation = useNavigation();
 
-  const handleSubmit = () => {
-    // Handle form submission here
-    console.log('Username:', username);
-    console.log('Password:', password);
-
-    // If user clicks on the sign in button, redirect to the home page:
-    navigation.replace('Home');
-
-    // You can send the data to a server or perform other actions
+  const handleSubmit = async () => {
+    try {
+      if (!backendURL) {
+        alert('Backend URL not set.');
+        return;
+      }
+      const formBody = `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+      const response = await fetch(`${backendURL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formBody,
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        alert('Login failed: ' + err);
+        return;
+      }
+      const data = await response.json();
+      // Save token for later use
+      if (data.access_token) {
+        await AsyncStorage.setItem('token', data.access_token);
+      }
+      navigation.replace('Home');
+    } catch (e) {
+      alert('Login error: ' + e);
+    }
   };
 
   const handleSignup = () => {
