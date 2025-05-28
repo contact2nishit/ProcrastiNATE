@@ -75,10 +75,10 @@ export default function MeetingEdit() {
                 {/* Recurrence Picker */}
                 <View style = {styles.pickerWrapperMeeting}>
                     <Picker
-                    selectedValue={recurrence}
-                    onValueChange={setRecurrence}
-                    style={styles.pickerMeeting}
-                    itemStyle={styles.pickerMeetingItem}
+                        selectedValue={recurrence}
+                        onValueChange={setRecurrence}
+                        style={styles.pickerMeeting}
+                        itemStyle={styles.pickerMeetingItem}
                     >
                         <Picker.Item label="Select Frequency" value={null} />
                         <Picker.Item label="Daily" value="daily" />

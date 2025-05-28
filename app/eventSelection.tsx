@@ -157,6 +157,14 @@ export default function EventSelection()
   }
 
 
+  const generateSchedules = () => 
+  {
+    console.log('Schedules will be generated based on events added.');
+
+    //Call the backend API endpoint: /schedule to generate potential schedules
+    //Then, call a new screen to display the generated schedules
+  }
+
 
   const handleAssignment = () => {
     
@@ -617,6 +625,7 @@ export default function EventSelection()
                     {meeting.startTime} - {meeting.endTime}
                   </Text>
                   <Text style={styles.meetingNameForEvents}>{meeting.name}</Text>
+                  <Text style={styles.meetingRecurrenceText}>{meeting.recurrence}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -658,7 +667,14 @@ export default function EventSelection()
               ))}
             </ScrollView>
 
-        
+            {/* Generate Schedule Button*/}
+            <TouchableOpacity
+              style = {styles.generateButton}
+              onPress = {generateSchedules}
+            >
+              <Text style = {styles.generateText}>Generate Schedules</Text>
+            </TouchableOpacity>
+
         
 
           </SafeAreaView>
@@ -976,7 +992,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginLeft: 10,
     width: 200,
-    height:80,
+    height:100,
     alignItems: 'center',
     color: 'black',
   },
@@ -990,6 +1006,13 @@ const styles = StyleSheet.create({
   meetingNameForEvents:{
     fontSize: 16,
     color: 'black',
+    fontWeight: 'bold',
+  },
+
+  meetingRecurrenceText:{
+    fontSize: 16,
+    color: 'black',
+    marginTop: 10,
     fontWeight: 'bold',
   },
 
@@ -1052,6 +1075,22 @@ const styles = StyleSheet.create({
   choreNameForEvents:{
     fontSize: 16,
     color: 'black',
+    fontWeight: 'bold',
+  },
+
+  generateButton: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    paddingVertical: 12,
+    marginTop: 80,
+    width: '80%',
+    alignSelf: 'center',
+  },
+
+  generateText: {
+    color: 'black',
+    fontSize: 16,
+    textAlign: 'center',
     fontWeight: 'bold',
   },
 
