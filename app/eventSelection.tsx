@@ -6,6 +6,7 @@ import { useNavigation } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function EventSelection() 
 {
@@ -135,6 +136,33 @@ export default function EventSelection()
     });
   };
 
+  const submitSchedule = async () => {
+    try {
+      const url = await AsyncStorage.getItem('backendURL');
+      const token = await AsyncStorage.getItem('token');
+      if (!url) {
+        alert('Backend URL not set.');
+        return;
+      }
+      const response = await fetch(`${url}/schedule`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(backendJSON),
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        alert('Failed to submit schedule: ' + err);
+        return;
+      }
+      const data = await response.json();
+      navigation.navigate('schedulePicker', { scheduleData: data });
+    } catch (e) {
+      alert('Error submitting schedule: ' + e);
+    }
+  };
 
   const handleMeeting = () => 
   {
@@ -735,12 +763,26 @@ export default function EventSelection()
               {chores.map((chore, index) => (
                 <TouchableOpacity key={index} style={styles.individualChore} onPress={() => editDeleteChore(index)}>
                   <Text style={styles.choreTimeForEvents}>
-                    {chore.deadline}
+                    {chore.windowEnd}
                   </Text>
                   <Text style={styles.choreNameForEvents}>{chore.name}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: 'white',
+                borderRadius: 8,
+                paddingVertical: 12,
+                margin: 20,
+                alignSelf: 'center',
+                width: '80%',
+              }}
+              onPress={submitSchedule}
+            >
+              <Text style={styles.eventText}>Submit Schedule</Text>
+            </TouchableOpacity>
 
         
         
