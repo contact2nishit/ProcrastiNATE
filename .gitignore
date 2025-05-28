@@ -11,6 +11,8 @@ expo-env.d.ts
 src/venv
 src/__pycache__
 src/.env
+tests/__pycache__
+tests/.pytest_cache
 
 # Native
 *.orig.*

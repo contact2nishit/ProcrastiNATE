@@ -2,28 +2,56 @@ import React, { useState, useEffect} from 'react';
 import { Button, View, Text, StyleSheet, TouchableOpacity, TextInput, Touchable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function App() {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [backendURL, setBackendURL] = useState('');
   const navigation = useNavigation();
 
-  const handleSubmit = () => {
-    // Handle form submission here
-    console.log('Username:', username);
-    console.log('Password:', password);
-
-    // If user clicks on the sign in button, redirect to the home page:
-    navigation.replace('Home');
-
-    // You can send the data to a server or perform other actions
+  const handleSubmit = async () => {
+    try {
+      if (!backendURL) {
+        alert('Backend URL not set.');
+        return;
+      }
+      const formBody = `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+      const response = await fetch(`${backendURL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formBody,
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        alert('Login failed: ' + err);
+        return;
+      }
+      const data = await response.json();
+      // Save token for later use
+      if (data.access_token) {
+        await AsyncStorage.setItem('token', data.access_token);
+      }
+      navigation.replace('Home');
+    } catch (e) {
+      alert('Login error: ' + e);
+    }
   };
 
   const handleSignup = () => {
     navigation.navigate('Signup');
   }
 
+  const handleBackendURLSave = async (url: string) => {
+    try {
+      await AsyncStorage.setItem('backendURL', url);
+    } catch (e) {
+      console.log('Failed to save backendURL:', e);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -52,6 +80,22 @@ export default function App() {
             secureTextEntry={true}
             value={password}
             onChangeText={setPassword}
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Backend URL</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="http://localhost:8000"
+            placeholderTextColor="#aaa"
+            value={backendURL}
+            onChangeText={text => {
+              setBackendURL(text);
+              handleBackendURLSave(text);
+            }}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
         </View>
 
