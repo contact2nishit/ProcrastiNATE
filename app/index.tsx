@@ -2,11 +2,13 @@ import React, { useState, useEffect} from 'react';
 import { Button, View, Text, StyleSheet, TouchableOpacity, TextInput, Touchable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function App() {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [backendURL, setBackendURL] = useState('');
   const navigation = useNavigation();
 
   const handleSubmit = () => {
@@ -24,6 +26,13 @@ export default function App() {
     navigation.navigate('Signup');
   }
 
+  const handleBackendURLSave = async (url: string) => {
+    try {
+      await AsyncStorage.setItem('backendURL', url);
+    } catch (e) {
+      console.log('Failed to save backendURL:', e);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -52,6 +61,22 @@ export default function App() {
             secureTextEntry={true}
             value={password}
             onChangeText={setPassword}
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Backend URL</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="http://localhost:8000"
+            placeholderTextColor="#aaa"
+            value={backendURL}
+            onChangeText={text => {
+              setBackendURL(text);
+              handleBackendURLSave(text);
+            }}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
         </View>
 
