@@ -61,9 +61,10 @@ def schedule_tasks(
     meetings: List[MeetingInRequest],
     assignments: List[AssignmentInRequest],
     chores: List[ChoreInRequest],
-    num_schedules: int = 3
+    num_schedules: int = 3,
+    now: datetime = None
 ) -> List[Schedule]:
-    now = datetime.now()
+    now = now or datetime.now()
     latest_time = max([a.due for a in assignments] + [c.window[1] for c in chores])
 
     # creates a list of tuple of meeting start and end times
