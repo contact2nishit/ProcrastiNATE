@@ -218,40 +218,75 @@ async def fetch(start_time: str, end_time: str, meetings: bool, assignments: boo
                 """, user.user_id, start_time, end_time)
             else:
                 chores = []
-            print(meetings, assignments, chores)
-            meetings_responses, assignments_responses, chore_responses = [], [], []
-            for row in meetings:
-                meeting_response = MeetingInResponse(
-                    occurence_ids=[row['occurence_id']],
-                    meetings_id=row['meeting_id'],
-                    name = row.meeting_name,
-                    start_end_times=[[row.start_time, row.end_time]],
-                    link_or_loc = row.link_or_loc
-                )
-                meetings_responses.append(meeting_response)
-            for row in assignments:
-                assignment_response = AssignmentInResponse(
-                    occurence_ids=[row['occurence_id']],
-                    assignment_id=row['assignment_id'],
-                    name = row.assignment_name,
-                    start_end_times=[[row.start_time, row.end_time]],
-                    effort = row.effort,
-                    due = row.deadline,
-                    # schedule=ScheduledTaskInfo(
-                    #     effort_assigned = 
-                    # )
-                )
-                assignments_responses.append(assignment_response)
-            for row in chores:
-                chore_response = ChoreInResponse(
-                    occurence_ids=[row['occurence_id']],
-                    chore_id=row['chore_id'],
-                    name = row.chore_name,
-                    start_end_times = [[row.start_time, row.end_time]],
-                    effort = row.effort,
-                    window = [row.start_window, row.end_window]
-                )
-            return FetchResponse(meetings=meetings, assignments=assignments, chores=chores)
+            # print(meetings, assignments, chores)
+            meetings_responses, assignments_responses, chores_responses = [], [], []
+            
+            if len(meetings) > 0:
+                partitioned_meetings = partition_by_meeting_id(meetings, 'meeting_id')
+                for occurence_list in partitioned_meetings:
+                    meeting_start_end_times = []
+                    meeting_occurence_ids = []
+                    for occurence in occurence_list:
+                        meeting_start_end_times += [[occurence['start_time'], occurence['end_time']]]
+                        meeting_occurence_ids += [occurence['occurence_id']]
+                    # print(occurence_list[0]['meeting_name'])
+                    meeting_response = MeetingInResponse(
+                        ocurrence_ids=meeting_occurence_ids,
+                        meeting_id=occurence_list[0]['meeting_id'],
+                        name = occurence_list[0]['meeting_name'],
+                        start_end_times=meeting_start_end_times
+                    )
+                    meetings_responses.append(meeting_response)
+            if len(assignments) > 0:
+                partitioned_assignments = partition_by_meeting_id(assignments, 'assignment_id')
+                for occurence_list in partitioned_assignments:
+                    ass_start_end_times: List[TimeSlot] = []
+                    ass_occurence_ids = []
+                    effort_assigned = 0
+                    for occurence in occurence_list:
+                        ass_start_end_times += [TimeSlot(start=occurence['start_time'], end=occurence['end_time'])]
+                        effort_assigned += (occurence['end_time'] - occurence['start_time']).total_seconds() // 60
+                        ass_occurence_ids += [occurence['occurence_id']]
+                    # print(occurence_list[0]['meeting_name'])
+
+                    assignment_response = AssignmentInResponse(
+                        ocurrence_ids=ass_occurence_ids,
+                        assignment_id=occurence_list[0]['assignment_id'],
+                        name = occurence_list[0]['assignment_name'],
+                        effort=occurence_list[0]['effort'],
+                        due=occurence_list[0]['deadline'],
+                        schedule = ScheduledTaskInfo(
+                            effort_assigned=effort_assigned,
+                            status="unschedulable" if effort_assigned == 0 else ("partially_scheduled" if effort_assigned < occurence['effort'] else "fully_scheduled"),
+                            slots = ass_start_end_times
+                        )
+                    )
+                    assignments_responses.append(assignment_response)
+            if len(assignments) > 0:
+                partitioned_chores = partition_by_meeting_id(chores, 'chore_id')
+                for occurence_list in partitioned_chores:
+                    chore_start_end_times: List[TimeSlot] = []
+                    chore_occurence_ids = []
+                    effort_assigned = 0
+                    for occurence in occurence_list:
+                        chore_start_end_times += [TimeSlot(start=occurence['start_time'], end=occurence['end_time'])]
+                        effort_assigned += (occurence['end_time'] - occurence['start_time']).total_seconds() // 60
+                        chore_occurence_ids += [occurence['occurence_id']]
+                    # print(occurence_list[0]['meeting_name'])
+                    chore_response = ChoreInResponse(
+                        ocurrence_ids=ass_occurence_ids,
+                        chore_id=occurence_list[0]['chore_id'],
+                        name = occurence_list[0]['chore_name'],
+                        effort=occurence_list[0]['effort'],
+                        window = [occurence_list[0]['start_window'], occurence_list[0]['end_window']],
+                        schedule = ScheduledTaskInfo(
+                            effort_assigned=effort_assigned,
+                            status="unschedulable" if effort_assigned == 0 else ("partially_scheduled" if effort_assigned < occurence['effort'] else "fully_scheduled"),
+                            slots = chore_start_end_times
+                        )
+                    )
+                    chores_responses.append(chore_response)
+            return FetchResponse(meetings=meetings_responses, assignments=assignments_responses, chores=chores_responses)
     except HTTPException as e:
         raise e
     except Exception as e:
