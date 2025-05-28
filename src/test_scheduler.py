@@ -28,7 +28,6 @@ def test_exact_fit_assignment():
     assert schedule.assignments[0].schedule.effort_assigned == 30
 
 
-
 def test_unschedulable_due_to_meetings():
     meetings = [MeetingInRequest(name="All Day", start_end_times=[create_slot(0, 240)])]
     assignments = [AssignmentInRequest(name="Blocked", effort=30, due=now + timedelta(hours=4))]
