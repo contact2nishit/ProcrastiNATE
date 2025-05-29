@@ -6,7 +6,7 @@ export default function SchedulePicker() {
   const navigation = useNavigation();
   // Get the scheduleData from route params
   const { scheduleData } = useLocalSearchParams();
-
+  console.log(scheduleData);
   // Defensive: parse if stringified
   const parsedData = typeof scheduleData === 'string' ? JSON.parse(scheduleData) : scheduleData;
 
