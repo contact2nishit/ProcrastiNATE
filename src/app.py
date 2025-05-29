@@ -152,7 +152,24 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
 @app.post("/setSchedule")
 async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleSetInStone:
     """Picks a "schedule" (a list of possible ways to arrange times to work on assignments and chores) and sets it in stone"""
-    pass
+    try:
+        async with app.state.pool.acquire() as conn:
+            user = await get_current_user(token, app.state.pool)
+            for assignment in chosen_schedule.assignments:
+                if assignment.due.tzinfo is None:
+                    assignment.due = assignment.due.replace(tzinfo=timezone.utc)
+                else:
+                    assignment.due = assignment.due.astimezone(timezone.utc)
+                assign_id = await conn.fetchval("INSERT INTO assignments(assignment_name, effort, deadline) VALUES($1, $2, $3) WHERE user_id = $4 RETURNING assignment_id", assignment.name, assignment.effort, assignment.due, user)
+                occurence_ids = []
+                for timeslot in assignment.schedule.slots:
+                    timeslot.start
+                
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 @app.post("/markSessionCompleted")
 async def mark_session_completed(complete: SessionCompletionDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> MessageResponseDataModel:
