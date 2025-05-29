@@ -102,39 +102,38 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
     # TODO: insert link_or_loc if not None
     # TODO: clean up confusing naming
     try:
-        print(sched)
         user = await get_current_user(token, app.state.pool)
         schedules = schedule_tasks(sched.meetings, sched.assignments, sched.chores) # 3 schedules for now
-        print("hi")
         meeting_resp = []
         async with app.state.pool.acquire() as conn:
             for meeting in sched.meetings:
                 recurs: bool = len(meeting.start_end_times) > 1
                 meeting_id1: int = await conn.fetchval("INSERT INTO meetings(user_id, meeting_name, recurs) VALUES($1, $2, $3) RETURNING meeting_id", user.user_id, meeting.name, recurs)
-                print("done1")
                 occurence_ids = []
                 for times in meeting.start_end_times:
-                    # Ensure times[0] and times[1] are both timezone-aware and in UTC, and convert to naive UTC if your DB expects naive
                     start = times[0]
                     end = times[1]
-                    # Convert to UTC if not already
-                    if start.tzinfo is None:
-                        start = start.replace(tzinfo=timezone.utc)
-                    else:
+
+                    if hasattr(start, 'tzinfo') and start.tzinfo is not None:
                         start = start.astimezone(timezone.utc)
-                    if end.tzinfo is None:
-                        end = end.replace(tzinfo=timezone.utc)
                     else:
+                        start = start.replace(tzinfo=timezone.utc)
+                    
+                    if hasattr(end, 'tzinfo') and end.tzinfo is not None:
                         end = end.astimezone(timezone.utc)
-                    # If your DB column is still TIMESTAMP (not TIMESTAMPTZ), strip tzinfo:
-                    # start = start.replace(tzinfo=None)
-                    # end = end.replace(tzinfo=None)
-                    print("start2")
+                    else:
+                        end = end.replace(tzinfo=timezone.utc)
+                    
+                    # print("start2")
+                    # print(f"Original: start={times[0]}, end={times[1]}")
+                    # print(f"Original tzinfo: start.tzinfo={times[0].tzinfo}, end.tzinfo={times[1].tzinfo}")
+                    # print(f"Processed: start={start}, end={end}")
+                    # print(f"Processed tzinfo: start.tzinfo={start.tzinfo}, end.tzinfo={end.tzinfo}")
+                    
                     occurence_id: int = await conn.fetchval(
                         "INSERT INTO meeting_occurences(user_id, meeting_id, start_time, end_time) VALUES($1, $2, $3, $4) RETURNING occurence_id",
                         user.user_id, meeting_id1, start, end
                     )
-                    print("done2")
                     occurence_ids += [occurence_id]
                 meeting_response = MeetingInResponse(ocurrence_ids=occurence_ids, meeting_id=meeting_id1, name=meeting.name, start_end_times=meeting.start_end_times, link_or_loc=meeting.link_or_loc)
                 meeting_resp += [meeting_response]
