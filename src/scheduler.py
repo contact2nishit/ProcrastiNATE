@@ -1,4 +1,3 @@
-
 from datetime import datetime, timedelta
 from typing import List, Tuple, Literal, Dict, Union
 from pydantic import BaseModel, Field
@@ -65,7 +64,20 @@ def schedule_tasks(
     now: datetime = None
 ) -> List[Schedule]:
     now = now or datetime.now()
-    latest_time = max([a.due for a in assignments] + [c.window[1] for c in chores])
+    # The following line will raise ValueError if both assignments and chores are empty:
+    # latest_time = max([a.due for a in assignments] + [c.window[1] for c in chores])
+    # If both lists are empty, max([]) is called, which is not allowed.
+
+    # Fix: Only call max() if the list is not empty, otherwise set a default
+    due_times = [a.due for a in assignments]
+    chore_end_times = [c.window[1] for c in chores]
+    all_times = due_times + chore_end_times
+    if all_times:
+        latest_time = max(all_times)
+    else:
+        # fallback: just use now + 1 day or raise a meaningful error
+        latest_time = now + timedelta(days=1)
+        # or: raise ValueError("No assignments or chores provided to schedule_tasks")
 
     # creates a list of tuple of meeting start and end times
     all_meeting_times: List[Tuple[datetime, datetime]] = [
