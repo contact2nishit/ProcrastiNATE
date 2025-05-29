@@ -146,15 +146,57 @@ async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(
     try:
         async with app.state.pool.acquire() as conn:
             user = await get_current_user(token, app.state.pool)
+            assignment_return_list:List[AssignmentInResponse] = []
             for assignment in chosen_schedule.assignments:
                 assignment.due = enforce_timestamp_utc(assignment.due)
-                assign_id = await conn.fetchval("INSERT INTO assignments(assignment_name, effort, deadline) VALUES($1, $2, $3) WHERE user_id = $4 RETURNING assignment_id", assignment.name, assignment.effort, assignment.due, user)
+                assign_id = await conn.fetchval("INSERT INTO assignments(assignment_name, effort, deadline, user_id) VALUES($1, $2, $3, $4) RETURNING assignment_id", assignment.name, assignment.effort, assignment.due, user)
                 occurence_ids = []
                 for timeslot in assignment.schedule.slots:
                     timeslot.start = enforce_timestamp_utc(timeslot.start)
                     timeslot.end = enforce_timestamp_utc(timeslot.end)
-                    
-                
+                    occurence_id = await conn.fetchval("INSERT INTO assignment_occurences(assignment_id, start_time, end_time, user_id), VALUES($1, $2, $3, $4) RETURNING occurence_id", assign_id, timeslot.start, timeslot.end, user)
+                    occurence_ids.append(occurence_id)
+                assignment_return = AssignmentInResponse(
+                    assignment_id = assign_id,
+                    occurence_ids = occurence_ids,
+                    name = assignment.name,
+                    effort = assignment.effort,
+                    deadline = assignment.due,
+                    schedule = ScheduledTaskInfo(
+                        effort_assigned = assignment.schedule.effort_assigned,
+                        status = assignment.schedule.status,
+                        slots = assignment.schedule.slots,
+                    )
+                )
+                assignment_return_list.append(assignment_return)
+
+            chore_return_list:List[ChoreInResponse] = []
+            for chore in chosen_schedule.chores:
+                chore.due = enforce_timestamp_utc(chore.due)
+                assign_id = await conn.fetchval("INSERT INTO chores(chore_name, effort, start_window, end_window, user_id) VALUES($1, $2, $3, $4, $5) RETURNING chore_id", chore.name, chore.effort, chore.window[0], chore.window[1], user)
+                occurence_ids = []
+                for timeslot in chore.schedule.slots:
+                    timeslot.start = enforce_timestamp_utc(timeslot.start)
+                    timeslot.end = enforce_timestamp_utc(timeslot.end)
+                    occurence_id = await conn.fetchval("INSERT INTO chore_occurences(chore_id, start_time, end_time, user_id), VALUES($1, $2, $3, $4) RETURNING occurence_id", assign_id, timeslot.start, timeslot.end, user)
+                    occurence_ids.append(occurence_id)
+                chore_return = ChoreInResponse(
+                    chore_id = assign_id,
+                    occurence_ids = occurence_ids,
+                    name = chore.name,
+                    effort = chore.effort,
+                    window = chore.window,
+                    schedule = ScheduledTaskInfo(
+                        effort_assigned = chore.schedule.effort_assigned,
+                        status = chore.schedule.status,
+                        slots = chore.schedule.slots,
+                    )
+                )
+                chore_return_list.append(chore_return)
+            return ScheduleSetInStone(
+                assignments = assignment_return_list,
+                chores = chore_return_list,
+            )     
     except HTTPException as e:
         raise e
     except Exception as e:
