@@ -156,14 +156,13 @@ async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(
         async with app.state.pool.acquire() as conn:
             user = await get_current_user(token, app.state.pool)
             for assignment in chosen_schedule.assignments:
-                if assignment.due.tzinfo is None:
-                    assignment.due = assignment.due.replace(tzinfo=timezone.utc)
-                else:
-                    assignment.due = assignment.due.astimezone(timezone.utc)
+                assignment.due = enforce_timestamp_utc(assignment.due)
                 assign_id = await conn.fetchval("INSERT INTO assignments(assignment_name, effort, deadline) VALUES($1, $2, $3) WHERE user_id = $4 RETURNING assignment_id", assignment.name, assignment.effort, assignment.due, user)
                 occurence_ids = []
                 for timeslot in assignment.schedule.slots:
-                    timeslot.start
+                    timeslot.start = enforce_timestamp_utc(timeslot.start)
+                    timeslot.end = enforce_timestamp_utc(timeslot.end)
+                    
                 
     except HTTPException as e:
         raise e
