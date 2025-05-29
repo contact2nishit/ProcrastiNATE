@@ -113,17 +113,8 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
                 for times in meeting.start_end_times:
                     start = times[0]
                     end = times[1]
-
-                    if hasattr(start, 'tzinfo') and start.tzinfo is not None:
-                        start = start.astimezone(timezone.utc)
-                    else:
-                        start = start.replace(tzinfo=timezone.utc)
-                    
-                    if hasattr(end, 'tzinfo') and end.tzinfo is not None:
-                        end = end.astimezone(timezone.utc)
-                    else:
-                        end = end.replace(tzinfo=timezone.utc)
-                    
+                    start = enforce_timestamp_utc(start)
+                    end = enforce_timestamp_utc(end)
                     # print("start2")
                     # print(f"Original: start={times[0]}, end={times[1]}")
                     # print(f"Original tzinfo: start.tzinfo={times[0].tzinfo}, end.tzinfo={times[1].tzinfo}")
