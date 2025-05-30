@@ -212,8 +212,19 @@ async def mark_session_completed(complete: SessionCompletionDataModel, token: An
     """Mark one session of time allocated to work on an assignment (could be multiple sessions per assignment) as complete or incomplete"""
     try:
         async with app.state.pool.acquire() as conn:
-            user = get_current_user(token, app.state.pool)
-            
+            user = await get_current_user(token, app.state.pool)
+            if complete.is_assignment:
+                assignment_id = await conn.fetchval('UPDATE assignment_occurences SET completed = $1 WHERE occurence_id = $2 RETURNING assignment_id', complete.completed, complete.occurence_id)
+                if assignment_id is not None:
+                    return MessageResponseDataModel(message='Successfully marked assignment as complete!')
+                else:
+                    return MessageResponseDataModel(message='Could not find the assignment')
+            else:
+                chore_id = await conn.fetchval('UPDATE chore_occurences SET completed = $1 WHERE occurence_id = $2 RETURNING chore_id', complete.completed, complete.occurence_id)
+                if chore_id is not None:
+                    return MessageResponseDataModel(message='Successfully marked chore as complete!')
+                else:
+                    return MessageResponseDataModel(message='Could not find the chore')
     except HTTPException as e:
         raise e
     except Exception as e:
