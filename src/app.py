@@ -210,7 +210,15 @@ async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(
 @app.post("/markSessionCompleted")
 async def mark_session_completed(complete: SessionCompletionDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> MessageResponseDataModel:
     """Mark one session of time allocated to work on an assignment (could be multiple sessions per assignment) as complete or incomplete"""
-    pass
+    try:
+        async with app.state.pool.acquire() as conn:
+            user = get_current_user(token, app.state.pool)
+            
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail = "Internal server error")
 
 @app.post("/update")
 async def update(changes: UpdateRequestDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> UpdateResponseDataModel:
