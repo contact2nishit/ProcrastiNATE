@@ -1,14 +1,36 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, SafeAreaView, } from 'react-native';
-import { useNavigation, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, SafeAreaView } from 'react-native';
+import { useNavigation } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SchedulePicker() {
   const navigation = useNavigation();
-  // Get the scheduleData from route params
-  const { scheduleData } = useLocalSearchParams();
-  console.log(scheduleData);
-  // Defensive: parse if stringified
-  const parsedData = typeof scheduleData === 'string' ? JSON.parse(scheduleData) : scheduleData;
+  const [scheduleData, setScheduleData] = useState<any>({});
+
+  useEffect(() => {
+    const getData = async () => {
+      try {
+        const daa = await AsyncStorage.getItem("schedules");
+        if (daa) {
+          setScheduleData(JSON.parse(daa));
+        } else {
+          setScheduleData({});
+        }
+      } catch (e) {
+        setScheduleData({});
+      }
+    };
+    getData();
+  }, []);
+
+  let parsedData: any = scheduleData;
+  if (typeof scheduleData === 'string') {
+    try {
+      parsedData = JSON.parse(scheduleData);
+    } catch (e) {
+      parsedData = {};
+    }
+  }
 
   const schedules = parsedData?.schedules || [];
   const meetings = parsedData?.meetings || [];
@@ -17,8 +39,36 @@ export default function SchedulePicker() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedScheduleIdx, setSelectedScheduleIdx] = useState<number | null>(null);
 
-  // Helper to format ISO string to readable
   const fmt = (iso: string) => new Date(iso).toLocaleString();
+
+  const submitSchedule = async (schedule: any) => {
+    try {
+      const url = await AsyncStorage.getItem('backendURL');
+      const token = await AsyncStorage.getItem('token');
+      if (!url) {
+        alert('Backend URL not set.');
+        return;
+      }
+      const response = await fetch(`${url}/setSchedule`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(schedule),
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        alert('Failed to set schedule: ' + err);
+        return;
+      }
+      alert('Schedule set successfully!');
+      navigation.replace("Home");
+      // Optionally, you can navigate or update state here
+    } catch (e) {
+      alert('Error setting schedule: ' + e);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -49,7 +99,6 @@ export default function SchedulePicker() {
         ))}
       </ScrollView>
 
-      {/* Modal for schedule details */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -62,7 +111,6 @@ export default function SchedulePicker() {
               {selectedScheduleIdx !== null && (
                 <>
                   <Text style={styles.modalHeader}>Schedule #{selectedScheduleIdx + 1}</Text>
-                  {/* Assignments */}
                   <Text style={styles.sectionHeader}>Assignments</Text>
                   {schedules[selectedScheduleIdx].assignments.length === 0 && (
                     <Text style={styles.noneText}>None</Text>
@@ -80,7 +128,6 @@ export default function SchedulePicker() {
                     </View>
                   ))}
 
-                  {/* Chores */}
                   <Text style={styles.sectionHeader}>Chores</Text>
                   {schedules[selectedScheduleIdx].chores.length === 0 && (
                     <Text style={styles.noneText}>None</Text>
@@ -98,7 +145,6 @@ export default function SchedulePicker() {
                     </View>
                   ))}
 
-                  {/* Conflicts */}
                   <Text style={styles.sectionHeader}>Conflicts</Text>
                   {schedules[selectedScheduleIdx].conflicting_assignments.length === 0 &&
                    schedules[selectedScheduleIdx].conflicting_chores.length === 0 &&
@@ -119,7 +165,6 @@ export default function SchedulePicker() {
                     <Text key={i} style={styles.conflictText}>Not enough time for chore: {n}</Text>
                   ))}
 
-                  {/* Meetings */}
                   <Text style={styles.sectionHeader}>Meetings</Text>
                   {meetings.length === 0 && (
                     <Text style={styles.noneText}>None</Text>
@@ -134,6 +179,21 @@ export default function SchedulePicker() {
                       ))}
                     </View>
                   ))}
+
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#28a745',
+                      borderRadius: 8,
+                      paddingVertical: 12,
+                      marginTop: 20,
+                      alignItems: 'center',
+                    }}
+                    onPress={() => submitSchedule(schedules[selectedScheduleIdx])}
+                  >
+                    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+                      Set This Schedule
+                    </Text>
+                  </TouchableOpacity>
                 </>
               )}
               <TouchableOpacity
