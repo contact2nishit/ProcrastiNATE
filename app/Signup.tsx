@@ -2,19 +2,45 @@ import React, {useState} from 'react';
 import { TextInput, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Signup() {
 
     const navigation = useNavigation();
 
-    const [first, setFirst] = useState('');
-    const [second, setSecond] = useState('');
+    const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
 
 
-    const handleSubmit = () => {
-        navigation.replace('Home');
+    const handleSubmit = async () => {
+        try {
+            const url = await AsyncStorage.getItem('backendURL');
+            if (!url) {
+                alert('Backend URL not set.');
+                return;
+            }
+            const response = await fetch(`${url}/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username,
+                    email,
+                    pwd: password,
+                }),
+            });
+            if (!response.ok) {
+                const err = await response.text();
+                alert('Registration failed: ' + err);
+                return;
+            }
+            alert('Registration successful!');
+            navigation.replace('index');
+        } catch (e) {
+            alert('Registration error: ' + e);
+        }
     }
 
     return (
@@ -26,24 +52,13 @@ export default function Signup() {
             <View style = {styles.signupBox}>
 
                 <View style = {styles.inputContainer}>
-                    <Text style={styles.label}>First Name</Text>
+                    <Text style={styles.label}>Email</Text>
                         <TextInput
                         style={styles.input}
-                        placeholder="First Name"
+                        placeholder="Email"
                         placeholderTextColor="#aaa"
-                        value={first}
-                        onChangeText={setFirst}
-                        />
-                </View>
-
-                <View style = {styles.inputContainer}>
-                    <Text style={styles.label}>Last Name</Text>
-                        <TextInput
-                        style={styles.input}
-                        placeholder="Last Name"
-                        placeholderTextColor="#aaa"
-                        value={second}
-                        onChangeText={setSecond}
+                        value={email}
+                        onChangeText={setEmail}
                         />
                 </View>
 

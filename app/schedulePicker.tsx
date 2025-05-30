@@ -41,6 +41,35 @@ export default function SchedulePicker() {
 
   const fmt = (iso: string) => new Date(iso).toLocaleString();
 
+  const submitSchedule = async (schedule: any) => {
+    try {
+      const url = await AsyncStorage.getItem('backendURL');
+      const token = await AsyncStorage.getItem('token');
+      if (!url) {
+        alert('Backend URL not set.');
+        return;
+      }
+      const response = await fetch(`${url}/setSchedule`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(schedule),
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        alert('Failed to set schedule: ' + err);
+        return;
+      }
+      alert('Schedule set successfully!');
+      navigation.replace("Home");
+      // Optionally, you can navigate or update state here
+    } catch (e) {
+      alert('Error setting schedule: ' + e);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Pick a Schedule</Text>
@@ -150,6 +179,21 @@ export default function SchedulePicker() {
                       ))}
                     </View>
                   ))}
+
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#28a745',
+                      borderRadius: 8,
+                      paddingVertical: 12,
+                      marginTop: 20,
+                      alignItems: 'center',
+                    }}
+                    onPress={() => submitSchedule(schedules[selectedScheduleIdx])}
+                  >
+                    <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+                      Set This Schedule
+                    </Text>
+                  </TouchableOpacity>
                 </>
               )}
               <TouchableOpacity

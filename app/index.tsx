@@ -63,7 +63,7 @@ export default function App() {
           <Text style={styles.label}>Username</Text>
           <TextInput
             style={styles.input}
-            placeholder="Email"
+            placeholder="Username"
             placeholderTextColor="#aaa"
             value={username}
             onChangeText={setUsername}
