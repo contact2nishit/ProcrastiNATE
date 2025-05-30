@@ -10,6 +10,9 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
 from data_models import *
+from collections import defaultdict
+
+
 
 dotenv.load_dotenv()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -25,6 +28,15 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
+def partition_by_meeting_id(data: List, field: str):
+    """
+        Data: the list of dictionaries to partition
+        field: the field to partition by
+    """
+    grouped = defaultdict(list)
+    for item in data:
+        grouped[item[field]].append(item)
+    return list(grouped.values())
 
 async def authenticate_user(username: str, password: str, pool):
     """Verify username and password against the database
@@ -97,3 +109,10 @@ async def get_current_user(token: str, pool):
     except Exception as e:
         print(e)
         raise credentials_exception
+
+def enforce_timestamp_utc(time:datetime):
+    if hasattr(time, 'tzinfo') and time.tzinfo is not None:
+        time = time.astimezone(timezone.utc)
+    else:
+        time = time.replace(tzinfo=timezone.utc)
+    return time
