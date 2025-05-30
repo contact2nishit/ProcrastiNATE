@@ -223,128 +223,456 @@ async def delete(deletion: DeleteRequestDataModel, token: Annotated[str, Depends
     """Delete one ocurrence of a meeting. Optionally, also delete all future ocurrences"""
     pass
 
-@app.get("/fetch")
-async def fetch(start_time: str, end_time: str, meetings: bool, assignments: bool, chores: bool, token: Annotated[str, Depends(oauth2_scheme)]) -> FetchResponse:
-    """
-    Fetches everything (chores, assignments, meetings) between start and end timestamps. Every input is a query parameter
-        Args
-            start_time(str): ISO-formatted timestamp
-            end_time(str): ISO-formatted imestamp
-            meetings(bool): Include meetings?
-            assignments(bool): Include assignments?
-            chores(bool): Include chores?
-    """
-    try:
-        async with app.state.pool.acquire() as conn:
-            user = await get_current_user(token, app.state.pool)
-            start_time = datetime.fromisoformat(start_time)
-            end_time = datetime.fromisoformat(end_time)
-            start_time = enforce_timestamp_utc(start_time)
-            end_time = enforce_timestamp_utc(end_time)
-            if start_time > end_time:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Start time must be before end time")
-            if meetings:
-                meetings = await conn.fetch("""
-                    SELECT mo.occurence_id, mo.meeting_id, mo.start_time, mo.end_time, m.meeting_name, m.location_or_link
-                    FROM meeting_occurences mo
-                    JOIN meetings m ON mo.meeting_id = m.meeting_id
-                    WHERE mo.user_id = $1 AND mo.end_time > $2 AND mo.start_time < $3
-                """, user.user_id, start_time, end_time)
-                print(start_time, end_time, user.user_id)
-                print(type(start_time))
-                #meetings = await conn.fetch("SELECT meeting_id, occurence_id FROM meeting_occurences WHERE start_time>$1 AND end_time<$2", start_time, end_time)
-            else:
-                meetings = []
-            if assignments:
-                assignments = await conn.fetch("""
-                    SELECT ao.occurence_id, ao.assignment_id, ao.start_time, ao.end_time, a.assignment_name, a.effort, a.deadline
-                    FROM assignment_occurences ao
-                    JOIN assignments a ON ao.assignment_id = a.assignment_id
-                    WHERE ao.user_id = $1 AND ao.end_time > $2 AND ao.start_time < $3
-                """, user.user_id, start_time, end_time)
-            else:
-                assignments = []
-            if chores:
-                chores = await conn.fetch("""
-                SELECT co.occurence_id, co.chore_id, co.start_time, co.end_time, c.chore_name, c.effort, c.start_window, c.end_window
-                FROM chore_occurences co
-                JOIN chores c ON co.chore_id = c.chore_id
-                WHERE co.user_id = $1 AND co.end_time > $2 AND co.start_time < $3
-                """, user.user_id, start_time, end_time)
-            else:
-                chores = []
-            # print(meetings, assignments, chores)
-            meetings_responses, assignments_responses, chores_responses = [], [], []
+# @app.get("/fetch")
+# async def fetch(start_time: str, end_time: str, meetings: bool, assignments: bool, chores: bool, token: Annotated[str, Depends(oauth2_scheme)]) -> FetchResponse:
+#     """
+#     Fetches everything (chores, assignments, meetings) between start and end timestamps. Every input is a query parameter
+#         Args
+#             start_time(str): ISO-formatted timestamp
+#             end_time(str): ISO-formatted imestamp
+#             meetings(bool): Include meetings?
+#             assignments(bool): Include assignments?
+#             chores(bool): Include chores?
+#     """
+#     try:
+#         async with app.state.pool.acquire() as conn:
+#             user = await get_current_user(token, app.state.pool)
+#             start_time = datetime.fromisoformat(start_time)
+#             end_time = datetime.fromisoformat(end_time)
+#             start_time = enforce_timestamp_utc(start_time)
+#             end_time = enforce_timestamp_utc(end_time)
+#             if start_time > end_time:
+#                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Start time must be before end time")
+#             if meetings:
+#                 meetings = await conn.fetch("""
+#                     SELECT mo.occurence_id, mo.meeting_id, mo.start_time, mo.end_time, m.meeting_name, m.location_or_link
+#                     FROM meeting_occurences mo
+#                     JOIN meetings m ON mo.meeting_id = m.meeting_id
+#                     WHERE mo.user_id = $1 AND mo.end_time > $2 AND mo.start_time < $3
+#                 """, user.user_id, start_time, end_time)
+#                 print(start_time, end_time, user.user_id)
+#                 print(type(start_time))
+#                 #meetings = await conn.fetch("SELECT meeting_id, occurence_id FROM meeting_occurences WHERE start_time>$1 AND end_time<$2", start_time, end_time)
+#             else:
+#                 meetings = []
+#             if assignments:
+#                 assignments = await conn.fetch("""
+#                     SELECT ao.occurence_id, ao.assignment_id, ao.start_time, ao.end_time, a.assignment_name, a.effort, a.deadline
+#                     FROM assignment_occurences ao
+#                     JOIN assignments a ON ao.assignment_id = a.assignment_id
+#                     WHERE ao.user_id = $1 AND ao.end_time > $2 AND ao.start_time < $3
+#                 """, user.user_id, start_time, end_time)
+#             else:
+#                 assignments = []
+#             if chores:
+#                 chores = await conn.fetch("""
+#                 SELECT co.occurence_id, co.chore_id, co.start_time, co.end_time, c.chore_name, c.effort, c.start_window, c.end_window
+#                 FROM chore_occurences co
+#                 JOIN chores c ON co.chore_id = c.chore_id
+#                 WHERE co.user_id = $1 AND co.end_time > $2 AND co.start_time < $3
+#                 """, user.user_id, start_time, end_time)
+#             else:
+#                 chores = []
+#             # print(meetings, assignments, chores)
+#             meetings_responses, assignments_responses, chores_responses = [], [], []
             
-            if len(meetings) > 0:
-                partitioned_meetings = partition_by_meeting_id(meetings, 'meeting_id')
-                for occurence_list in partitioned_meetings:
-                    meeting_start_end_times = []
-                    meeting_occurence_ids = []
-                    for occurence in occurence_list:
-                        meeting_start_end_times += [[occurence['start_time'], occurence['end_time']]]
-                        meeting_occurence_ids += [occurence['occurence_id']]
-                    # print(occurence_list[0]['meeting_name'])
-                    meeting_response = MeetingInResponse(
-                        ocurrence_ids=meeting_occurence_ids,
-                        meeting_id=occurence_list[0]['meeting_id'],
-                        name = occurence_list[0]['meeting_name'],
-                        start_end_times=meeting_start_end_times
-                    )
-                    meetings_responses.append(meeting_response)
-            if len(assignments) > 0:
-                partitioned_assignments = partition_by_meeting_id(assignments, 'assignment_id')
-                for occurence_list in partitioned_assignments:
-                    ass_start_end_times: List[TimeSlot] = []
-                    ass_occurence_ids = []
-                    effort_assigned = 0
-                    for occurence in occurence_list:
-                        ass_start_end_times += [TimeSlot(start=occurence['start_time'], end=occurence['end_time'])]
-                        effort_assigned += (occurence['end_time'] - occurence['start_time']).total_seconds() // 60
-                        ass_occurence_ids += [occurence['occurence_id']]
-                    # print(occurence_list[0]['meeting_name'])
+#             if len(meetings) > 0:
+#                 partitioned_meetings = partition_by_meeting_id(meetings, 'meeting_id')
+#                 for occurence_list in partitioned_meetings:
+#                     meeting_start_end_times = []
+#                     meeting_occurence_ids = []
+#                     for occurence in occurence_list:
+#                         meeting_start_end_times += [[occurence['start_time'], occurence['end_time']]]
+#                         meeting_occurence_ids += [occurence['occurence_id']]
+#                     # print(occurence_list[0]['meeting_name'])
+#                     meeting_response = MeetingInResponse(
+#                         ocurrence_ids=meeting_occurence_ids,
+#                         meeting_id=occurence_list[0]['meeting_id'],
+#                         name = occurence_list[0]['meeting_name'],
+#                         start_end_times=meeting_start_end_times
+#                     )
+#                     meetings_responses.append(meeting_response)
+#             if len(assignments) > 0:
+#                 partitioned_assignments = partition_by_meeting_id(assignments, 'assignment_id')
+#                 for occurence_list in partitioned_assignments:
+#                     ass_start_end_times: List[TimeSlot] = []
+#                     ass_occurence_ids = []
+#                     effort_assigned = 0
+#                     for occurence in occurence_list:
+#                         ass_start_end_times += [TimeSlot(start=occurence['start_time'], end=occurence['end_time'])]
+#                         effort_assigned += (occurence['end_time'] - occurence['start_time']).total_seconds() // 60
+#                         ass_occurence_ids += [occurence['occurence_id']]
+#                     # print(occurence_list[0]['meeting_name'])
 
-                    assignment_response = AssignmentInResponse(
-                        ocurrence_ids=ass_occurence_ids,
-                        assignment_id=occurence_list[0]['assignment_id'],
-                        name = occurence_list[0]['assignment_name'],
-                        effort=occurence_list[0]['effort'],
-                        due=occurence_list[0]['deadline'],
-                        schedule = ScheduledTaskInfo(
-                            effort_assigned=effort_assigned,
-                            status="unschedulable" if effort_assigned == 0 else ("partially_scheduled" if effort_assigned < occurence['effort'] else "fully_scheduled"),
-                            slots = ass_start_end_times
+#                     assignment_response = AssignmentInResponse(
+#                         ocurrence_ids=ass_occurence_ids,
+#                         assignment_id=occurence_list[0]['assignment_id'],
+#                         name = occurence_list[0]['assignment_name'],
+#                         effort=occurence_list[0]['effort'],
+#                         due=occurence_list[0]['deadline'],
+#                         schedule = ScheduledTaskInfo(
+#                             effort_assigned=effort_assigned,
+#                             status="unschedulable" if effort_assigned == 0 else ("partially_scheduled" if effort_assigned < occurence['effort'] else "fully_scheduled"),
+#                             slots = ass_start_end_times
+#                         )
+#                     )
+#                     assignments_responses.append(assignment_response)
+#             if len(assignments) > 0:
+#                 partitioned_chores = partition_by_meeting_id(chores, 'chore_id')
+#                 for occurence_list in partitioned_chores:
+#                     chore_start_end_times: List[TimeSlot] = []
+#                     chore_occurence_ids = []
+#                     effort_assigned = 0
+#                     for occurence in occurence_list:
+#                         chore_start_end_times += [TimeSlot(start=occurence['start_time'], end=occurence['end_time'])]
+#                         effort_assigned += (occurence['end_time'] - occurence['start_time']).total_seconds() // 60
+#                         chore_occurence_ids += [occurence['occurence_id']]
+#                     # print(occurence_list[0]['meeting_name'])
+#                     chore_response = ChoreInResponse(
+#                         ocurrence_ids=ass_occurence_ids,
+#                         chore_id=occurence_list[0]['chore_id'],
+#                         name = occurence_list[0]['chore_name'],
+#                         effort=occurence_list[0]['effort'],
+#                         window = [occurence_list[0]['start_window'], occurence_list[0]['end_window']],
+#                         schedule = ScheduledTaskInfo(
+#                             effort_assigned=effort_assigned,
+#                             status="unschedulable" if effort_assigned == 0 else ("partially_scheduled" if effort_assigned < occurence['effort'] else "fully_scheduled"),
+#                             slots = chore_start_end_times
+#                         )
+#                     )
+#                     chores_responses.append(chore_response)
+#             return FetchResponse(meetings=meetings_responses, assignments=assignments_responses, chores=chores_responses)
+#     except HTTPException as e:
+#         raise e
+#     except Exception as e:
+#         print(e)
+#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+# @app.get("/fetch")
+# async def fetch(
+#     start_time: str,
+#     end_time: str,
+#     meetings: bool = False,
+#     assignments: bool = False,
+#     chores: bool = False,
+#     token: Annotated[str, Depends(oauth2_scheme)] = Depends()
+# ) -> FetchResponse:
+#     async with app.state.pool.acquire() as conn:
+#         user = await get_current_user(token, app.state.pool)
+
+#         # Parse and enforce aware UTC timestamps
+#         start_dt = enforce_timestamp_utc(start_time)
+#         end_dt = enforce_timestamp_utc(end_time)
+#         if start_dt > end_dt:
+#             raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Start time must be before end time")
+
+#         meetings_list = []
+#         assignments_list = []
+#         chores_list = []
+
+#         if meetings:
+#             meetings_rows = await conn.fetch(
+#                 """
+#                 SELECT mo.occurence_id, mo.meeting_id, mo.start_time, mo.end_time,
+#                        m.meeting_name, m.location_or_link
+#                 FROM meeting_occurences mo
+#                 JOIN meetings m ON mo.meeting_id = m.meeting_id
+#                 WHERE mo.user_id = $1
+#                   AND mo.end_time > $2
+#                   AND mo.start_time < $3
+#                 """,
+#                 user.user_id, start_dt, end_dt
+#             )
+#             meetings_list = [MeetingInResponse(
+#                 ocurrence_ids=[row["occurence_id"]],
+#                 meeting_id=row["meeting_id"],
+#                 name=row["meeting_name"],
+#                 start_end_times=[(row["start_time"], row["end_time"])],
+#                 link_or_loc=row["location_or_link"]
+#             ) for row in meetings_rows]
+
+#         if assignments:
+#             assignments_rows = await conn.fetch(
+#                 """
+#                 SELECT ao.occurence_id, a.assignment_id, a.assignment_name, a.effort, a.deadline,
+#                        ao.start_time, ao.end_time
+#                 FROM assignment_occurences ao
+#                 JOIN assignments a ON ao.assignment_id = a.assignment_id
+#                 WHERE ao.user_id = $1
+#                   AND ao.end_time > $2
+#                   AND ao.start_time < $3
+#                 """,
+#                 user.user_id, start_dt, end_dt
+#             )
+#             # Group occurrences by assignment
+#             from collections import defaultdict
+#             assign_dict = defaultdict(lambda: {
+#                 "ocurrence_ids": [],
+#                 "name": None,
+#                 "effort": None,
+#                 "due": None,
+#                 "start_end_times": []
+#             })
+#             for row in assignments_rows:
+#                 aid = row["assignment_id"]
+#                 assign_dict[aid]["ocurrence_ids"].append(row["occurence_id"])
+#                 assign_dict[aid]["name"] = row["assignment_name"]
+#                 assign_dict[aid]["effort"] = row["effort"]
+#                 assign_dict[aid]["due"] = row["deadline"]
+#                 assign_dict[aid]["start_end_times"].append((row["start_time"], row["end_time"]))
+#             assignments_list = [
+#                 AssignmentInResponse(
+#                     assignment_id=aid,
+#                     ocurrence_ids=data["ocurrence_ids"],
+#                     name=data["name"],
+#                     effort=data["effort"],
+#                     due=data["due"],
+#                     schedule=ScheduledTaskInfo(
+#                         effort_assigned=0,
+#                         status="unschedulable",
+#                         slots=[SlotInfo(start=s[0], end=s[1]) for s in data["start_end_times"]]
+#                     )
+#                 )
+#                 for aid, data in assign_dict.items()
+#             ]
+
+#         if chores:
+#             chores_rows = await conn.fetch(
+#                 """
+#                 SELECT co.occurence_id, c.chore_id, c.chore_name, c.effort, c.start_window, c.end_window,
+#                        co.start_time, co.end_time
+#                 FROM chore_occurences co
+#                 JOIN chores c ON co.chore_id = c.chore_id
+#                 WHERE co.user_id = $1
+#                   AND co.end_time > $2
+#                   AND co.start_time < $3
+#                 """,
+#                 user.user_id, start_dt, end_dt
+#             )
+#             chore_dict = defaultdict(lambda: {
+#                 "ocurrence_ids": [],
+#                 "name": None,
+#                 "effort": None,
+#                 "window": None,
+#                 "start_end_times": []
+#             })
+#             for row in chores_rows:
+#                 cid = row["chore_id"]
+#                 chore_dict[cid]["ocurrence_ids"].append(row["occurence_id"])
+#                 chore_dict[cid]["name"] = row["chore_name"]
+#                 chore_dict[cid]["effort"] = row["effort"]
+#                 chore_dict[cid]["window"] = (row["start_window"], row["end_window"])
+#                 chore_dict[cid]["start_end_times"].append((row["start_time"], row["end_time"]))
+#             chores_list = [
+#                 ChoreInResponse(
+#                     chore_id=cid,
+#                     ocurrence_ids=data["ocurrence_ids"],
+#                     name=data["name"],
+#                     effort=data["effort"],
+#                     window=[data["window"][0], data["window"][1]],
+#                     schedule=ScheduledTaskInfo(
+#                         effort_assigned=0,
+#                         status="unschedulable",
+#                         slots=[SlotInfo(start=s[0], end=s[1]) for s in data["start_end_times"]]
+#                     )
+#                 )
+#                 for cid, data in chore_dict.items()
+#             ]
+
+#         return FetchResponse(
+#             meetings=meetings_list,
+#             assignments=assignments_list,
+#             chores=chores_list,
+#         )
+# Replace your existing /fetch endpoint with this:
+
+@app.get("/fetch")
+async def fetch(
+    start_time: str,
+    end_time: str,
+    meetings: bool = False,
+    assignments: bool = False,
+    chores: bool = False,
+    token: Annotated[str, Depends(oauth2_scheme)] = Depends()
+) -> FetchResponse:
+    async with app.state.pool.acquire() as conn:
+        user = await get_current_user(token, app.state.pool)
+
+        # Parse and enforce aware UTC timestamps
+        start_dt = enforce_timestamp_utc(start_time)
+        end_dt = enforce_timestamp_utc(end_time)
+        if start_dt > end_dt:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Start time must be before end time")
+
+        meetings_list = []
+        assignments_list = []
+        chores_list = []
+
+        if meetings:
+            meetings_rows = await conn.fetch(
+                """
+                SELECT mo.occurence_id, mo.meeting_id, mo.start_time, mo.end_time,
+                       m.meeting_name, m.location_or_link
+                FROM meeting_occurences mo
+                JOIN meetings m ON mo.meeting_id = m.meeting_id
+                WHERE mo.user_id = $1
+                  AND mo.end_time > $2
+                  AND mo.start_time < $3
+                """,
+                user.user_id, start_dt, end_dt
+            )
+            meetings_list = [MeetingInResponse(
+                ocurrence_ids=[row["occurence_id"]],
+                meeting_id=row["meeting_id"],
+                name=row["meeting_name"],
+                start_end_times=[(row["start_time"], row["end_time"])],
+                link_or_loc=row["location_or_link"]
+            ) for row in meetings_rows]
+
+        if assignments:
+            # Only fetch assignments that have a selected schedule (have occurrences)
+            assignments_rows = await conn.fetch(
+                """
+                SELECT DISTINCT a.assignment_id, a.assignment_name, a.effort, a.deadline
+                FROM assignments a
+                WHERE a.user_id = $1
+                  AND EXISTS (
+                      SELECT 1 FROM assignment_occurences ao 
+                      WHERE ao.assignment_id = a.assignment_id 
+                      AND ao.user_id = $1
+                      AND ao.end_time > $2 
+                      AND ao.start_time < $3
+                  )
+                """,
+                user.user_id, start_dt, end_dt
+            )
+            
+            # Get occurrences for these assignments
+            if assignments_rows:
+                assignment_ids = [row["assignment_id"] for row in assignments_rows]
+                occurrences_rows = await conn.fetch(
+                    """
+                    SELECT ao.occurence_id, ao.assignment_id, ao.start_time, ao.end_time
+                    FROM assignment_occurences ao
+                    WHERE ao.user_id = $1
+                      AND ao.assignment_id = ANY($2)
+                      AND ao.end_time > $3
+                      AND ao.start_time < $4
+                    """,
+                    user.user_id, assignment_ids, start_dt, end_dt
+                )
+                
+                # Group occurrences by assignment
+                from collections import defaultdict
+                assign_dict = defaultdict(lambda: {
+                    "ocurrence_ids": [],
+                    "name": None,
+                    "effort": None,
+                    "due": None,
+                    "start_end_times": []
+                })
+                
+                # Fill in assignment data
+                for row in assignments_rows:
+                    aid = row["assignment_id"]
+                    assign_dict[aid]["name"] = row["assignment_name"]
+                    assign_dict[aid]["effort"] = row["effort"]
+                    assign_dict[aid]["due"] = row["deadline"]
+                
+                # Fill in occurrence data
+                for row in occurrences_rows:
+                    aid = row["assignment_id"]
+                    assign_dict[aid]["ocurrence_ids"].append(row["occurence_id"])
+                    assign_dict[aid]["start_end_times"].append((row["start_time"], row["end_time"]))
+                
+                assignments_list = [
+                    AssignmentInResponse(
+                        assignment_id=aid,
+                        ocurrence_ids=data["ocurrence_ids"],
+                        name=data["name"],
+                        effort=data["effort"],
+                        due=data["due"],
+                        schedule=ScheduledTaskInfo(
+                            effort_assigned=0,
+                            status="fully_scheduled",
+                            slots=[SlotInfo(start=s[0], end=s[1]) for s in data["start_end_times"]]
                         )
                     )
-                    assignments_responses.append(assignment_response)
-            if len(assignments) > 0:
-                partitioned_chores = partition_by_meeting_id(chores, 'chore_id')
-                for occurence_list in partitioned_chores:
-                    chore_start_end_times: List[TimeSlot] = []
-                    chore_occurence_ids = []
-                    effort_assigned = 0
-                    for occurence in occurence_list:
-                        chore_start_end_times += [TimeSlot(start=occurence['start_time'], end=occurence['end_time'])]
-                        effort_assigned += (occurence['end_time'] - occurence['start_time']).total_seconds() // 60
-                        chore_occurence_ids += [occurence['occurence_id']]
-                    # print(occurence_list[0]['meeting_name'])
-                    chore_response = ChoreInResponse(
-                        ocurrence_ids=ass_occurence_ids,
-                        chore_id=occurence_list[0]['chore_id'],
-                        name = occurence_list[0]['chore_name'],
-                        effort=occurence_list[0]['effort'],
-                        window = [occurence_list[0]['start_window'], occurence_list[0]['end_window']],
-                        schedule = ScheduledTaskInfo(
-                            effort_assigned=effort_assigned,
-                            status="unschedulable" if effort_assigned == 0 else ("partially_scheduled" if effort_assigned < occurence['effort'] else "fully_scheduled"),
-                            slots = chore_start_end_times
+                    for aid, data in assign_dict.items() if data["ocurrence_ids"]
+                ]
+
+        if chores:
+            # Only fetch chores that have a selected schedule (have occurrences)
+            chores_rows = await conn.fetch(
+                """
+                SELECT DISTINCT c.chore_id, c.chore_name, c.effort, c.start_window, c.end_window
+                FROM chores c
+                WHERE c.user_id = $1
+                  AND EXISTS (
+                      SELECT 1 FROM chore_occurences co 
+                      WHERE co.chore_id = c.chore_id 
+                      AND co.user_id = $1
+                      AND co.end_time > $2 
+                      AND co.start_time < $3
+                  )
+                """,
+                user.user_id, start_dt, end_dt
+            )
+            
+            # Get occurrences for these chores
+            if chores_rows:
+                chore_ids = [row["chore_id"] for row in chores_rows]
+                chore_occurrences_rows = await conn.fetch(
+                    """
+                    SELECT co.occurence_id, co.chore_id, co.start_time, co.end_time
+                    FROM chore_occurences co
+                    WHERE co.user_id = $1
+                      AND co.chore_id = ANY($2)
+                      AND co.end_time > $3
+                      AND co.start_time < $4
+                    """,
+                    user.user_id, chore_ids, start_dt, end_dt
+                )
+                
+                chore_dict = defaultdict(lambda: {
+                    "ocurrence_ids": [],
+                    "name": None,
+                    "effort": None,
+                    "window": None,
+                    "start_end_times": []
+                })
+                
+                # Fill in chore data
+                for row in chores_rows:
+                    cid = row["chore_id"]
+                    chore_dict[cid]["name"] = row["chore_name"]
+                    chore_dict[cid]["effort"] = row["effort"]
+                    chore_dict[cid]["window"] = (row["start_window"], row["end_window"])
+                
+                # Fill in occurrence data
+                for row in chore_occurrences_rows:
+                    cid = row["chore_id"]
+                    chore_dict[cid]["ocurrence_ids"].append(row["occurence_id"])
+                    chore_dict[cid]["start_end_times"].append((row["start_time"], row["end_time"]))
+                
+                chores_list = [
+                    ChoreInResponse(
+                        chore_id=cid,
+                        ocurrence_ids=data["ocurrence_ids"],
+                        name=data["name"],
+                        effort=data["effort"],
+                        window=[data["window"][0], data["window"][1]],
+                        schedule=ScheduledTaskInfo(
+                            effort_assigned=0,
+                            status="fully_scheduled",
+                            slots=[SlotInfo(start=s[0], end=s[1]) for s in data["start_end_times"]]
                         )
                     )
-                    chores_responses.append(chore_response)
-            return FetchResponse(meetings=meetings_responses, assignments=assignments_responses, chores=chores_responses)
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        print(e)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+                    for cid, data in chore_dict.items() if data["ocurrence_ids"]
+                ]
+
+        return FetchResponse(
+            meetings=meetings_list,
+            assignments=assignments_list,
+            chores=chores_list,
+        )
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect} from 'react';
-import { Button, View, Text, StyleSheet, TouchableOpacity, TextInput, Touchable } from 'react-native';
+import { Button, View, Text, StyleSheet, TouchableOpacity, TextInput, Touchable, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 export default function App() {
 
@@ -54,6 +55,10 @@ export default function App() {
   };
 
   return (
+    <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+    >
     <SafeAreaView style={styles.container}>
       <Text style={styles.welcomeText}>Welcome to ProcrastiNATE!</Text>
       
@@ -111,6 +116,7 @@ export default function App() {
 
       </View>
     </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -110,9 +110,59 @@ async def get_current_user(token: str, pool):
         print(e)
         raise credentials_exception
 
-def enforce_timestamp_utc(time:datetime):
+def enforce_timestamp_utc(time: Union[str, datetime]) -> datetime:
+    """
+    Convert string or datetime to timezone-aware UTC datetime
+    
+    Args:
+        time: Either a datetime object or ISO format string
+        
+    Returns:
+        timezone-aware datetime in UTC
+    """
+    # Handle string input
+    if isinstance(time, str):
+        # Parse ISO string - handle 'Z' suffix for UTC
+        if time.endswith('Z'):
+            time = time.replace('Z', '+00:00')
+        
+        # Parse the string to datetime
+        try:
+            time = datetime.fromisoformat(time)
+        except ValueError as e:
+            # If fromisoformat fails, try other common formats
+            try:
+                # Try parsing without timezone info
+                time = datetime.strptime(time, "%Y-%m-%dT%H:%M:%S")
+            except ValueError:
+                try:
+                    # Try with microseconds
+                    time = datetime.strptime(time, "%Y-%m-%dT%H:%M:%S.%f")
+                except ValueError:
+                    raise ValueError(f"Unable to parse datetime string: {time}")
+    
+    # Now handle the datetime object
     if hasattr(time, 'tzinfo') and time.tzinfo is not None:
+        # Convert to UTC if timezone-aware
         time = time.astimezone(timezone.utc)
     else:
+        # Assume UTC if timezone-naive
         time = time.replace(tzinfo=timezone.utc)
+    
     return time
+
+def ensure_all_timezone_aware(*datetimes) -> list:
+    """
+    Ensure all datetime objects are timezone-aware (UTC)
+    This helps prevent mixing timezone-naive and timezone-aware datetimes
+    """
+    result = []
+    for dt in datetimes:
+        if isinstance(dt, str):
+            dt = enforce_timestamp_utc(dt)
+        elif dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        else:
+            dt = dt.astimezone(timezone.utc)
+        result.append(dt)
+    return result
