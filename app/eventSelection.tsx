@@ -158,6 +158,8 @@ export default function EventSelection()
         return;
       }
       const data = await response.json();
+      // Fix: AsyncStorage only stores strings, so use JSON.stringify
+      await AsyncStorage.setItem("schedules", JSON.stringify(data));
       navigation.navigate('schedulePicker', { scheduleData: data });
     } catch (e) {
       alert('Error submitting schedule: ' + e);
