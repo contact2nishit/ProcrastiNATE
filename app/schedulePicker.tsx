@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, SafeAreaVi
 import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+
 export default function SchedulePicker() {
   const navigation = useNavigation();
   const [scheduleData, setScheduleData] = useState<any>({});
@@ -41,6 +42,7 @@ export default function SchedulePicker() {
 
   const fmt = (iso: string) => new Date(iso).toLocaleString();
 
+
   const submitSchedule = async (schedule: any) => {
     try {
       const url = await AsyncStorage.getItem('backendURL');
@@ -62,6 +64,8 @@ export default function SchedulePicker() {
         alert('Failed to set schedule: ' + err);
         return;
       }
+
+      AsyncStorage.setItem('schedule', JSON.stringify(schedule));
       alert('Schedule set successfully!');
       navigation.replace("Home");
       // Optionally, you can navigate or update state here
