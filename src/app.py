@@ -148,20 +148,23 @@ async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(
             user = await get_current_user(token, app.state.pool)
             assignment_return_list:List[AssignmentInResponse] = []
             for assignment in chosen_schedule.assignments:
+                print(assignment.due)
                 assignment.due = enforce_timestamp_utc(assignment.due)
-                assign_id = await conn.fetchval("INSERT INTO assignments(assignment_name, effort, deadline, user_id) VALUES($1, $2, $3, $4) RETURNING assignment_id", assignment.name, assignment.effort, assignment.due, user)
+                print(type(assignment.due))
+                print(assignment.due.tzinfo)
+                assign_id = await conn.fetchval("INSERT INTO assignments(user_id, assignment_name, effort, deadline) VALUES($1, $2, $3, $4) RETURNING assignment_id", user.user_id, assignment.name, assignment.effort, assignment.due)
                 occurence_ids = []
                 for timeslot in assignment.schedule.slots:
                     timeslot.start = enforce_timestamp_utc(timeslot.start)
                     timeslot.end = enforce_timestamp_utc(timeslot.end)
-                    occurence_id = await conn.fetchval("INSERT INTO assignment_occurences(assignment_id, start_time, end_time, user_id), VALUES($1, $2, $3, $4) RETURNING occurence_id", assign_id, timeslot.start, timeslot.end, user)
+                    occurence_id = await conn.fetchval("INSERT INTO assignment_occurences(user_id, assignment_id, start_time, end_time) VALUES($1, $2, $3, $4) RETURNING occurence_id", user.user_id, assign_id, timeslot.start, timeslot.end)
                     occurence_ids.append(occurence_id)
                 assignment_return = AssignmentInResponse(
                     assignment_id = assign_id,
-                    occurence_ids = occurence_ids,
+                    ocurrence_ids = occurence_ids,
                     name = assignment.name,
                     effort = assignment.effort,
-                    deadline = assignment.due,
+                    due = assignment.due,
                     schedule = ScheduledTaskInfo(
                         effort_assigned = assignment.schedule.effort_assigned,
                         status = assignment.schedule.status,
@@ -172,17 +175,18 @@ async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(
 
             chore_return_list:List[ChoreInResponse] = []
             for chore in chosen_schedule.chores:
-                chore.due = enforce_timestamp_utc(chore.due)
-                assign_id = await conn.fetchval("INSERT INTO chores(chore_name, effort, start_window, end_window, user_id) VALUES($1, $2, $3, $4, $5) RETURNING chore_id", chore.name, chore.effort, chore.window[0], chore.window[1], user)
+                chore.window[0] = enforce_timestamp_utc(chore.window[0])
+                chore.window[1] = enforce_timestamp_utc(chore.window[1])
+                assign_id = await conn.fetchval("INSERT INTO chores(chore_name, effort, start_window, end_window, user_id) VALUES($1, $2, $3, $4, $5) RETURNING chore_id", chore.name, chore.effort, chore.window[0], chore.window[1], user.user_id)
                 occurence_ids = []
                 for timeslot in chore.schedule.slots:
                     timeslot.start = enforce_timestamp_utc(timeslot.start)
                     timeslot.end = enforce_timestamp_utc(timeslot.end)
-                    occurence_id = await conn.fetchval("INSERT INTO chore_occurences(chore_id, start_time, end_time, user_id), VALUES($1, $2, $3, $4) RETURNING occurence_id", assign_id, timeslot.start, timeslot.end, user)
+                    occurence_id = await conn.fetchval("INSERT INTO chore_occurences(chore_id, start_time, end_time, user_id) VALUES($1, $2, $3, $4) RETURNING occurence_id", assign_id, timeslot.start, timeslot.end, user.user_id)
                     occurence_ids.append(occurence_id)
                 chore_return = ChoreInResponse(
                     chore_id = assign_id,
-                    occurence_ids = occurence_ids,
+                    ocurrence_ids = occurence_ids,
                     name = chore.name,
                     effort = chore.effort,
                     window = chore.window,
@@ -235,6 +239,8 @@ async def fetch(start_time: str, end_time: str, meetings: bool, assignments: boo
             user = await get_current_user(token, app.state.pool)
             start_time = datetime.fromisoformat(start_time)
             end_time = datetime.fromisoformat(end_time)
+            start_time = enforce_timestamp_utc(start_time)
+            end_time = enforce_timestamp_utc(end_time)
             if start_time > end_time:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Start time must be before end time")
             if meetings:

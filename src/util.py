@@ -115,3 +115,4 @@ def enforce_timestamp_utc(time:datetime):
         time = time.astimezone(timezone.utc)
     else:
         time = time.replace(tzinfo=timezone.utc)
+    return time
