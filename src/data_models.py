@@ -88,10 +88,11 @@ class ScheduleRequest(BaseModel):
     chores: List[ChoreInRequest]
 
 class SessionCompletionDataModel(BaseModel):
-    """Mark the assignment work session with occurence_id as completed or incomplete"""
+    """Mark the assignment/chore work session with occurence_id as completed or incomplete"""
     occurence_id: int
     completed: bool
-
+    is_assignment: bool
+    
 # Response data models
 
 class Token(BaseModel):
