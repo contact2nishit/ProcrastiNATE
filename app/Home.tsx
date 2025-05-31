@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
+import { useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Home() {
@@ -112,8 +113,25 @@ export default function Home() {
   }, []);
 
   const handleBack = () => {
+    AsyncStorage.removeItem("token");
     navigation.navigate('index');
   };
+
+  const calendarProceed = async () => {
+    // First check if a schedule has been set or not (aka the user has selected a schedule)
+    // If not, then if the user clicks on show calendar, then an alert shows up saying
+    // 'no schedule selected'
+
+    // Otherwise, navigate to the calendarView file:
+    try {
+      navigation.navigate('CalendarView');
+    }
+    catch (error) {
+      Alert.alert('Error', 'Failed to check schedule.');
+      console.error('Error checking schedule in AsyncStorage:', error);
+    }
+
+  }
 
   const handleAddEvent = () => {
     navigation.navigate('eventSelection');
@@ -124,6 +142,37 @@ export default function Home() {
     if (type === 'assignment') return styles.assignmentCard;
     if (type === 'chore') return styles.choreCard;
     return {};
+  };
+
+  const markSessionCompleted = async (occurence_id: number, is_assignment: boolean) => {
+    try {
+      const url = await AsyncStorage.getItem('backendURL');
+      const token = await AsyncStorage.getItem('token');
+      if (!url || !token) {
+        Alert.alert('Error', 'Backend URL or token not set.');
+        return;
+      }
+      const response = await fetch(`${url}/markSessionCompleted`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          occurence_id,
+          completed: true,
+          is_assignment,
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        Alert.alert('Error', 'Failed to mark session as completed: ' + err);
+        return;
+      }
+      Alert.alert('Success', 'Session marked as completed!');
+    } catch (e) {
+      Alert.alert('Error', 'Failed to mark session as completed: ' + e);
+    }
   };
 
   return (
@@ -137,6 +186,22 @@ export default function Home() {
             <Text style={styles.cardTime}>
               {new Date(item.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(item.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
+            {/* Add mark session completed button for assignments and chores */}
+            {(item.type === 'assignment' || item.type === 'chore') && (
+              <TouchableOpacity
+                style={{
+                  marginTop: 10,
+                  backgroundColor: '#333',
+                  borderRadius: 6,
+                  paddingVertical: 8,
+                  paddingHorizontal: 16,
+                  alignSelf: 'flex-start',
+                }}
+                onPress={() => markSessionCompleted(item.id, item.type === 'assignment')}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>Mark Session Completed</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ))}
         {todoList.length === 0 && (
@@ -148,6 +213,9 @@ export default function Home() {
       </ScrollView>
       <TouchableOpacity onPress={handleBack}>
         <Text style={styles.buttonBack}>Back to Login</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={calendarProceed}>
+        <Text style={styles.calendarButton}>View Calendar</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -227,5 +295,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111',
     marginTop: 2,
+  },
+  calendarButton:{
+     backgroundColor: '#333',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 20,
+    marginLeft: 10,
+    color: 'white',
+    width: 150,
+    fontSize: 16,
+    textAlign: 'center',
   },
 });

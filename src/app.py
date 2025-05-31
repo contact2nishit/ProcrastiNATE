@@ -214,13 +214,13 @@ async def mark_session_completed(complete: SessionCompletionDataModel, token: An
         async with app.state.pool.acquire() as conn:
             user = await get_current_user(token, app.state.pool)
             if complete.is_assignment:
-                assignment_id = await conn.fetchval('UPDATE assignment_occurences SET completed = $1 WHERE occurence_id = $2 RETURNING assignment_id', complete.completed, complete.occurence_id)
+                assignment_id = await conn.fetchval('UPDATE assignment_occurences SET completed = $1 WHERE occurence_id = $2 AND user_id = $3 RETURNING assignment_id', complete.completed, complete.occurence_id, user.user_id)
                 if assignment_id is not None:
                     return MessageResponseDataModel(message='Successfully marked assignment as complete!')
                 else:
                     return MessageResponseDataModel(message='Could not find the assignment')
             else:
-                chore_id = await conn.fetchval('UPDATE chore_occurences SET completed = $1 WHERE occurence_id = $2 RETURNING chore_id', complete.completed, complete.occurence_id)
+                chore_id = await conn.fetchval('UPDATE chore_occurences SET completed = $1 WHERE occurence_id = $2 AND user_id = $3 RETURNING chore_id', complete.completed, complete.occurence_id, user.user_id)
                 if chore_id is not None:
                     return MessageResponseDataModel(message='Successfully marked chore as complete!')
                 else:
