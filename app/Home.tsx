@@ -144,6 +144,37 @@ export default function Home() {
     return {};
   };
 
+  const markSessionCompleted = async (occurence_id: number, is_assignment: boolean) => {
+    try {
+      const url = await AsyncStorage.getItem('backendURL');
+      const token = await AsyncStorage.getItem('token');
+      if (!url || !token) {
+        Alert.alert('Error', 'Backend URL or token not set.');
+        return;
+      }
+      const response = await fetch(`${url}/markSessionCompleted`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          occurence_id,
+          completed: true,
+          is_assignment,
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        Alert.alert('Error', 'Failed to mark session as completed: ' + err);
+        return;
+      }
+      Alert.alert('Success', 'Session marked as completed!');
+    } catch (e) {
+      Alert.alert('Error', 'Failed to mark session as completed: ' + e);
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
       <Text style={styles.welcomeText}>To Do List for Today</Text>
@@ -155,6 +186,22 @@ export default function Home() {
             <Text style={styles.cardTime}>
               {new Date(item.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(item.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
+            {/* Add mark session completed button for assignments and chores */}
+            {(item.type === 'assignment' || item.type === 'chore') && (
+              <TouchableOpacity
+                style={{
+                  marginTop: 10,
+                  backgroundColor: '#333',
+                  borderRadius: 6,
+                  paddingVertical: 8,
+                  paddingHorizontal: 16,
+                  alignSelf: 'flex-start',
+                }}
+                onPress={() => markSessionCompleted(item.id, item.type === 'assignment')}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>Mark Session Completed</Text>
+              </TouchableOpacity>
+            )}
           </View>
         ))}
         {todoList.length === 0 && (
