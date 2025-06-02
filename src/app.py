@@ -78,18 +78,6 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], stat
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-"""@app.post("/getuser")
-async def getuser(token: Annotated[str, Depends(oauth2_scheme)]) -> MessageResponseDataModel:
-    try:
-        # print(SECRET_KEY)
-        user = await get_current_user(token.strip(), app.state.pool)
-        return {"message": user.username}
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e: 
-        print(e)
-        return {"message": "something is wrong"}"""
-
 
 @app.post("/schedule")
 async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleResponseFormat:
@@ -233,14 +221,104 @@ async def mark_session_completed(complete: SessionCompletionDataModel, token: An
 
 @app.post("/update")
 async def update(changes: UpdateRequestDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> UpdateResponseDataModel:
-    """Updates the time, name, and location/video call link of one ocurrence of a meeting. Can optionally
-    also alter name, and location/video call link of all future ocurrences, but not time of all future ocurrences"""
-    pass
+    """
+    Updates the time, name, and location/video call link of one occurrence of a meeting.
+    Can optionally also alter name and location/video call link of all future occurrences, but not time of all future occurrences.
+    """
+    try:
+        async with app.state.pool.acquire() as conn:
+            user = await get_current_user(token, app.state.pool)
+            # Update name/location for all future occurrences if requested
+            if changes.future_occurences:
+                # Update name/location for all future occurrences (not time)
+                updates = []
+                if changes.new_name:
+                    await conn.execute(
+                        "UPDATE meetings SET meeting_name = $1 WHERE meeting_id = $2 AND user_id = $3",
+                        changes.new_name, changes.meeting_id, user.user_id
+                    )
+                    updates.append("name")
+                if changes.new_loc_or_link:
+                    await conn.execute(
+                        "UPDATE meetings SET location_or_link = $1 WHERE meeting_id = $2 AND user_id = $3",
+                        changes.new_loc_or_link, changes.meeting_id, user.user_id
+                    )
+                    updates.append("location/link")
+                return UpdateResponseDataModel(clashed=False, message=f"Updated {', '.join(updates)} for all future occurrences.")
+            else:
+                # Only update the specific occurrence
+                clashed = False
+                # If new_time is provided, check for conflicts
+                if changes.new_time:
+                    # Check for time clash with other meetings for this user
+                    clash = await conn.fetchval(
+                        """
+                        SELECT 1 FROM meeting_occurences
+                        WHERE user_id = $1 AND meeting_id != $2
+                        AND (($3, $3 + (end_time - start_time)) OVERLAPS (start_time, end_time))
+                        """,
+                        user.user_id, changes.meeting_id, changes.new_time
+                    )
+                    if clash:
+                        return UpdateResponseDataModel(clashed=True, message="Time update would clash with another meeting.")
+                    await conn.execute(
+                        "UPDATE meeting_occurences SET start_time = $1 WHERE occurence_id = $2 AND user_id = $3",
+                        changes.new_time, changes.ocurrence_id, user.user_id
+                    )
+                # Update name/location for this occurrence
+                if changes.new_name:
+                    await conn.execute(
+                        "UPDATE meetings SET meeting_name = $1 WHERE meeting_id = $2 AND user_id = $3",
+                        changes.new_name, changes.meeting_id, user.user_id
+                    )
+                if changes.new_loc_or_link:
+                    await conn.execute(
+                        "UPDATE meetings SET location_or_link = $1 WHERE meeting_id = $2 AND user_id = $3",
+                        changes.new_loc_or_link, changes.meeting_id, user.user_id
+                    )
+                return UpdateResponseDataModel(clashed=False, message="Occurrence updated successfully.")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(e)
+        return UpdateResponseDataModel(clashed=True, message="Internal server error")
 
 @app.post("/delete")
 async def delete(deletion: DeleteRequestDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> MessageResponseDataModel:
-    """Delete one ocurrence of a meeting. Optionally, also delete all future ocurrences"""
-    pass
+    """
+    Delete one occurrence of a meeting. Optionally, also delete all future occurrences.
+    """
+    try:
+        async with app.state.pool.acquire() as conn:
+            user = await get_current_user(token, app.state.pool)
+            if deletion.remove_all_future:
+                # Find the meeting_id and the start_time of the occurrence to delete
+                row = await conn.fetchrow(
+                    "SELECT meeting_id, start_time FROM meeting_occurences WHERE occurence_id = $1 AND user_id = $2",
+                    deletion.occurence_id, user.user_id
+                )
+                if not row:
+                    return MessageResponseDataModel(message="Occurrence not found.")
+                meeting_id = row['meeting_id']
+                start_time = row['start_time']
+                # Delete all occurrences with start_time >= this occurrence's start_time
+                await conn.execute(
+                    "DELETE FROM meeting_occurences WHERE meeting_id = $1 AND user_id = $2 AND start_time >= $3",
+                    meeting_id, user.user_id, start_time
+                )
+                return MessageResponseDataModel(message="Deleted this and all future occurrences.")
+            else:
+                # Only delete the specified occurrence
+                await conn.execute(
+                    "DELETE FROM meeting_occurences WHERE occurence_id = $1 AND user_id = $2",
+                    deletion.occurence_id, user.user_id
+                )
+                return MessageResponseDataModel(message="Occurrence deleted.")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(e)
+        return MessageResponseDataModel(message="Internal server error")
 
 @app.get("/fetch")
 async def fetch(start_time: str, end_time: str, meetings: bool, assignments: bool, chores: bool, token: Annotated[str, Depends(oauth2_scheme)]) -> FetchResponse:
