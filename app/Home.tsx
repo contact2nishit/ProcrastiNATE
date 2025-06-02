@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, Alert, ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
 import { useRoute } from '@react-navigation/native';
@@ -10,106 +10,107 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function Home() {
   const navigation = useNavigation();
   const [todoList, setTodoList] = useState<any[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalType, setModalType] = useState<'update' | 'delete' | null>(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
+  const [updateName, setUpdateName] = useState('');
+  const [updateLoc, setUpdateLoc] = useState('');
+  const [updateTime, setUpdateTime] = useState('');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const url = await AsyncStorage.getItem('backendURL');
-        const token = await AsyncStorage.getItem('token');
-        if (!url || !token) return;
-
-        // Get local midnight for today and tomorrow
-        const now = new Date();
-        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-        const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-
-        // Fix: Use .toISOString().replace('Z', '+00:00') for Python's fromisoformat
-        const startISO = start.toISOString().replace('Z', '+00:00');
-        const endISO = end.toISOString().replace('Z', '+00:00');
-
-        const params = `start_time=${encodeURIComponent(startISO)}&end_time=${encodeURIComponent(endISO)}&meetings=true&assignments=true&chores=true`;
-        const response = await fetch(`${url}/fetch?${params}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        if (!response.ok) return;
-        const data = await response.json();
-
-        // Flatten all occurences into a single list with type info
-        const items: any[] = [];
-        if (data.meetings) {
-          for (const m of data.meetings) {
-            m.start_end_times.forEach((pair: [string, string], idx: number) => {
+  // Refetch todo list
+  const fetchTodoList = async () => {
+    try {
+      const url = await AsyncStorage.getItem('backendURL');
+      const token = await AsyncStorage.getItem('token');
+      if (!url || !token) return;
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+      const startISO = start.toISOString().replace('Z', '+00:00');
+      const endISO = end.toISOString().replace('Z', '+00:00');
+      const params = `start_time=${encodeURIComponent(startISO)}&end_time=${encodeURIComponent(endISO)}&meetings=true&assignments=true&chores=true`;
+      const response = await fetch(`${url}/fetch?${params}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      const items: any[] = [];
+      if (data.meetings) {
+        for (const m of data.meetings) {
+          m.start_end_times.forEach((pair: [string, string], idx: number) => {
+            items.push({
+              type: 'meeting',
+              name: m.name,
+              start: pair[0],
+              end: pair[1],
+              id: m.ocurrence_ids?.[idx] ?? idx,
+              meeting_id: m.meeting_id, // include meeting_id for update/delete
+            });
+          });
+        }
+      }
+      if (data.assignments) {
+        for (const a of data.assignments) {
+          if (a.schedule && a.schedule.slots) {
+            a.schedule.slots.forEach((slot: any, idx: number) => {
               items.push({
-                type: 'meeting',
-                name: m.name,
+                type: 'assignment',
+                name: a.name,
+                start: slot.start,
+                end: slot.end,
+                id: a.ocurrence_ids?.[idx] ?? idx,
+              });
+            });
+          } else if (a.start_end_times) {
+            a.start_end_times.forEach((pair: [string, string], idx: number) => {
+              items.push({
+                type: 'assignment',
+                name: a.name,
                 start: pair[0],
                 end: pair[1],
-                id: m.ocurrence_ids?.[idx] ?? idx,
+                id: a.ocurrence_ids?.[idx] ?? idx,
               });
             });
           }
         }
-        if (data.assignments) {
-          for (const a of data.assignments) {
-            if (a.schedule && a.schedule.slots) {
-              a.schedule.slots.forEach((slot: any, idx: number) => {
-                items.push({
-                  type: 'assignment',
-                  name: a.name,
-                  start: slot.start,
-                  end: slot.end,
-                  id: a.ocurrence_ids?.[idx] ?? idx,
-                });
-              });
-            } else if (a.start_end_times) {
-              a.start_end_times.forEach((pair: [string, string], idx: number) => {
-                items.push({
-                  type: 'assignment',
-                  name: a.name,
-                  start: pair[0],
-                  end: pair[1],
-                  id: a.ocurrence_ids?.[idx] ?? idx,
-                });
-              });
-            }
-          }
-        }
-        if (data.chores) {
-          for (const c of data.chores) {
-            if (c.schedule && c.schedule.slots) {
-              c.schedule.slots.forEach((slot: any, idx: number) => {
-                items.push({
-                  type: 'chore',
-                  name: c.name,
-                  start: slot.start,
-                  end: slot.end,
-                  id: c.ocurrence_ids?.[idx] ?? idx,
-                });
-              });
-            } else if (c.start_end_times) {
-              c.start_end_times.forEach((pair: [string, string], idx: number) => {
-                items.push({
-                  type: 'chore',
-                  name: c.name,
-                  start: pair[0],
-                  end: pair[1],
-                  id: c.ocurrence_ids?.[idx] ?? idx,
-                });
-              });
-            }
-          }
-        }
-        // Sort by start time
-        items.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-        setTodoList(items);
-      } catch (e) {
-        // handle error
       }
-    };
-    fetchData();
+      if (data.chores) {
+        for (const c of data.chores) {
+          if (c.schedule && c.schedule.slots) {
+            c.schedule.slots.forEach((slot: any, idx: number) => {
+              items.push({
+                type: 'chore',
+                name: c.name,
+                start: slot.start,
+                end: slot.end,
+                id: c.ocurrence_ids?.[idx] ?? idx,
+              });
+            });
+          } else if (c.start_end_times) {
+            c.start_end_times.forEach((pair: [string, string], idx: number) => {
+              items.push({
+                type: 'chore',
+                name: c.name,
+                start: pair[0],
+                end: pair[1],
+                id: c.ocurrence_ids?.[idx] ?? idx,
+              });
+            });
+          }
+        }
+      }
+      items.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+      setTodoList(items);
+    } catch (e) {
+      // handle error
+    }
+  };
+
+  useEffect(() => {
+    fetchTodoList();
   }, []);
 
   const handleBack = () => {
@@ -175,6 +176,77 @@ export default function Home() {
     }
   };
 
+  // Update meeting handler
+  const handleUpdateMeeting = async () => {
+    try {
+      const url = await AsyncStorage.getItem('backendURL');
+      const token = await AsyncStorage.getItem('token');
+      if (!url || !token || !selectedMeeting) return;
+      const body: any = {
+        future_occurences: false,
+        meeting_id: selectedMeeting.meeting_id, // always send meeting_id
+        ocurrence_id: selectedMeeting.id,
+      };
+      if (updateName) body.new_name = updateName;
+      if (updateLoc) body.new_loc_or_link = updateLoc;
+      if (updateTime) body.new_time = updateTime;
+      const response = await fetch(`${url}/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        Alert.alert('Error', 'Failed to update meeting: ' + err);
+        return;
+      }
+      Alert.alert('Success', 'Meeting updated!');
+      setModalVisible(false);
+      setUpdateName('');
+      setUpdateLoc('');
+      setUpdateTime('');
+      setSelectedMeeting(null);
+      fetchTodoList();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to update meeting: ' + e);
+    }
+  };
+
+  const handleDeleteMeeting = async (removeAllFuture = false) => {
+    try {
+      const url = await AsyncStorage.getItem('backendURL');
+      const token = await AsyncStorage.getItem('token');
+      if (!url || !token || !selectedMeeting) return;
+      const body = {
+        occurence_id: selectedMeeting.id,
+        meeting_id: selectedMeeting.meeting_id,
+        remove_all_future: removeAllFuture,
+      };
+      const response = await fetch(`${url}/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        Alert.alert('Error', 'Failed to delete meeting: ' + err);
+        return;
+      }
+      Alert.alert('Success', removeAllFuture ? 'All future occurrences deleted!' : 'Meeting deleted!');
+      setModalVisible(false);
+      setSelectedMeeting(null);
+      fetchTodoList();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to delete meeting: ' + e);
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
       <Text style={styles.welcomeText}>To Do List for Today</Text>
@@ -186,7 +258,7 @@ export default function Home() {
             <Text style={styles.cardTime}>
               {new Date(item.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(item.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
-            {/* Add mark session completed button for assignments and chores */}
+            {/* Mark session completed for assignments and chores */}
             {(item.type === 'assignment' || item.type === 'chore') && (
               <TouchableOpacity
                 style={{
@@ -202,6 +274,45 @@ export default function Home() {
                 <Text style={{ color: 'white', fontWeight: 'bold' }}>Mark Session Completed</Text>
               </TouchableOpacity>
             )}
+            {/* Update/Delete for meetings */}
+            {item.type === 'meeting' && (
+              <View style={{ flexDirection: 'row', marginTop: 10 }}>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#2563eb',
+                    borderRadius: 6,
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    marginRight: 10,
+                  }}
+                  onPress={() => {
+                    setModalType('update');
+                    setSelectedMeeting(item);
+                    setUpdateName('');
+                    setUpdateLoc('');
+                    setUpdateTime('');
+                    setModalVisible(true);
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: 'bold' }}>Update</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#dc2626',
+                    borderRadius: 6,
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                  }}
+                  onPress={() => {
+                    setModalType('delete');
+                    setSelectedMeeting(item);
+                    setModalVisible(true);
+                  }}
+                >
+                  <Text style={{ color: 'white', fontWeight: 'bold' }}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         ))}
         {todoList.length === 0 && (
@@ -211,6 +322,76 @@ export default function Home() {
           <Text style={styles.plus}>+</Text>
         </TouchableOpacity>
       </ScrollView>
+      {/* Update/Delete Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {modalType === 'update' && (
+              <>
+                <Text style={styles.modalHeader}>Update Meeting</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="New Name"
+                  placeholderTextColor="#888"
+                  value={updateName}
+                  onChangeText={setUpdateName}
+                />
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="New Location/Link"
+                  placeholderTextColor="#888"
+                  value={updateLoc}
+                  onChangeText={setUpdateLoc}
+                />
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="New Start Time (YYYY-MM-DDTHH:MM:SS+00:00)"
+                  placeholderTextColor="#888"
+                  value={updateTime}
+                  onChangeText={setUpdateTime}
+                />
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={handleUpdateMeeting}
+                >
+                  <Text style={styles.modalButtonText}>Submit Update</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {modalType === 'delete' && (
+              <>
+                <Text style={styles.modalHeader}>Delete Meeting</Text>
+                <Text style={{ color: '#222', marginBottom: 16 }}>
+                  Are you sure you want to delete this meeting occurrence?
+                </Text>
+                <TouchableOpacity
+                  style={[styles.modalButton, { backgroundColor: '#dc2626' }]}
+                  onPress={() => handleDeleteMeeting(false)}
+                >
+                  <Text style={styles.modalButtonText}>Delete This Occurrence</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, { backgroundColor: '#dc2626', marginTop: 8 }]}
+                  onPress={() => handleDeleteMeeting(true)}
+                >
+                  <Text style={styles.modalButtonText}>Delete All Future Occurrences</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: '#888', marginTop: 10 }]}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       <TouchableOpacity onPress={handleBack}>
         <Text style={styles.buttonBack}>Back to Login</Text>
       </TouchableOpacity>
@@ -304,6 +485,51 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     color: 'white',
     width: 150,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 24,
+    width: '85%',
+    alignItems: 'center',
+  },
+  modalHeader: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: '#222',
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#888',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+    color: '#222',
+    backgroundColor: '#f5f5f5',
+    marginBottom: 12,
+    width: '100%',
+  },
+  modalButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    marginTop: 8,
+    width: '100%',
+  },
+  modalButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
     fontSize: 16,
     textAlign: 'center',
   },
