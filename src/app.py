@@ -326,7 +326,7 @@ async def fetch(start_time: str, end_time: str, meetings: bool, assignments: boo
     Fetches everything (chores, assignments, meetings) between start and end timestamps. Every input is a query parameter
         Args
             start_time(str): ISO-formatted timestamp
-            end_time(str): ISO-formatted imestamp
+            end_time(str): ISO-formatted timestamp
             meetings(bool): Include meetings?
             assignments(bool): Include assignments?
             chores(bool): Include chores?

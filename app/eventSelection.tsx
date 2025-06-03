@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { KeyboardAvoidingView, Alert, View, SafeAreaView, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, Platform } from 'react-native';
+import { KeyboardAvoidingView, Alert, View, SafeAreaView, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from 'expo-router';
@@ -7,6 +7,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { format } from 'date-fns';
+import { useMeetingContext } from './MeetingContext';
+import { useAssignmentContext } from './AssignmentContext';
+
 
 export default function EventSelection() 
 {
@@ -34,6 +38,9 @@ export default function EventSelection()
     endTime: string;
     name: string;
     recurrence: null | string;
+    link_or_loc: string | null;
+    meetingID: number;
+    occurrenceID: number;
   };
 
   type Assignment = {
@@ -53,13 +60,14 @@ export default function EventSelection()
   const [recurrence, setRecurrence] = useState(null);
   const [items, setItems] = useState([
     { label: 'Daily', value: 'Daily' },
-    { label: 'Weekly', value: 'Weekly' },
-    { label: 'Once', value: 'Once' }
+    { label: 'Once', value: 'Once' },
+    { label: 'Every Mon', value: 'Mon' }
   ]);
 
   const [startDateTime, setStartDateTime] = useState(new Date());
   const [endDateTime, setEndDateTime] = useState(new Date());
   const [name, setName] = useState('');
+  const [location, setLocation] = useState('');
 
   const [assignment, setAssignment] = useState('');
   const [chore, setChore] = useState('');
@@ -85,8 +93,9 @@ export default function EventSelection()
   // const [showDatePicker, setShowDatePicker] = useState(false);
 
   // list of all the meetings the user has added to their schedule
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const { meetings, setMeetings } = useMeetingContext();
+  const { assignments, setAssignments } = useAssignmentContext();
+  //Will fix this one as well later using useChoreContext() function
   const [chores, setChores] = useState<Chore[]>([]);
 
   // Maintain a JSON object matching the backend schemas
@@ -169,7 +178,7 @@ export default function EventSelection()
   const handleMeeting = () => 
   {
 
-    if (!name || !recurrence || !startDateTime || !endDateTime) {
+    if (!name || !recurrence || !startDateTime || !endDateTime || !location) {
       alert('Please fill in all fields.');
       return;
     }
@@ -186,12 +195,16 @@ export default function EventSelection()
     console.log("End time: " + endDateTime.toString());
     console.log("Meeting name: " + name);
     console.log("Recurrence: " + recurrence);
+    console.log("Location: " + location);
 
     const newMeeting = {
       startTime: startDateTime.toString(),
       endTime: endDateTime.toString(),
       name: name,
       recurrence: recurrence,
+      link_or_loc: location,
+      meetingID: Date.now(),
+      occurrenceID: Date.now()
     };
 
     setMeetings([...meetings, newMeeting]);
@@ -218,6 +231,8 @@ export default function EventSelection()
     setMeetingRepeatEnd(new Date());
     setName('');
     setRecurrence(null);
+    setLocation('');
+    
   }
 
   // Helper to generate start_end_times for recurring meetings
@@ -342,7 +357,7 @@ export default function EventSelection()
     // Show an alert with options to edit or delete the meeting
     Alert.alert(
       'Meeting Options',
-      `Meeting: ${meeting.name}\nStart Time: ${meeting.startTime}\nEnd Time: ${meeting.endTime}`,
+      `Meeting: ${meeting.name}\nStart Time: ${format(new Date(meeting.startTime), "MMM dd, yyyy - h:mm a")}\nEnd Time: ${format(new Date(meeting.endTime), "MMM dd, yyyy - h:mm a")}\nMeeting Location: ${meeting.link_or_loc}\nMeeting Recurrence: ${meeting.recurrence}`,
       [
         {
           text: 'Edit',
@@ -352,8 +367,8 @@ export default function EventSelection()
               // Edit functionality can be implemented by navigating to the meeting edit screen:
 
               // Send the current meeting and the list of meetings to the MeetingEdit screen:
-              navigation.navigate('MeetingEdit', { meeting, meetings, setMeetings });
-          },
+              navigation.navigate('MeetingEdit', { meeting });
+          }, 
 
         },
         {
@@ -382,7 +397,7 @@ export default function EventSelection()
     // Show an alert with options to edit or delete the assignment
     Alert.alert(
       'Assignment Options',
-      `Assignment: ${assignment.name}\nDeadline: ${assignment.deadline}`,
+      `Assignment: ${assignment.name}\nEffort: ${assignment.effort} min\nDeadline: ${format(new Date(assignment.deadline), "MMM dd, yyyy - h:mm a")}`,
       [
         {
           text: 'Edit',
@@ -390,7 +405,7 @@ export default function EventSelection()
             console.log('Edit assignment');
             // Implement edit functionality here
             // Edit functionality can be implemented by navigating to the AssignmentEdit screen:
-            navigation.navigate('AssignmentEdit', { assignment, assignments, setAssignments });
+            navigation.navigate('AssignmentEdit', { assignment });
           },
         },
         {
@@ -419,7 +434,7 @@ export default function EventSelection()
     // Show an alert with options to edit or delete the chore
     Alert.alert(
       'Chore Options',
-      `Chore: ${chore.name}\nDeadline: ${chore.deadline}`,
+      `Chore: ${chore.name}\nEffort: ${chore.effort} min\nDeadline: ${format(new Date(chore.windowEnd), "MMM dd, yyyy - h:mm a")}`,
       [
         {
           text: 'Edit',
@@ -447,6 +462,7 @@ export default function EventSelection()
 
 
   return (
+    
     <SafeAreaView style={styles.container}>
       <View style={styles.navBar}>
         {navItems.map((item) => (
@@ -523,7 +539,10 @@ export default function EventSelection()
             </View>
 
             {/* Add End Repeat Date Picker for recurring meetings */}
-            {(recurrence === "daily" || recurrence === "weekly") && (
+            {(recurrence === "daily" || recurrence === "mon" || recurrence === "tue" 
+              || recurrence === "wed" || recurrence === "thu" || recurrence === "fri" ||
+              recurrence === "sat" || recurrence === "sun" 
+            ) && (
               <>
                 <Text style={styles.meetingTime2}>
                   End Repeat Date:
@@ -553,6 +572,15 @@ export default function EventSelection()
               onChangeText={setName}
             />
 
+            <Text style={styles.meetingLocation}>Link / Location:</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Link/location"
+              placeholderTextColor="#aaa"
+              value={location}
+              onChangeText={setLocation}
+            />
+
             {/* Place to add the dropdown for meeting recurrence: */}
             <Text style={styles.meetingRecurrence}>Recurrence:</Text>
               <View style={styles.pickerWrapperMeeting}>
@@ -563,9 +591,15 @@ export default function EventSelection()
                   itemStyle={styles.pickerMeetingItem}
                 >
                   <Picker.Item label="Select Frequency" value={null} />
-                  <Picker.Item label="Daily" value="daily" />
-                  <Picker.Item label="Weekly" value="weekly" />
                   <Picker.Item label="Once" value="once" />
+                  <Picker.Item label="Daily" value="daily" />
+                  <Picker.Item label="Every Mon" value="mon" />
+                  <Picker.Item label="Every Tue" value="tue" />
+                  <Picker.Item label="Every Wed" value="wed" />
+                  <Picker.Item label="Every Thu" value="thu" />
+                  <Picker.Item label="Every Fri" value="fri" />
+                  <Picker.Item label="Every Sat" value="sat" />
+                  <Picker.Item label="Every Sun" value="sun" />
                 </Picker>
               </View>
 
@@ -583,128 +617,132 @@ export default function EventSelection()
 
       {selected === "Assignment" && (
         <>
-          <SafeAreaView>
-            <Text style={styles.header}>
-              Set up an Assignment
-            </Text>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible = {false}>
+            <SafeAreaView>
+              <Text style={styles.header}>
+                Set up an Assignment
+              </Text>
 
-            <Text style={styles.assignmentName}>Name:</Text>
-            <TextInput
-              style={styles.input2}
-              placeholder="Assignment"
-              placeholderTextColor="#aaa"
-              value={assignment}
-              onChangeText={setAssignment}
-            />
-
-            <Text style={styles.assignmentEffort}>Effort (minutes):</Text>
-            <TextInput
-              style={styles.input2}
-              placeholder="Effort in minutes"
-              placeholderTextColor="#aaa"
-              keyboardType="numeric"
-              value={assignmentEffort}
-              onChangeText={setAssignmentEffort}
-            />
-
-            <Text style={styles.assignmentDeadline}>Deadline:</Text>
-            <View style={styles.pickerWrapper2}>
-              <DateTimePicker
-                testID="dateTimePicker"
-                value={date}
-                mode="datetime"
-                display="compact"
-                textColor="white"
-                onChange={onDateChange}
-                style={styles.pickerIOS2}
+              <Text style={styles.assignmentName}>Name:</Text>
+              <TextInput
+                style={styles.input2}
+                placeholder="Assignment"
+                placeholderTextColor="#aaa"
+                value={assignment}
+                onChangeText={setAssignment}
               />
-            </View>
 
-            <TouchableOpacity style={styles.addAssignment} onPress={handleAssignment}>
-              <Text style={styles.eventText}>Add Event</Text>
-            </TouchableOpacity>
+              <Text style={styles.assignmentEffort}>Effort (minutes):</Text>
+              <TextInput
+                style={styles.input2}
+                placeholder="Effort in minutes"
+                placeholderTextColor="#aaa"
+                keyboardType="numeric"
+                value={assignmentEffort}
+                onChangeText={setAssignmentEffort}
+              />
 
-            <TouchableOpacity 
-              style={styles.backButton2} 
-              onPress={() => {
-                navigation.replace('Home');
-              }}
-            >
-              <Text style={styles.eventText}>Go to home</Text>
-            </TouchableOpacity>
-          </SafeAreaView>
+              <Text style={styles.assignmentDeadline}>Deadline:</Text>
+              <View style={styles.pickerWrapper2}>
+                <DateTimePicker
+                  testID="dateTimePicker"
+                  value={date}
+                  mode="datetime"
+                  display="compact"
+                  textColor="white"
+                  onChange={onDateChange}
+                  style={styles.pickerIOS2}
+                />
+              </View>
+
+              <TouchableOpacity style={styles.addAssignment} onPress={handleAssignment}>
+                <Text style={styles.eventText}>Add Event</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.backButton2} 
+                onPress={() => {
+                  navigation.replace('Home');
+                }}
+              >
+                <Text style={styles.eventText}>Go to home</Text>
+              </TouchableOpacity>
+            </SafeAreaView>
+          </TouchableWithoutFeedback>
         </>
       )}
 
       {selected === "Chore/Study" && (
         <>
-          <SafeAreaView>
-            <Text style={styles.header}>
-              Set up Chore/Study
-            </Text>
+          <TouchableWithoutFeedback onPress = {Keyboard.dismiss} accessible = {false}>
+            <SafeAreaView>
+              <Text style={styles.header}>
+                Set up Chore/Study
+              </Text>
 
-            <Text style={styles.choreName}>Name:</Text>
-            <TextInput
-              style={styles.input2}
-              placeholder="Chore"
-              placeholderTextColor="#aaa"
-              value={chore}
-              onChangeText={setChore}
-            />
-
-            <Text style={styles.choreEffort}>Effort (minutes):</Text>
-            <TextInput
-              style={styles.input2}
-              placeholder="Effort in minutes"
-              placeholderTextColor="#aaa"
-              keyboardType="numeric"
-              value={choreEffort}
-              onChangeText={setChoreEffort}
-            />
-
-            <Text style={styles.choreStartDeadline}>Window Start:</Text>
-            <View style={styles.pickerWrapper}>
-              <DateTimePicker
-                testID="choreWindowStartPicker"
-                value={choreWindowStart}
-                mode="datetime"
-                display="compact"
-                textColor="white"
-                onChange={(event, selectedDate) => {
-                  if (selectedDate) setChoreWindowStart(selectedDate);
-                }}
-                style={styles.pickerIOS}
+              <Text style={styles.choreName}>Name:</Text>
+              <TextInput
+                style={styles.input2}
+                placeholder="Chore"
+                placeholderTextColor="#aaa"
+                value={chore}
+                onChangeText={setChore}
               />
-            </View>
 
-            <Text style={styles.choreEndDeadline}>Window End:</Text>
-            <View style={styles.pickerWrapper}>
-              <DateTimePicker
-                testID="choreWindowEndPicker"
-                value={choreWindowEnd}
-                mode="datetime"
-                display="compact"
-                textColor="white"
-                onChange={(event, selectedDate) => {
-                  if (selectedDate) setChoreWindowEnd(selectedDate);
-                }}
-                style={styles.pickerIOS}
+              <Text style={styles.choreEffort}>Effort (minutes):</Text>
+              <TextInput
+                style={styles.input2}
+                placeholder="Effort in minutes"
+                placeholderTextColor="#aaa"
+                keyboardType="numeric"
+                value={choreEffort}
+                onChangeText={setChoreEffort}
               />
-            </View>
 
-            <TouchableOpacity style={styles.addChore} onPress={handleChore}>
-              <Text style={styles.eventText}>Add Event</Text>
-            </TouchableOpacity>
+              <Text style={styles.choreStartDeadline}>Window Start:</Text>
+              <View style={styles.pickerWrapper}>
+                <DateTimePicker
+                  testID="choreWindowStartPicker"
+                  value={choreWindowStart}
+                  mode="datetime"
+                  display="compact"
+                  textColor="white"
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) setChoreWindowStart(selectedDate);
+                  }}
+                  style={styles.pickerIOS}
+                />
+              </View>
 
-            <TouchableOpacity 
-              style={styles.backButton2} 
-              onPress={() => {
-                navigation.replace('Home');
-              }}
-            >
-              <Text style={styles.eventText}>Go to home</Text>
-            </TouchableOpacity>
-          </SafeAreaView>
+              <Text style={styles.choreEndDeadline}>Window End:</Text>
+              <View style={styles.pickerWrapper}>
+                <DateTimePicker
+                  testID="choreWindowEndPicker"
+                  value={choreWindowEnd}
+                  mode="datetime"
+                  display="compact"
+                  textColor="white"
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) setChoreWindowEnd(selectedDate);
+                  }}
+                  style={styles.pickerIOS}
+                />
+              </View>
+
+              <TouchableOpacity style={styles.addChore} onPress={handleChore}>
+                <Text style={styles.eventText}>Add Event</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.backButton2} 
+                onPress={() => {
+                  navigation.replace('Home');
+                }}
+              >
+                <Text style={styles.eventText}>Go to home</Text>
+              </TouchableOpacity>
+            </SafeAreaView>
+          </TouchableWithoutFeedback>
         </>
       )}
 
@@ -728,9 +766,13 @@ export default function EventSelection()
               {meetings.map((meeting, index) => (
                 <TouchableOpacity key={index} style={styles.individualMeeting} onPress={() => editDeleteMeeting(index)}>
                   <Text style={styles.meetingTimeForEvents}>
-                    {meeting.startTime} - {meeting.endTime}
+                    {format(new Date(meeting.startTime), "MMM dd, yyyy - h:mm a")}
+                  </Text>
+                  <Text style={styles.meetingTimeForEvents}>
+                    {format(new Date(meeting.endTime), "MMM dd, yyyy - h:mm a")}
                   </Text>
                   <Text style={styles.meetingNameForEvents}>{meeting.name}</Text>
+                  <Text style={styles.meetingLocationForEvents}>{meeting.link_or_loc}</Text>
                   <Text style={styles.meetingRecurrenceText}>{meeting.recurrence}</Text>
                 </TouchableOpacity>
               ))}
@@ -747,7 +789,10 @@ export default function EventSelection()
               {assignments.map((assignment, index) => (
                 <TouchableOpacity key={index} style={styles.individualAssignment} onPress={() => editDeleteAssignment(index)}>
                   <Text style={styles.assignmentTimeForEvents}>
-                    {assignment.deadline}
+                    {format(new Date(assignment.deadline), "MMM dd, yyyy - h:mm a")}
+                  </Text>
+                  <Text style = {styles.assignmentEffortForEvents}>
+                    {assignment.effort} min
                   </Text>
                   <Text style={styles.assignmentNameForEvents}>{assignment.name}</Text>
                 </TouchableOpacity>
@@ -765,8 +810,14 @@ export default function EventSelection()
             <ScrollView horizontal showsHorizontalScrollIndicator={true}>
               {chores.map((chore, index) => (
                 <TouchableOpacity key={index} style={styles.individualChore} onPress={() => editDeleteChore(index)}>
+                  <Text style = {styles.choreTimeForEvents}>
+                    {format(new Date(chore.windowStart), "MMM dd, yyyy - h:mm a")}
+                  </Text>
                   <Text style={styles.choreTimeForEvents}>
-                    {chore.windowEnd}
+                    {format(new Date(chore.windowEnd), "MMM dd, yyyy - h:mm a")}
+                  </Text>
+                  <Text style = {styles.choreEffortForEvents}>
+                    {chore.effort} min
                   </Text>
                   <Text style={styles.choreNameForEvents}>{chore.name}</Text>
                 </TouchableOpacity>
@@ -930,6 +981,13 @@ const styles = StyleSheet.create({
   },
 
   meetingName: {
+    fontSize: 18,
+    color: 'white',
+    marginTop: 30,
+    marginBottom: 10,
+  },
+
+  meetingLocation:{
     fontSize: 18,
     color: 'white',
     marginTop: 30,
@@ -1144,35 +1202,78 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
 
-  individualMeeting:{
-    backgroundColor: 'white',
-    padding: 10,
-    borderRadius: 8,
-    marginLeft: 10,
-    width: 200,
-    height:100,
-    alignItems: 'center',
-    color: 'black',
+  // individualMeeting:{
+  //   backgroundColor: 'white',
+  //   padding: 10,
+  //   borderRadius: 8,
+  //   marginLeft: 10,
+  //   width: 200,
+  //   height:100,
+  //   alignItems: 'center',
+  //   color: 'black',
+  // },
+
+  // meetingTimeForEvents:{
+  //   fontSize: 15,
+  //   color: 'black',
+  //   marginBottom: 5,
+  // },
+
+  // meetingNameForEvents:{
+  //   fontSize: 14,
+  //   color: 'black',
+  //   fontWeight: 'bold',
+  // },
+
+  // meetingRecurrenceText:{
+  //   fontSize: 16,
+  //   color: 'black',
+  //   marginTop: 2,
+  //   fontWeight: 'bold',
+  // },
+  individualMeeting: {
+    backgroundColor: '#f4f4f8',
+    borderRadius: 12,
+    padding: 14,
+    marginVertical: 8,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, // for Android shadow
   },
 
-  meetingTimeForEvents:{
-    fontSize: 18,
-    color: 'black',
-    marginBottom: 10,
-  },
+meetingNameForEvents: {
+  fontSize: 16,
+  color: '#1a1a1a',
+  fontWeight: '600',
+  marginBottom: 2,
+  marginTop:3,
+},
 
-  meetingNameForEvents:{
-    fontSize: 16,
-    color: 'black',
-    fontWeight: 'bold',
-  },
+meetingLocationForEvents:{
+  fontSize: 16,
+  color: 'black',
+  fontWeight: '600',
+  marginBottom: 4,
+  marginTop:3,
+},
 
-  meetingRecurrenceText:{
-    fontSize: 16,
-    color: 'black',
-    marginTop: 10,
-    fontWeight: 'bold',
-  },
+meetingTimeForEvents: {
+  fontSize: 14,
+  color: '#555',
+  marginBottom: 2,
+},
+
+meetingRecurrenceText: {
+  fontSize: 14,
+  color: '#3b82f6', // subtle blue to indicate recurring nature
+  fontWeight: '500',
+  marginTop:3,
+  marginBottom:2,
+},
+
 
   assignmentsSection:{
     fontSize: 20,
@@ -1182,27 +1283,38 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
 
-  individualAssignment:{
-    backgroundColor: 'white',
-    padding: 10,
-    borderRadius: 8,
-    marginLeft: 10,
-    width: 200,
-    height:80,
-    alignItems: 'center',
-    color: 'black',
+  individualAssignment: {
+    backgroundColor: '#f4f4f8',
+    borderRadius: 12,
+    padding: 14,
+    marginVertical: 8,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, // for Android shadow
   },
 
-  assignmentTimeForEvents:{
-    fontSize: 18,
-    color: 'black',
-    marginBottom: 10,
+  assignmentTimeForEvents: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 2,
   },
 
-  assignmentNameForEvents:{
+  assignmentEffortForEvents:
+  {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 2,
+  },
+
+  assignmentNameForEvents: {
     fontSize: 16,
-    color: 'black',
-    fontWeight: 'bold',
+    color: '#1a1a1a',
+    fontWeight: '600',
+    marginBottom: 2,
+    marginTop:3,
   },
 
   choresSection:{
@@ -1213,27 +1325,37 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
 
-  individualChore:{
-    backgroundColor: 'white',
-    padding: 10,
-    borderRadius: 8,
-    marginLeft: 10,
-    width: 200,
-    height:80,
-    alignItems: 'center',
-    color: 'black',
+  individualChore: {
+    backgroundColor: '#f4f4f8',
+    borderRadius: 12,
+    padding: 14,
+    marginVertical: 8,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, // for Android shadow
   },
 
-  choreTimeForEvents:{
-    fontSize: 18,
-    color: 'black',
-    marginBottom: 10,
+  choreTimeForEvents: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 2,
   },
 
-  choreNameForEvents:{
+  choreNameForEvents: {
     fontSize: 16,
-    color: 'black',
-    fontWeight: 'bold',
+    color: '#1a1a1a',
+    fontWeight: '600',
+    marginBottom: 2,
+    marginTop:3,
+  },
+
+  choreEffortForEvents:{
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 2,
   },
 
   generateButton: {

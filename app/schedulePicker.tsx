@@ -206,6 +206,13 @@ export default function SchedulePicker() {
           </View>
         </View>
       </Modal>
+      {/* Button to navigate back to the All Events Page */}
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style = {styles.goBack}
+      >
+        <Text style = {styles.txt}>Go Back</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -229,5 +236,20 @@ const styles = StyleSheet.create({
   noneText: { color: '#888', fontStyle: 'italic', marginLeft: 8 },
   closeButton: { backgroundColor: '#222', borderRadius: 8, padding: 12, marginTop: 20, alignItems: 'center' },
   closeButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+  goBack:{
+    backgroundColor:'white',
+    alignSelf:'center',
+    width: 150,
+    height: 35,
+    marginBottom:40,
+    justifyContent:'center',
+    alignItems:'center',
+    borderRadius:10,
+  },
+  txt:{
+    fontSize:18,
+    fontWeight:200,
+    color:'black',
+  }
 });
 

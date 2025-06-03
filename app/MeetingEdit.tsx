@@ -3,6 +3,8 @@ import {View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput} from 'r
 import {useNavigation} from 'expo-router';
 import {useRoute} from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
+import { useMeetingContext } from './MeetingContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // This screen is for editing a meeting, which has been passed from the Meeting screen
 // This screen will take in the meeting object and a list of meetings
@@ -13,28 +15,78 @@ export default function MeetingEdit() {
     const route = useRoute();
 
 
-    const { meeting, meetings, setMeetings } = route.params;
+    const { meeting } = route.params;
+    const { meetings, setMeetings } = useMeetingContext();
+
 
     const [meetingName, setMeetingName] = useState(meeting.name);
     const [startTime, setStartTime] = useState(meeting.startTime);
     const [endTime, setEndTime] = useState(meeting.endTime);
     const [recurrence, setRecurrence] = useState(meeting.recurrence || 'None');
-    
-    const saveChanges = () => {
-        // Logic to save changes to the meeting
-        const updatedMeeting = {
-            ...meeting,
-            name: meetingName,
-            startTime: startTime,
-            endTime: endTime,
-            recurrence: recurrence,
-        };
-        const updatedMeetings = meetings.map((m) => 
-            m === meeting ? updatedMeeting : m
-        );
+    const [location, setLocation] = useState(meeting.link_or_loc || "");
+    const [meetingID, setMeetingID] = useState(meeting.meetingID);
+    const [occurrenceID, setOccurenceID] = useState(meeting.occurrenceID);
 
-        setMeetings(updatedMeetings);
-        navigation.goBack();
+    
+    
+    async function saveChanges()
+    {
+
+        console.log("Received meeting object:", meeting);
+
+        const payload = {
+            future_occurences: false,
+            meeting_id: meetingID,
+            ocurrence_id: occurrenceID,
+            new_name: meetingName || null,
+            new_time: startTime ? new Date(startTime).toISOString() : null,
+            new_loc_or_link: location,
+        }
+        // Logic to save changes to the meeting
+
+        console.log(payload);
+
+        try
+        {
+            const url = await AsyncStorage.getItem('backendURL');
+            const token = await AsyncStorage.getItem('token');
+
+            const response = await fetch(`${url}/update`, {
+                method: "POST",
+                headers:{
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                alert("Failed to update: " + errorData.message);
+                return;
+            }
+
+            const updatedMeeting = {
+                ...meeting,
+                name: meetingName,
+                startTime: startTime,
+                endTime: endTime,
+                recurrence: recurrence,
+                link_or_loc: location,
+            };
+
+            const updatedMeetings = meetings.map(m =>
+                m.meetingID === meeting.meetingID ? updatedMeeting : m
+            );
+
+            setMeetings(updatedMeetings);
+            navigation.goBack();
+        }
+        catch (err) {
+            console.error("Error updating meeting:", err);
+            alert("Unexpected error updating meeting.");
+        }
     }
 
     const back = () => {
@@ -72,6 +124,13 @@ export default function MeetingEdit() {
                     onChangeText={setEndTime}
                 />
 
+                <TextInput
+                    style = {styles.input}
+                    placeholder="Meeting Location/Link"
+                    value={location}
+                    onChangeText={setLocation}
+                />
+
                 {/* Recurrence Picker */}
                 <View style = {styles.pickerWrapperMeeting}>
                     <Picker
@@ -81,9 +140,15 @@ export default function MeetingEdit() {
                         itemStyle={styles.pickerMeetingItem}
                     >
                         <Picker.Item label="Select Frequency" value={null} />
-                        <Picker.Item label="Daily" value="daily" />
-                        <Picker.Item label="Weekly" value="weekly" />
                         <Picker.Item label="Once" value="once" />
+                        <Picker.Item label="Daily" value="daily" />
+                        <Picker.Item label="Every Mon" value="mon" />
+                        <Picker.Item label="Every Tue" value="tue" />
+                        <Picker.Item label="Every Wed" value="wed" />
+                        <Picker.Item label="Every Thu" value="thu" />
+                        <Picker.Item label="Every Fri" value="fri" />
+                        <Picker.Item label="Every Sat" value="sat" />
+                        <Picker.Item label="Every Sun" value="sun" />
                     </Picker>
                 </View>
                 

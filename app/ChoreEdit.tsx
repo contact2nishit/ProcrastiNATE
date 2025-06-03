@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput} from 'react-native';
+import {View, Text, TouchableOpacity, ScrollView, StyleSheet, Keyboard, TextInput, TouchableWithoutFeedback} from 'react-native';
 import {useNavigation} from 'expo-router';
 import {useRoute} from '@react-navigation/native';
 
@@ -15,14 +15,18 @@ export default function ChoreEdit() {
     const { chore, chores, setChores } = route.params;
 
     const [choreName, setChoreName] = useState(chore.name);
-    const [choreDeadline, setChoreDeadline] = useState(chore.deadline);
+    const [choreStart, setChoreStart] = useState(chore.windowStart);
+    const [choreEnd, setChoreEnd] = useState(chore.windowEnd);
+    const [choreEffort, setChoreEffort] = useState(chore.effort);
     
     const saveChanges = () => {
         // Logic to save changes to the meeting
         const updatedChore = {
             ...chore,
             name: choreName,
-            deadline: choreDeadline,
+            windowStart: choreStart,
+            windowEnd: choreEnd,
+            effort: choreEffort
         };
         const updatedChores = chores.map((c) => 
             c === chore ? updatedChore : c
@@ -42,30 +46,49 @@ export default function ChoreEdit() {
     return (
         // This screen is for editing (start/end times, meeting name) a meething which has been passed from the Meeting screen
         <View style={styles.container}>
-            <ScrollView>
-                <Text style={styles.title}>Edit Chfore</Text>
-                
-                <TextInput
-                    style={styles.input}
-                    placeholder="Chore Name"
-                    value={choreName}
-                    onChangeText={setChoreName}
-                />
-                
-                <TextInput
-                    style={styles.input}
-                    placeholder="Deadline"
-                    value={choreDeadline}
-                    onChangeText={setChoreDeadline}
-                />
-                
-                <TouchableOpacity style={styles.button} onPress={saveChanges}>
-                    <Text style={styles.buttonText}>Save Changes</Text>
-                </TouchableOpacity>
-            </ScrollView>
-            <TouchableOpacity style={styles.backButton} onPress={back}>
-                <Text style={styles.backButtonText}>Back</Text>
-            </TouchableOpacity>
+            <TouchableWithoutFeedback onPress = {Keyboard.dismiss} accessible = {false}>
+                <ScrollView>
+                    <Text style={styles.title}>Edit Chore</Text>
+                    
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Name"
+                        value={choreName}
+                        onChangeText={setChoreName}
+                    />
+                    
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Start time"
+                        value={choreStart}
+                        onChangeText={setChoreStart}
+                    />
+
+                    <TextInput
+                        style={styles.input}
+                        placeholder="End time"
+                        value={choreEnd}
+                        onChangeText={setChoreEnd}
+                    />
+
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Effort"
+                        placeholderTextColor="#aaa"
+                        keyboardType="numeric"
+                        value={String(choreEffort)}
+                        onChangeText={setChoreEffort}
+                    />
+                    
+                    <TouchableOpacity style={styles.button} onPress={saveChanges}>
+                        <Text style={styles.buttonText}>Save Changes</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.backButton} onPress={back}>
+                        <Text style={styles.backButtonText}>Back</Text>
+                    </TouchableOpacity>
+                </ScrollView>
+            </TouchableWithoutFeedback>
         </View>
     );
 }
@@ -96,6 +119,8 @@ const styles = StyleSheet.create({
         padding: 15,
         borderRadius: 10,
         alignItems: 'center',
+        marginTop:260,
+        marginBottom:20,
     },
     buttonText: {
         color: '#fff',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect} from 'react';
-import { Button, View, Text, StyleSheet, TouchableOpacity, TextInput, Touchable } from 'react-native';
+import { Platform, Button, View, Text, StyleSheet, TouchableOpacity, TextInput, Touchable, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -54,63 +54,69 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.welcomeText}>Welcome to ProcrastiNATE!</Text>
-      
-      <View style={styles.loginBox}>
+    <KeyboardAvoidingView
+       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+       keyboardVerticalOffset={20}
+       style={{ flex: 1 }}
+    >
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.welcomeText}>Welcome to ProcrastiNATE!</Text>
+        
+        <View style={styles.loginBox}>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Username</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Username"
-            placeholderTextColor="#aaa"
-            value={username}
-            onChangeText={setUsername}
-          />
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Username</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              placeholderTextColor="#aaa"
+              value={username}
+              onChangeText={setUsername}
+            />
+          </View>
+
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#aaa"
+              secureTextEntry={true}
+              value={password}
+              onChangeText={setPassword}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Backend URL</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="http://localhost:8000"
+              placeholderTextColor="#aaa"
+              value={backendURL}
+              onChangeText={text => {
+                setBackendURL(text);
+                handleBackendURLSave(text);
+              }}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          <TouchableOpacity style={styles.loginButton} onPress={handleSubmit}>
+            <Text style={styles.loginButtonText}>Sign In</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress ={handleSignup}>
+            <Text style = {styles.noAccount}>
+              Don't have an account? <Text style = {styles.signupButtonText}>Sign Up</Text>
+            </Text>
+          </TouchableOpacity>
+
         </View>
-
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#aaa"
-            secureTextEntry={true}
-            value={password}
-            onChangeText={setPassword}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Backend URL</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="http://localhost:8000"
-            placeholderTextColor="#aaa"
-            value={backendURL}
-            onChangeText={text => {
-              setBackendURL(text);
-              handleBackendURLSave(text);
-            }}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </View>
-
-        <TouchableOpacity style={styles.loginButton} onPress={handleSubmit}>
-          <Text style={styles.loginButtonText}>Sign In</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress ={handleSignup}>
-          <Text style = {styles.noAccount}>
-            Don't have an account? <Text style = {styles.signupButtonText}>Sign Up</Text>
-          </Text>
-        </TouchableOpacity>
-
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
