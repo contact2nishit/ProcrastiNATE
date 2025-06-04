@@ -27,13 +27,32 @@ def generate_available_slots(meetings: List[Tuple[datetime, datetime]], from_tim
     return slots
 
 def find_time_blocks(effort_minutes: int, available_slots: List[Tuple[datetime, datetime]], used_slots: set) -> List[Tuple[datetime, datetime]]:
+    """
+    Try to find a contiguous block of available time slots to fit the required effort (in minutes).
+
+    Args:
+        effort_minutes: Total minutes of work needed (e.g., 30 for a 30-minute task).
+        available_slots: List of (start, end) tuples representing available time slots.
+        used_slots: Set of slots already used by other tasks (to avoid overlap).
+
+    Returns:
+        A list of slots (tuples) that together sum up to the required effort, or as much as possible.
+        If no contiguous block is found, returns an empty list or a partial block.
+
+    How it works:
+    - The function divides the effort into chunks (CHUNK_MINUTES).
+    - It iterates through available_slots, skipping any that are in used_slots.
+    - It tries to build a contiguous sequence of slots (where each slot starts right after the previous one ends).
+    - If it finds enough contiguous slots to cover the effort, it returns them.
+    - If not, it returns the longest contiguous block found (could be empty if nothing fits).
+    """
     required_chunks = effort_minutes // CHUNK_MINUTES
     scheduled = []
     for slot in available_slots:
         if slot in used_slots:
             continue
         if not scheduled or scheduled[-1][1] == slot[0]:
-            scheduled.append(slot)
+            scheduled[-1][1] = slot[1] # this change should squish adjacent slots
         else:
             scheduled = [slot]
         if len(scheduled) == required_chunks:
@@ -171,6 +190,8 @@ def schedule_tasks(
 
             assigned_slots = find_time_blocks(task.effort, available, used_slots)
             assigned_minutes = len(assigned_slots) * CHUNK_MINUTES
+            # because of the change to gen_avail_slots, the above line will break
+            # not every slot is CHUNK_MINUTES of time anymore
             status = (
                 "fully_scheduled" if assigned_minutes == task.effort else
                 "partially_scheduled" if assigned_minutes > 0 else

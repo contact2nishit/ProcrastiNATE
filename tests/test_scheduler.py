@@ -1,6 +1,9 @@
 # test_scheduler.py
 
 from datetime import datetime, timedelta, timezone
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from scheduler import schedule_tasks
 from data_models import AssignmentInRequest, ChoreInRequest, MeetingInRequest
 import pytest
@@ -17,8 +20,8 @@ def test_basic_schedule():
     meetings = [MeetingInRequest(name="Team Sync", start_end_times=[create_slot(60, 60)])]
 
     schedule = schedule_tasks(meetings, assignments, chores, num_schedules=1)[0]
-    assert all(a.schedule.status != "unschedulable" for a in schedule.assignments)
-    assert all(c.schedule.status != "unschedulable" for c in schedule.chores)
+    assert all(a.schedule.status == "fully_scheduled" for a in schedule.assignments)
+    assert all(c.schedule.status == "fully_scheduled" for c in schedule.chores)
 
 
 def test_exact_fit_assignment():
