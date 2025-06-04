@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Tuple, Literal, Dict, Union
 from pydantic import BaseModel, Field
 from data_models import *
+from util import *
 import random
 from datetime import datetime, timedelta
 
@@ -65,11 +66,7 @@ def loosely_sort_assignments(assignments: List[AssignmentInRequest], bucket_minu
     buckets = defaultdict(list)
     for a in assignments:
         # Ensure a.due is timezone-aware (preferably UTC)
-        due = a.due
-        if due.tzinfo is None:
-            due = due.replace(tzinfo=timezone.utc)
-        else:
-            due = due.astimezone(timezone.utc)
+        due = enforce_timestamp_utc(a.due)
         bucket_key = int((due - now).total_seconds() // (bucket_minutes * 60))
         buckets[bucket_key].append(a)
     sorted_keys = sorted(buckets.keys())
@@ -98,20 +95,10 @@ def schedule_tasks(
     # Fix: Only call max() if the list is not empty, otherwise set a default
     due_times = []
     for a in assignments:
-        due = a.due
-        if due.tzinfo is None:
-            due = due.replace(tzinfo=timezone.utc)
-        else:
-            due = due.astimezone(timezone.utc)
-        due_times.append(due)
+        due_times.append(enforce_timestamp_utc(a.due))
     chore_end_times = []
     for c in chores:
-        end = c.window[1]
-        if end.tzinfo is None:
-            end = end.replace(tzinfo=timezone.utc)
-        else:
-            end = end.astimezone(timezone.utc)
-        chore_end_times.append(end)
+        chore_end_times.append(enforce_timestamp_utc(c.window[1]))
     all_times = due_times + chore_end_times
     if all_times:
         latest_time = max(all_times)
@@ -124,15 +111,7 @@ def schedule_tasks(
     all_meeting_times: List[Tuple[datetime, datetime]] = []
     for m in meetings:
         for interval in m.start_end_times:
-            start, end = interval
-            if start.tzinfo is None:
-                start = start.replace(tzinfo=timezone.utc)
-            else:
-                start = start.astimezone(timezone.utc)
-            if end.tzinfo is None:
-                end = end.replace(tzinfo=timezone.utc)
-            else:
-                end = end.astimezone(timezone.utc)
+            start, end = enforce_timestamp_utc(interval[0]), enforce_timestamp_utc(interval[1])
             all_meeting_times.append((start, end))
     # TODO: Ensure assignments/chores don't conflict with other assignments/chores
     # TODO: Should be able to interleave tasks: looks like this forces all tasks to be completed before moving to next
@@ -167,22 +146,9 @@ def schedule_tasks(
 
         for task_type, task in task_queue:
             if task_type == "assignment":
-                due = task.due
-                if due.tzinfo is None:
-                    due = due.replace(tzinfo=timezone.utc)
-                else:
-                    due = due.astimezone(timezone.utc)
-                time_range = (now, due)
+                time_range = (now, enforce_timestamp_utc(task.due))
             else:
-                w0, w1 = task.window
-                if w0.tzinfo is None:
-                    w0 = w0.replace(tzinfo=timezone.utc)
-                else:
-                    w0 = w0.astimezone(timezone.utc)
-                if w1.tzinfo is None:
-                    w1 = w1.replace(tzinfo=timezone.utc)
-                else:
-                    w1 = w1.astimezone(timezone.utc)
+                w0, w1 = enforce_timestamp_utc(task.window[0]), enforce_timestamp_utc(task.window[1])
                 time_range = (w0, w1)
             # Pass in all meeting times, unpack time range tuple
             available = generate_available_slots(all_meeting_times, *time_range)

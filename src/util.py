@@ -110,7 +110,7 @@ async def get_current_user(token: str, pool):
         print(e)
         raise credentials_exception
 
-def enforce_timestamp_utc(time:datetime):
+def enforce_timestamp_utc(time: datetime):
     if hasattr(time, 'tzinfo') and time.tzinfo is not None:
         time = time.astimezone(timezone.utc)
     else:
