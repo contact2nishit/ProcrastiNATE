@@ -151,19 +151,32 @@ def schedule_tasks(
                     iv. Add this to used slots, and figure out if enough was scheduled
     
     """
-    # creates a list of tuple of meeting start and end times
+    # Compute all meeting times
     all_meeting_times: List[Tuple[datetime, datetime]] = []
     for m in meetings:
         for interval in m.start_end_times:
             start, end = enforce_timestamp_utc(interval[0]), enforce_timestamp_utc(interval[1])
             all_meeting_times.append((start, end))
-    # TODO: Ensure assignments/chores don't conflict with other assignments/chores
-    # TODO: Should be able to interleave tasks: looks like this forces all tasks to be completed before moving to next
+
+    # Find the latest relevant end time (assignment due, chore window end, meeting end)
+    latest_times = []
+    for a in assignments:
+        latest_times.append(enforce_timestamp_utc(a.due))
+    for c in chores:
+        latest_times.append(enforce_timestamp_utc(c.window[1]))
+    for m in all_meeting_times:
+        latest_times.append(m[1])
+    if latest_times:
+        latest_time = max(latest_times)
+    else:
+        latest_time = now + timedelta(days=1)
+
+    # Generate all available slots once for the entire scheduling window
+    available = generate_available_slots(all_meeting_times, now, latest_time)
+
     schedules_results = []
 
-    # loop over number to generate
     for _ in range(num_schedules):
-        # creates a set with just all the slots that are currently used by meetings
         used_slots = set(
             slot for start, end in all_meeting_times
             for slot in generate_available_slots([], start, end)
@@ -177,12 +190,9 @@ def schedule_tasks(
         not_enough_time_assignments = []
         not_enough_time_chores = []
 
-        # Loosely sort assignments, by due date
         prioritized_assignments = loosely_sort_assignments(assignments)
-        # randomly sample chores
         randomized_chores = random.sample(chores, k=len(chores))
 
-        # list of tuples -> 1st says assi or chore, next contains request objects
         task_queue: List[Tuple[Literal["assignment", "chore"], Union[AssignmentInRequest, ChoreInRequest]]] = (
             [("assignment", a) for a in prioritized_assignments] +
             [("chore", c) for c in randomized_chores]
@@ -194,17 +204,17 @@ def schedule_tasks(
             else:
                 w0, w1 = enforce_timestamp_utc(task.window[0]), enforce_timestamp_utc(task.window[1])
                 time_range = (w0, w1)
-            # Pass in all meeting times, unpack time range tuple
-            available = generate_available_slots(all_meeting_times, *time_range)
-            available = [s for s in available if s not in used_slots]
+            # Filter available slots for this task's window and not used
+            avail_for_this = [
+                s for s in available
+                if s not in used_slots and s[0] >= time_range[0] and s[1] <= time_range[1]
+            ]
 
-            assigned_slots = find_time_blocks(task.effort, available, used_slots, skip_prob=skip_p)
+            assigned_slots = find_time_blocks(task.effort, avail_for_this, used_slots, skip_prob=skip_p)
             assigned_minutes = 0
             for start, end in assigned_slots:
                 assigned_minutes += (end - start).total_seconds() / 60
 
-            # because of the change to gen_avail_slots, the above line will break
-            # not every slot is CHUNK_MINUTES of time anymore
             status = (
                 "fully_scheduled" if assigned_minutes == task.effort else
                 "partially_scheduled" if assigned_minutes > 0 else
