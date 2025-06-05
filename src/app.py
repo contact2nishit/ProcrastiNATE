@@ -103,12 +103,6 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
                     end = times[1]
                     start = enforce_timestamp_utc(start)
                     end = enforce_timestamp_utc(end)
-                    # print("start2")
-                    # print(f"Original: start={times[0]}, end={times[1]}")
-                    # print(f"Original tzinfo: start.tzinfo={times[0].tzinfo}, end.tzinfo={times[1].tzinfo}")
-                    # print(f"Processed: start={start}, end={end}")
-                    # print(f"Processed tzinfo: start.tzinfo={start.tzinfo}, end.tzinfo={end.tzinfo}")
-                    
                     occurence_id: int = await conn.fetchval(
                         "INSERT INTO meeting_occurences(user_id, meeting_id, start_time, end_time) VALUES($1, $2, $3, $4) RETURNING occurence_id",
                         user.user_id, meeting_id1, start, end

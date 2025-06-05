@@ -105,3 +105,132 @@ def test_assignment_and_chore_back_to_back():
     a_end = schedule.assignments[0].schedule.slots[0].end
     c_start = schedule.chores[0].schedule.slots[0].start
     assert a_end <= c_start or c_start <= a_end
+
+def test_many_assignments_and_chores_no_overlap():
+    # 5 assignments, 5 chores, all with non-overlapping windows, plenty of time
+    base = now
+    assignments = [
+        AssignmentInRequest(name=f"A{i}", effort=30, due=base + timedelta(hours=2 + i))
+        for i in range(5)
+    ]
+    chores = [
+        ChoreInRequest(name=f"C{i}", effort=30, window=[base + timedelta(hours=8 + i), base + timedelta(hours=9 + i)])
+        for i in range(5)
+    ]
+    meetings = []
+    schedule = schedule_tasks(meetings, assignments, chores, num_schedules=5)
+    for sched in schedule:
+        assert all(a.schedule.status == "fully_scheduled" for a in sched.assignments)
+        assert all(c.schedule.status == "fully_scheduled" for c in sched.chores)
+
+def test_many_assignments_and_chores_with_meetings():
+    # 3 assignments, 3 chores, 2 meetings, all with enough time
+    base = now
+    assignments = [
+        AssignmentInRequest(name=f"A{i}", effort=20, due=base + timedelta(hours=2 + i))
+        for i in range(3)
+    ]
+    chores = [
+        ChoreInRequest(name=f"C{i}", effort=20, window=[base + timedelta(hours=8 + i), base + timedelta(hours=9 + i)])
+        for i in range(3)
+    ]
+    meetings = [
+        MeetingInRequest(name="M1", start_end_times=[[base + timedelta(hours=4), base + timedelta(hours=5)]]),
+        MeetingInRequest(name="M2", start_end_times=[[base + timedelta(hours=6), base + timedelta(hours=7)]])
+    ]
+    schedule = schedule_tasks(meetings, assignments, chores, num_schedules=3)
+    for sched in schedule:
+        assert all(a.schedule.status == "fully_scheduled" for a in sched.assignments)
+        assert all(c.schedule.status == "fully_scheduled" for c in sched.chores)
+
+def test_assignments_and_chores_randomized_windows():
+    # 10 assignments, 10 chores, random windows, but enough time
+    base = now
+    assignments = [
+        AssignmentInRequest(name=f"A{i}", effort=10, due=base + timedelta(hours=10 + i))
+        for i in range(10)
+    ]
+    chores = [
+        ChoreInRequest(
+            name=f"C{i}",
+            effort=10,
+            window=[
+                base + timedelta(hours=12 + i),
+                base + timedelta(hours=13 + i)
+            ]
+        )
+        for i in range(10)
+    ]
+    meetings = []
+    schedule = schedule_tasks(meetings, assignments, chores, num_schedules=5)
+    for sched in schedule:
+        assert all(a.schedule.status == "fully_scheduled" for a in sched.assignments)
+        assert all(c.schedule.status == "fully_scheduled" for c in sched.chores)
+
+def test_assignments_and_chores_with_gaps():
+    # Assignments and chores with gaps between their windows, no overlap, enough time
+    base = now
+    assignments = [
+        AssignmentInRequest(name=f"A{i}", effort=15, due=base + timedelta(hours=2 + 2*i))
+        for i in range(4)
+    ]
+    chores = [
+        ChoreInRequest(name=f"C{i}", effort=15, window=[base + timedelta(hours=10 + 2*i), base + timedelta(hours=11 + 2*i)])
+        for i in range(4)
+    ]
+    meetings = []
+    schedule = schedule_tasks(meetings, assignments, chores, num_schedules=2)
+    for sched in schedule:
+        assert all(a.schedule.status == "fully_scheduled" for a in sched.assignments)
+        assert all(c.schedule.status == "fully_scheduled" for c in sched.chores)
+
+def test_assignments_and_chores_with_long_windows():
+    # Assignments and chores with long windows, more than enough time
+    base = now
+    assignments = [
+        AssignmentInRequest(name=f"A{i}", effort=20, due=base + timedelta(hours=24))
+        for i in range(6)
+    ]
+    chores = [
+        ChoreInRequest(name=f"C{i}", effort=20, window=[base + timedelta(hours=1), base + timedelta(hours=23)])
+        for i in range(6)
+    ]
+    meetings = []
+    schedule = schedule_tasks(meetings, assignments, chores, num_schedules=3)
+    for sched in schedule:
+        assert all(a.schedule.status == "fully_scheduled" for a in sched.assignments)
+        assert all(c.schedule.status == "fully_scheduled" for c in sched.chores)
+
+def test_assignments_and_chores_with_many_schedules_and_randomness():
+    # 4 assignments, 4 chores, 10 schedules, check all are fully scheduled in all
+    base = now
+    assignments = [
+        AssignmentInRequest(name=f"A{i}", effort=10, due=base + timedelta(hours=5 + i))
+        for i in range(4)
+    ]
+    chores = [
+        ChoreInRequest(name=f"C{i}", effort=10, window=[base + timedelta(hours=10 + i), base + timedelta(hours=12 + i)])
+        for i in range(4)
+    ]
+    meetings = []
+    schedule = schedule_tasks(meetings, assignments, chores, num_schedules=10)
+    for sched in schedule:
+        assert all(a.schedule.status == "fully_scheduled" for a in sched.assignments)
+        assert all(c.schedule.status == "fully_scheduled" for c in sched.chores)
+
+def test_assignments_and_chores_with_skip_prob():
+    # 3 assignments, 3 chores, skip_prob=0.5, but enough time for all
+    base = now
+    assignments = [
+        AssignmentInRequest(name=f"A{i}", effort=10, due=base + timedelta(hours=5 + i))
+        for i in range(3)
+    ]
+    chores = [
+        ChoreInRequest(name=f"C{i}", effort=10, window=[base + timedelta(hours=10 + i), base + timedelta(hours=12 + i)])
+        for i in range(3)
+    ]
+    meetings = []
+    schedule = schedule_tasks(meetings, assignments, chores, num_schedules=5, skip_p=0.5)
+    for sched in schedule:
+        assert all(a.schedule.status == "fully_scheduled" for a in sched.assignments)
+        assert all(c.schedule.status == "fully_scheduled" for c in sched.chores)

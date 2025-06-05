@@ -31,24 +31,81 @@ def generate_available_slots(meetings: List[Tuple[datetime, datetime]], from_tim
         t += step
     return slots
 
-def find_time_blocks(effort_minutes: int, available_slots: List[Tuple[datetime, datetime]], used_slots: set) -> List[Tuple[datetime, datetime]]:
+def find_time_blocks(
+    effort_minutes: int,
+    available_slots: List[Tuple[datetime, datetime]],
+    used_slots: set,
+    skip_prob: float = 0.0
+) -> List[Tuple[datetime, datetime]]:
     """
     Try to find any set of available time slots (not necessarily contiguous) to fit the required effort (in minutes).
-    Returns as many slots as possible up to the required effort.
+    If skip_prob > 0.0, at every slot whose start time is a 30-minute multiple, skip_prob is the probability
+    that the algorithm skips forward and tries to schedule the next block 2 hours after.
+    After a skip, do not apply the skip rule again until at least 30 minutes of scheduling has occurred.
+    If skipping lands past the end, backtrack and try to fill as much as possible.
+
+    General flow: 
+        1. Set up tracking vars
+        2. While not fully assigned and within index range of available_slots:
+            a. If slot not used, check if skipping is possible (p > 0 and 30 min increment but also that being on this specific slot not result of skip)
+            b. If skip is true, calculate start time of the skipped slot
+            c. The inner for loop finds if a slot with the start time that is 2 hours later exists
+            d. If it does, mark this as the last index skipped to, i, and say skip happened, jumping to iteration with i being that
+            e. If skip not possible, just schedule
     """
+
+
     assigned_mins = 0
     scheduled = []
-    for slot in available_slots:
+    i = 0
+    n = len(available_slots)
+    last_skip_idx = -9999  # index of last skip
+    min_gap_slots = 30 // CHUNK_MINUTES  # 30 minutes worth of slots
+
+    while i < n and assigned_mins < effort_minutes:
+        slot = available_slots[i]
         if slot in used_slots:
+            i += 1
             continue
-        else: 
-            if not scheduled or scheduled[-1][1] != slot[0]: # if scheduled is empty or if the last slot asssigned does not overlap with the start of this slot (i.e. the end of the last assigned slot is more than a minute before the start of this one because something in between blocks)
-                scheduled.append(slot)
-            else:
-                scheduled[-1] = (scheduled[-1][0], slot[1]) 
-            assigned_mins += CHUNK_MINUTES
-            if assigned_mins >= effort_minutes:
-                return scheduled
+
+        # Check if we can apply skip rule
+        can_skip = (
+            skip_prob > 0.0 and
+            (slot[0].minute % 30 == 0 and slot[0].second == 0 and slot[0].microsecond == 0) and
+            (i - last_skip_idx >= min_gap_slots)
+        )
+        did_skip = False
+        if can_skip and random.random() < skip_prob:
+            # Try to skip forward 2 hours (120 minutes)
+            skip_time = slot[0] + timedelta(hours=2)
+            # Find the next available slot at or after skip_time
+            next_idx = None
+            for j in range(i + 1, n):
+                if available_slots[j][0] >= skip_time and available_slots[j] not in used_slots:
+                    next_idx = j
+                    break
+            if next_idx is not None:
+                last_skip_idx = next_idx
+                i = next_idx
+                did_skip = True
+                continue
+            # If skip would go past end, backtrack: ignore skip, just continue scheduling as normal
+            # (do not increment i here, so we try to schedule this slot)
+        # Schedule this slot
+        if not scheduled or scheduled[-1][1] != slot[0]:
+            scheduled.append(slot)
+        else:
+            scheduled[-1] = (scheduled[-1][0], slot[1])
+        assigned_mins += CHUNK_MINUTES
+        i += 1
+        # After a skip, require at least 30 minutes of scheduling before next skip
+        if did_skip:
+            last_skip_idx = i - 1
+
+    # If we ended due to a skip that landed past the end, backtrack and try to fill as much as possible
+    if assigned_mins < effort_minutes and skip_prob > 0.0:
+        # Try again with skip_prob=0.0 to fill as much as possible
+        return find_time_blocks(effort_minutes, available_slots, used_slots, skip_prob=0.0)
     return scheduled
 
 def loosely_sort_assignments(assignments: List[AssignmentInRequest], bucket_minutes: int = 240) -> List[AssignmentInRequest]:
@@ -75,7 +132,8 @@ def schedule_tasks(
     assignments: List[AssignmentInRequest],
     chores: List[ChoreInRequest],
     num_schedules: int = 3,
-    now: datetime = datetime.now(timezone.utc)
+    now: datetime = datetime.now(timezone.utc),
+    skip_p: float = 0.0
 ) -> List[Schedule]:
     # Ensure now is timezone-aware UTC
     """
@@ -140,7 +198,7 @@ def schedule_tasks(
             available = generate_available_slots(all_meeting_times, *time_range)
             available = [s for s in available if s not in used_slots]
 
-            assigned_slots = find_time_blocks(task.effort, available, used_slots)
+            assigned_slots = find_time_blocks(task.effort, available, used_slots, skip_prob=skip_p)
             assigned_minutes = 0
             for start, end in assigned_slots:
                 assigned_minutes += (end - start).total_seconds() / 60
