@@ -132,6 +132,7 @@ def schedule_tasks(
     assignments: List[AssignmentInRequest],
     chores: List[ChoreInRequest],
     num_schedules: int = 3,
+    end_time: datetime = None,
     now: datetime = datetime.now(timezone.utc),
     skip_p: float = 0.0
 ) -> List[Schedule]:
@@ -151,6 +152,8 @@ def schedule_tasks(
                     iv. Add this to used slots, and figure out if enough was scheduled
     
     """
+    if end_time is None:
+        end_time = get_latest_time(meetings, assignments, chores)
     # Compute all meeting times
     all_meeting_times: List[Tuple[datetime, datetime]] = []
     for m in meetings:

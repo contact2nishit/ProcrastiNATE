@@ -116,3 +116,26 @@ def enforce_timestamp_utc(time: datetime):
     else:
         time = time.replace(tzinfo=timezone.utc)
     return time
+
+def get_latest_time(
+    meetings: List[MeetingInRequest],
+    assignments: List[AssignmentInRequest],
+    chores: List[ChoreInRequest]
+):
+    """
+        Given lists of events, find the latest time that one stretches to
+    """
+    latest_times = []
+    for a in assignments:
+        latest_times.append(enforce_timestamp_utc(a.due))
+    for c in chores:
+        latest_times.append(enforce_timestamp_utc(c.window[1]))
+    for m in meetings:
+        for pair in m.start_end_times:
+            latest_times.append(pair[1])
+    if latest_times:
+        latest_time = max(latest_times)
+    else:
+        latest_time = datetime.now(timezone.utc) + timedelta(days=1)
+    
+    return latest_time
