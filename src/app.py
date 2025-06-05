@@ -87,19 +87,21 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
     """
     try:
         user = await get_current_user(token, app.state.pool)
+        now = datetime.now(timezone.utc)
+        last_time = get_latest_time(sched.meetings, sched.assignments, sched.chores)
         # Fetch all existing meeting, assignment, and chore occurrences for this user
         async with app.state.pool.acquire() as conn:
             # Fetch all existing meeting occurrences
             meeting_rows = await conn.fetch(
-                "SELECT start_time, end_time FROM meeting_occurences WHERE user_id = $1", user.user_id
+                "SELECT start_time, end_time FROM meeting_occurences WHERE user_id = $1 AND (start_time < $2 OR end_time > $3)", user.user_id, last_time, now
             )
             # Fetch all existing assignment occurrences
             assignment_rows = await conn.fetch(
-                "SELECT start_time, end_time FROM assignment_occurences WHERE user_id = $1", user.user_id
+                "SELECT start_time, end_time FROM assignment_occurences WHERE user_id = $1 AND (start_time < $2 OR end_time > $3)", user.user_id, last_time, now
             )
             # Fetch all existing chore occurrences
             chore_rows = await conn.fetch(
-                "SELECT start_time, end_time FROM chore_occurences WHERE user_id = $1", user.user_id
+                "SELECT start_time, end_time FROM chore_occurences WHERE user_id = $1 AND (start_time < $2 OR end_time > $3)", user.user_id, last_time, now
             )
 
         # Build a MeetingInRequest representing all existing scheduled blocks
@@ -111,17 +113,15 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
         for row in chore_rows:
             already_scheduled_times.append([row['start_time'], row['end_time']])
         # Only add if there are any
-        scheduled_blocker = None
-        if already_scheduled_times:
-            scheduled_blocker = MeetingInRequest(
-                name="__already_scheduled__",
-                start_end_times=already_scheduled_times,
-                link_or_loc=None
-            )
+        scheduled_blocker = MeetingInRequest(
+            name="__already_scheduled__",
+            start_end_times=already_scheduled_times,
+            link_or_loc=None
+        )
 
-        last_time = get_latest_time(sched.meetings + scheduled_blocker, sched.assignments, sched.chores)
+        
         # Call schedule_tasks with the blocker included
-        schedules = schedule_tasks(sched.meetings + scheduled_blocker, sched.assignments, sched.chores, end_time=last_time)
+        schedules = schedule_tasks(sched.meetings + [scheduled_blocker], sched.assignments, sched.chores, end_time=last_time, skip_p=0.5)
 
         # Now, check for conflicts between requested meetings and already scheduled blocks
         conflicting_meetings = []
