@@ -36,14 +36,19 @@ def find_time_blocks(effort_minutes: int, available_slots: List[Tuple[datetime, 
     Try to find any set of available time slots (not necessarily contiguous) to fit the required effort (in minutes).
     Returns as many slots as possible up to the required effort.
     """
-    required_chunks = effort_minutes // CHUNK_MINUTES
+    assigned_mins = 0
     scheduled = []
     for slot in available_slots:
         if slot in used_slots:
             continue
-        scheduled.append(slot)
-        if len(scheduled) == required_chunks:
-            break
+        else: 
+            if not scheduled or scheduled[-1][1] != slot[0]: # if scheduled is empty or if the last slot asssigned does not overlap with the start of this slot (i.e. the end of the last assigned slot is more than a minute before the start of this one because something in between blocks)
+                scheduled.append(slot)
+            else:
+                scheduled[-1] = (scheduled[-1][0], slot[1]) 
+            assigned_mins += CHUNK_MINUTES
+            if assigned_mins >= effort_minutes:
+                return scheduled
     return scheduled
 
 def loosely_sort_assignments(assignments: List[AssignmentInRequest], bucket_minutes: int = 240) -> List[AssignmentInRequest]:

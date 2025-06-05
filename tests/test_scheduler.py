@@ -82,6 +82,13 @@ def test_multiple_schedules_variability():
     result = schedule_tasks([], assignments, [], num_schedules=3)
     assert len(result) == 3
 
+def test_low_effort_due_soon():
+    assignments = [
+        AssignmentInRequest(name="A1", effort=7, due=now + timedelta(minutes=8))
+    ]
+    result = schedule_tasks([], assignments, [])
+    assert result[0].assignments[0].schedule.status == "fully_scheduled"
+
 def test_fully_blocked_schedule():
     meetings = [MeetingInRequest(name="Blocked All Day", start_end_times=[
         create_slot(0, 120), create_slot(120, 120), create_slot(240, 120)
