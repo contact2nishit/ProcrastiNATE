@@ -8,8 +8,7 @@ from datetime import datetime, timedelta
 
 
 # ---- Constants ----
-CHUNK_MINUTES = 15
-SLEEP_HOURS = (23, 7)
+CHUNK_MINUTES = 1
 
 # ---- Scheduling Logic ----
 
@@ -19,46 +18,33 @@ def generate_available_slots(meetings: List[Tuple[datetime, datetime]], from_tim
     slots = []
     t = from_time
     while t + step <= to_time:
-        if SLEEP_HOURS[0] <= t.hour or t.hour < SLEEP_HOURS[1]:
-            t += step
-            continue
-        if not any(m_start <= t < m_end for m_start, m_end in meetings):
-            slots.append((t, t + step))
+        # Fix: Exclude slots where ANY overlap with a meeting, not just t in [m_start, m_end)
+        slot_start = t
+        slot_end = t + step
+        # A slot is available only if it does NOT overlap with any meeting
+        overlaps = any(
+            not (slot_end <= m_start or slot_start >= m_end)
+            for m_start, m_end in meetings
+        )
+        if not overlaps:
+            slots.append((slot_start, slot_end))
         t += step
     return slots
 
 def find_time_blocks(effort_minutes: int, available_slots: List[Tuple[datetime, datetime]], used_slots: set) -> List[Tuple[datetime, datetime]]:
     """
-    Try to find a contiguous block of available time slots to fit the required effort (in minutes).
-
-    Args:
-        effort_minutes: Total minutes of work needed (e.g., 30 for a 30-minute task).
-        available_slots: List of (start, end) tuples representing available time slots.
-        used_slots: Set of slots already used by other tasks (to avoid overlap).
-
-    Returns:
-        A list of slots (tuples) that together sum up to the required effort, or as much as possible.
-        If no contiguous block is found, returns an empty list or a partial block.
-
-    How it works:
-    - The function divides the effort into chunks (CHUNK_MINUTES).
-    - It iterates through available_slots, skipping any that are in used_slots.
-    - It tries to build a contiguous sequence of slots (where each slot starts right after the previous one ends).
-    - If it finds enough contiguous slots to cover the effort, it returns them.
-    - If not, it returns the longest contiguous block found (could be empty if nothing fits).
+    Try to find any set of available time slots (not necessarily contiguous) to fit the required effort (in minutes).
+    Returns as many slots as possible up to the required effort.
     """
     required_chunks = effort_minutes // CHUNK_MINUTES
     scheduled = []
     for slot in available_slots:
         if slot in used_slots:
             continue
-        if not scheduled or scheduled[-1][1] == slot[0]:
-            scheduled[-1][1] = slot[1] # this change should squish adjacent slots
-        else:
-            scheduled = [slot]
+        scheduled.append(slot)
         if len(scheduled) == required_chunks:
-            return scheduled
-    return scheduled if scheduled else []
+            break
+    return scheduled
 
 def loosely_sort_assignments(assignments: List[AssignmentInRequest], bucket_minutes: int = 240) -> List[AssignmentInRequest]:
     # Ensure now is timezone-aware UTC
@@ -84,29 +70,24 @@ def schedule_tasks(
     assignments: List[AssignmentInRequest],
     chores: List[ChoreInRequest],
     num_schedules: int = 3,
-    now: datetime = None
+    now: datetime = datetime.now(timezone.utc)
 ) -> List[Schedule]:
     # Ensure now is timezone-aware UTC
-    now = now or datetime.now(timezone.utc)
-    # The following line will raise ValueError if both assignments and chores are empty:
-    # latest_time = max([a.due for a in assignments] + [c.window[1] for c in chores])
-    # If both lists are empty, max([]) is called, which is not allowed.
-
-    # Fix: Only call max() if the list is not empty, otherwise set a default
-    due_times = []
-    for a in assignments:
-        due_times.append(enforce_timestamp_utc(a.due))
-    chore_end_times = []
-    for c in chores:
-        chore_end_times.append(enforce_timestamp_utc(c.window[1]))
-    all_times = due_times + chore_end_times
-    if all_times:
-        latest_time = max(all_times)
-    else:
-        # fallback: just use now + 1 day or raise a meaningful error
-        latest_time = now + timedelta(days=1)
-        # or: raise ValueError("No assignments or chores provided to schedule_tasks")
-
+    """
+        General flow:
+            1. First get all meeting start/end times
+            2. Loop over num schedules
+                a. Create list of used slots and fill with meetings
+                b. Init lists for schedule info
+                c. Loosely sort asssignments, randomize chores
+                d. Then create task queue with assignments/chores
+                e. Iterate through tasks in queue
+                    i. Get time ranges the task can be worked on
+                    ii. Generate all available time windows not used by meetings and previous tasks in queue
+                    iii. Then use find_time_blocks logic to find a block
+                    iv. Add this to used slots, and figure out if enough was scheduled
+    
+    """
     # creates a list of tuple of meeting start and end times
     all_meeting_times: List[Tuple[datetime, datetime]] = []
     for m in meetings:
@@ -155,7 +136,10 @@ def schedule_tasks(
             available = [s for s in available if s not in used_slots]
 
             assigned_slots = find_time_blocks(task.effort, available, used_slots)
-            assigned_minutes = len(assigned_slots) * CHUNK_MINUTES
+            assigned_minutes = 0
+            for start, end in assigned_slots:
+                assigned_minutes += (end - start).total_seconds() / 60
+
             # because of the change to gen_avail_slots, the above line will break
             # not every slot is CHUNK_MINUTES of time anymore
             status = (

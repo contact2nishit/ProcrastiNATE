@@ -33,15 +33,20 @@ def test_exact_fit_assignment():
 
 def test_unschedulable_due_to_meetings():
     meetings = [MeetingInRequest(name="All Day", start_end_times=[create_slot(0, 240)])]
+    # meeting for 4 hours
     assignments = [AssignmentInRequest(name="Blocked", effort=30, due=now + timedelta(hours=4))]
+    # 30 min assignment due in 4 hours
     schedule = schedule_tasks(meetings, assignments, [], num_schedules=1)[0]
+    print("gu",  schedule.assignments[0].schedule.slots)
+    print("g", len(schedule.assignments[0].schedule.slots))
     assert schedule.assignments[0].schedule.status == "unschedulable"
 
-def test_task_during_sleep_hours():
-    fake_now = datetime(2025, 5, 28, 23, 30, tzinfo=timezone.utc)
-    assignments = [AssignmentInRequest(name="Late Night HW", effort=30, due=fake_now + timedelta(minutes=30))]
-    schedule = schedule_tasks([], assignments, [], num_schedules=1, now = fake_now)[0]
-    assert schedule.assignments[0].schedule.status == "unschedulable"
+# Removed sleep hours for now
+# def test_task_during_sleep_hours():
+#     fake_now = datetime(2025, 5, 28, 23, 30, tzinfo=timezone.utc)
+#     assignments = [AssignmentInRequest(name="Late Night HW", effort=30, due=fake_now + timedelta(minutes=30))]
+#     schedule = schedule_tasks([], assignments, [], num_schedules=1, now = fake_now)[0]
+#     assert schedule.assignments[0].schedule.status == "unschedulable"
 
 
 def test_partial_schedule():
@@ -53,15 +58,11 @@ def test_partial_schedule():
     assert schedule.assignments[0].schedule.status == "unschedulable"
 
 
-
-
 def test_edge_case_due_boundary():
     fixed_now = datetime(2025, 5, 28, 10, 0, tzinfo=timezone.utc)
     assignments = [AssignmentInRequest(name="Boundary Case", effort=15, due=fixed_now + timedelta(minutes=15))]
     schedule = schedule_tasks([], assignments, [], num_schedules=1, now = fixed_now)[0]
     assert schedule.assignments[0].schedule.status == "fully_scheduled"
-
-
 
 
 def test_overlapping_chore_assignment():
