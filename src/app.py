@@ -81,42 +81,102 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], stat
 
 @app.post("/schedule")
 async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleResponseFormat:
-    """Sets in stone the meetings in the request, and then returns a list of possible ways to arrange times to work on assignments and chores"""
-    # TODO: Major improvements needed to scheduling algo
-    # TODO: Ensure assignments/chores don't conflict with other assignments/chores. Right now, only checks meetings within the same request, need to also go into DB before
-    # TODO: Should be able to interleave tasks: looks like this forces all tasks to be completed before moving to next
-    # TODO: Check the use of random.sample() for chores. It might pick k samples (may repeat)
-    # TODO: check for conflicting meetings
-    # TODO: insert link_or_loc if not None
-    # TODO: clean up confusing naming
+    """
+    Sets in stone the meetings in the request, and then returns a list of possible ways to arrange times to work on assignments and chores.
+    Now checks for conflicts with already scheduled meetings/assignments/chores.
+    """
     try:
         user = await get_current_user(token, app.state.pool)
-        schedules = schedule_tasks(sched.meetings, sched.assignments, sched.chores) # 3 schedules for now
+        now = datetime.now(timezone.utc)
+        last_time = get_latest_time(sched.meetings, sched.assignments, sched.chores)
+        # Fetch all existing meeting, assignment, and chore occurrences for this user
+        async with app.state.pool.acquire() as conn:
+            # Fetch all existing meeting occurrences
+            meeting_rows = await conn.fetch(
+                "SELECT start_time, end_time FROM meeting_occurences WHERE user_id = $1 AND (start_time < $2 OR end_time > $3)", user.user_id, last_time, now
+            )
+            # Fetch all existing assignment occurrences
+            assignment_rows = await conn.fetch(
+                "SELECT start_time, end_time FROM assignment_occurences WHERE user_id = $1 AND (start_time < $2 OR end_time > $3)", user.user_id, last_time, now
+            )
+            # Fetch all existing chore occurrences
+            chore_rows = await conn.fetch(
+                "SELECT start_time, end_time FROM chore_occurences WHERE user_id = $1 AND (start_time < $2 OR end_time > $3)", user.user_id, last_time, now
+            )
+
+        # Build a MeetingInRequest representing all existing scheduled blocks
+        already_scheduled_times = []
+        for row in meeting_rows:
+            already_scheduled_times.append([row['start_time'], row['end_time']])
+        for row in assignment_rows:
+            already_scheduled_times.append([row['start_time'], row['end_time']])
+        for row in chore_rows:
+            already_scheduled_times.append([row['start_time'], row['end_time']])
+        # Only add if there are any
+        scheduled_blocker = MeetingInRequest(
+            name="__already_scheduled__",
+            start_end_times=already_scheduled_times,
+            link_or_loc=None
+        )
+
+        
+        # Call schedule_tasks with the blocker included
+        schedules = schedule_tasks(sched.meetings + [scheduled_blocker], sched.assignments, sched.chores, end_time=last_time, skip_p=0.5)
+
+        # Now, check for conflicts between requested meetings and already scheduled blocks
+        conflicting_meetings = []
+        non_conflicting_meetings = []
+        for meeting in sched.meetings:
+            is_conflicting = False
+            for occ in meeting.start_end_times:
+                occ_start, occ_end = occ
+                for block in already_scheduled_times:
+                    block_start, block_end = block
+                    # Check for overlap
+                    if not (occ_end <= block_start or occ_start >= block_end):
+                        is_conflicting = True
+                        break
+                if is_conflicting:
+                    break
+            if is_conflicting:
+                conflicting_meetings.append(meeting.name)
+            else:
+                non_conflicting_meetings.append(meeting)
+
+        # Only schedule non-conflicting meetings in the DB
         meeting_resp = []
         async with app.state.pool.acquire() as conn:
-            for meeting in sched.meetings:
+            for meeting in non_conflicting_meetings:
+                lloc = "N/A" if meeting.link_or_loc is None else meeting.link_or_loc
                 recurs: bool = len(meeting.start_end_times) > 1
-                meeting_id1: int = await conn.fetchval("INSERT INTO meetings(user_id, meeting_name, recurs) VALUES($1, $2, $3) RETURNING meeting_id", user.user_id, meeting.name, recurs)
+                meeting_id1: int = await conn.fetchval(
+                    "INSERT INTO meetings(user_id, meeting_name, recurs, location_or_link) VALUES($1, $2, $3, $4) RETURNING meeting_id",
+                    user.user_id, meeting.name, recurs, lloc
+                )
                 occurence_ids = []
                 for times in meeting.start_end_times:
                     start = times[0]
                     end = times[1]
                     start = enforce_timestamp_utc(start)
                     end = enforce_timestamp_utc(end)
-                    # print("start2")
-                    # print(f"Original: start={times[0]}, end={times[1]}")
-                    # print(f"Original tzinfo: start.tzinfo={times[0].tzinfo}, end.tzinfo={times[1].tzinfo}")
-                    # print(f"Processed: start={start}, end={end}")
-                    # print(f"Processed tzinfo: start.tzinfo={start.tzinfo}, end.tzinfo={end.tzinfo}")
-                    
                     occurence_id: int = await conn.fetchval(
                         "INSERT INTO meeting_occurences(user_id, meeting_id, start_time, end_time) VALUES($1, $2, $3, $4) RETURNING occurence_id",
                         user.user_id, meeting_id1, start, end
                     )
                     occurence_ids += [occurence_id]
-                meeting_response = MeetingInResponse(ocurrence_ids=occurence_ids, meeting_id=meeting_id1, name=meeting.name, start_end_times=meeting.start_end_times, link_or_loc=meeting.link_or_loc)
+                meeting_response = MeetingInResponse(
+                    ocurrence_ids=occurence_ids,
+                    meeting_id=meeting_id1,
+                    name=meeting.name,
+                    start_end_times=meeting.start_end_times,
+                    link_or_loc=meeting.link_or_loc
+                )
                 meeting_resp += [meeting_response]
-        return {"conflicting_meetings": [], "meetings": meeting_resp, "schedules": schedules}
+        return {
+            "conflicting_meetings": conflicting_meetings,
+            "meetings": meeting_resp,
+            "schedules": schedules
+        }
     except HTTPException as http_exc:
         # Pass through known HTTP exceptions like 401
         raise http_exc
