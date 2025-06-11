@@ -14,7 +14,6 @@ import { useAssignmentContext } from './AssignmentContext';
 
 export default function EventSelection() 
 {
-
   const [selected, setSelected] = useState('Meeting');
 
   // Use a useEffect state hook to reset all input fields when selected changes:
@@ -98,6 +97,9 @@ export default function EventSelection()
   //Will fix this one as well later using useChoreContext() function
   const [chores, setChores] = useState<Chore[]>([]);
 
+  // Track if we're editing and which item is being edited
+  const [editMode, setEditMode] = useState<null | { type: 'meeting' | 'assignment' | 'chore', index: number }> (null);
+
   // Maintain a JSON object matching the backend schemas
   const [backendJSON, setBackendJSON] = useState({
     meetings: [],
@@ -169,6 +171,11 @@ export default function EventSelection()
       const data = await response.json();
       // Fix: AsyncStorage only stores strings, so use JSON.stringify
       await AsyncStorage.setItem("schedules", JSON.stringify(data));
+      // Clear the scheduling cart after successful scheduling
+      setMeetings([]);
+      setAssignments([]);
+      setChores([]);
+      setBackendJSON({ meetings: [], assignments: [], chores: [] });
       navigation.navigate('schedulePicker', { scheduleData: data });
     } catch (e) {
       alert('Error submitting schedule: ' + e);
@@ -236,7 +243,7 @@ export default function EventSelection()
   }
 
   // Helper to generate start_end_times for recurring meetings
-  function generateMeetingOccurrences(start: Date, end: Date, recurrence: string | null, repeatEnd: Date) {
+  const generateMeetingOccurrences = (start: Date, end: Date, recurrence: string | null, repeatEnd: Date) => {
     const occurrences: [string, string][] = [];
     let currStart = new Date(start);
     let currEnd = new Date(end);
@@ -346,15 +353,205 @@ export default function EventSelection()
   }
 
 
+  // Track the original values for discard functionality
+  const [originalEditValues, setOriginalEditValues] = useState<any>(null);
+
+  // When editMode changes, populate fields with the selected item's data and save originals
+  useEffect(() => {
+    if (!editMode) return;
+    if (editMode.type === 'meeting') {
+      const m = meetings[editMode.index];
+      setSelected('Meeting');
+      setName(m.name);
+      setStartDateTime(new Date(m.startTime));
+      setEndDateTime(new Date(m.endTime));
+      setRecurrence(m.recurrence);
+      setLocation(m.link_or_loc || '');
+      setMeetingRepeatEnd(m.meetingRepeatEnd ? new Date(m.meetingRepeatEnd) : new Date());
+      setOriginalEditValues({
+        name: m.name,
+        startDateTime: new Date(m.startTime),
+        endDateTime: new Date(m.endTime),
+        recurrence: m.recurrence,
+        location: m.link_or_loc || '',
+        meetingRepeatEnd: m.meetingRepeatEnd ? new Date(m.meetingRepeatEnd) : new Date(),
+      });
+    } else if (editMode.type === 'assignment') {
+      const a = assignments[editMode.index];
+      setSelected('Assignment');
+      setAssignment(a.name);
+      setAssignmentEffort(String(a.effort));
+      setDate(new Date(a.deadline));
+      setOriginalEditValues({
+        name: a.name,
+        effort: String(a.effort),
+        deadline: new Date(a.deadline),
+      });
+    } else if (editMode.type === 'chore') {
+      const c = chores[editMode.index];
+      setSelected('Chore/Study');
+      setChore(c.name);
+      setChoreEffort(String(c.effort));
+      setChoreWindowStart(new Date(c.windowStart));
+      setChoreWindowEnd(new Date(c.windowEnd));
+      setOriginalEditValues({
+        name: c.name,
+        effort: String(c.effort),
+        windowStart: new Date(c.windowStart),
+        windowEnd: new Date(c.windowEnd),
+      });
+    }
+  }, [editMode]);
+
+  // Discard edit handler
+  const handleDiscardEdit = () => {
+    if (!editMode || !originalEditValues) {
+      setEditMode(null);
+      return;
+    }
+    if (editMode.type === 'meeting') {
+      setName(originalEditValues.name);
+      setStartDateTime(originalEditValues.startDateTime);
+      setEndDateTime(originalEditValues.endDateTime);
+      setRecurrence(originalEditValues.recurrence);
+      setLocation(originalEditValues.location);
+      setMeetingRepeatEnd(originalEditValues.meetingRepeatEnd);
+    } else if (editMode.type === 'assignment') {
+      setAssignment(originalEditValues.name);
+      setAssignmentEffort(originalEditValues.effort);
+      setDate(originalEditValues.deadline);
+    } else if (editMode.type === 'chore') {
+      setChore(originalEditValues.name);
+      setChoreEffort(originalEditValues.effort);
+      setChoreWindowStart(originalEditValues.windowStart);
+      setChoreWindowEnd(originalEditValues.windowEnd);
+    }
+    setEditMode(null);
+    setOriginalEditValues(null);
+  };
+
+  // Edit handlers for each type
+  const handleEditMeeting = () => {
+    if (editMode && editMode.type === 'meeting') {
+      if (!name || !recurrence || !startDateTime || !endDateTime || !location) {
+        alert('Please fill in all fields.');
+        return;
+      }
+      if (startDateTime >= endDateTime) {
+        alert('End time must be after start time.');
+        return;
+      }
+      // Update meetings state
+      const updatedMeeting = {
+        startTime: startDateTime.toString(),
+        endTime: endDateTime.toString(),
+        name,
+        recurrence,
+        link_or_loc: location,
+        meetingID: meetings[editMode.index].meetingID,
+        occurrenceID: meetings[editMode.index].occurrenceID,
+      };
+      setMeetings(meetings.map((m, i) => i === editMode.index ? updatedMeeting : m));
+      // Update backendJSON
+      const start_end_times = generateMeetingOccurrences(
+        startDateTime,
+        endDateTime,
+        recurrence && typeof recurrence === "string" ? recurrence.toLowerCase() : null,
+        meetingRepeatEnd
+      );
+      setBackendJSON(prev => ({
+        ...prev,
+        meetings: prev.meetings.map((m, i) =>
+          i === editMode.index
+            ? { name, start_end_times, link_or_loc: null }
+            : m
+        )
+      }));
+      setEditMode(null);
+      setName('');
+      setStartDateTime(new Date());
+      setEndDateTime(new Date());
+      setRecurrence(null);
+      setLocation('');
+      setMeetingRepeatEnd(new Date());
+      alert('Meeting updated!');
+    }
+  };
+
+  const handleEditAssignment = () => {
+    if (editMode && editMode.type === 'assignment') {
+      if (assignment === '' || assignmentEffort === '' || date === null) {
+        alert('Please fill in all fields.');
+        return;
+      }
+      if (isNaN(Number(assignmentEffort)) || Number(assignmentEffort) <= 0) {
+        alert('Effort must be a positive number.');
+        return;
+      }
+      const updatedAssignment = {
+        name: assignment,
+        deadline: date.toISOString(),
+        effort: Number(assignmentEffort),
+      };
+      setAssignments(assignments.map((a, i) => i === editMode.index ? updatedAssignment : a));
+      setBackendJSON(prev => ({
+        ...prev,
+        assignments: prev.assignments.map((a, i) =>
+          i === editMode.index
+            ? { name: assignment, effort: Number(assignmentEffort), due: date.toISOString() }
+            : a
+        )
+      }));
+      setEditMode(null);
+      setAssignment('');
+      setAssignmentEffort('');
+      setDate(new Date());
+      alert('Assignment updated!');
+    }
+  };
+
+  const handleEditChore = () => {
+    if (editMode && editMode.type === 'chore') {
+      if (chore === '' || choreEffort === '' || !choreWindowStart || !choreWindowEnd) {
+        alert('Please fill in all fields.');
+        return;
+      }
+      if (choreWindowStart >= choreWindowEnd) {
+        alert('End time must be after start time.');
+        return;
+      }
+      if (isNaN(Number(choreEffort)) || Number(choreEffort) <= 0) {
+        alert('Effort must be a positive number.');
+        return;
+      }
+      const updatedChore = {
+        name: chore,
+        windowStart: choreWindowStart.toISOString(),
+        windowEnd: choreWindowEnd.toISOString(),
+        effort: Number(choreEffort),
+      };
+      setChores(chores.map((c, i) => i === editMode.index ? updatedChore : c));
+      setBackendJSON(prev => ({
+        ...prev,
+        chores: prev.chores.map((c, i) =>
+          i === editMode.index
+            ? { name: chore, window: [choreWindowStart.toISOString(), choreWindowEnd.toISOString()], effort: Number(choreEffort) }
+            : c
+        )
+      }));
+      setEditMode(null);
+      setChore('');
+      setChoreEffort('');
+      setChoreWindowStart(new Date());
+      setChoreWindowEnd(new Date());
+      alert('Chore updated!');
+    }
+  };
+
   //Function to handle editing or deleting a meeting:
   const editDeleteMeeting = (index) => 
   {
-    // This function will be called when the user taps on a meeting in the Events section
-    // We can use an alert to ask the user whether they want to edit or delete the meeting:
     const meeting = meetings[index];
-    const options = ['Edit', 'Delete', 'Cancel'];
-    
-    // Show an alert with options to edit or delete the meeting
     Alert.alert(
       'Meeting Options',
       `Meeting: ${meeting.name}\nStart Time: ${format(new Date(meeting.startTime), "MMM dd, yyyy - h:mm a")}\nEnd Time: ${format(new Date(meeting.endTime), "MMM dd, yyyy - h:mm a")}\nMeeting Location: ${meeting.link_or_loc}\nMeeting Recurrence: ${meeting.recurrence}`,
@@ -362,20 +559,17 @@ export default function EventSelection()
         {
           text: 'Edit',
           onPress: () => {
-              console.log('Edit meeting');
-              // Implement edit functionality here
-              // Edit functionality can be implemented by navigating to the meeting edit screen:
-
-              // Send the current meeting and the list of meetings to the MeetingEdit screen:
-              navigation.navigate('MeetingEdit', { meeting });
+            setEditMode({ type: 'meeting', index });
           }, 
-
         },
         {
           text: 'Delete',
           onPress: () => {
-            console.log('Delete meeting');
             setMeetings(meetings.filter((_, i) => i !== index));
+            setBackendJSON(prev => ({
+              ...prev,
+              meetings: prev.meetings.filter((_, i) => i !== index)
+            }));
           },
         },
         {
@@ -389,12 +583,7 @@ export default function EventSelection()
   //Function to handle editing or deleting an assignment:
   const editDeleteAssignment = (index) => 
   {
-    // This function will be called when the user taps on an assignment in the Events section
-    // We can use an alert to ask the user whether they want to edit or delete the assignment:
     const assignment = assignments[index];
-    const options = ['Edit', 'Delete', 'Cancel'];
-    
-    // Show an alert with options to edit or delete the assignment
     Alert.alert(
       'Assignment Options',
       `Assignment: ${assignment.name}\nEffort: ${assignment.effort} min\nDeadline: ${format(new Date(assignment.deadline), "MMM dd, yyyy - h:mm a")}`,
@@ -402,17 +591,17 @@ export default function EventSelection()
         {
           text: 'Edit',
           onPress: () => {
-            console.log('Edit assignment');
-            // Implement edit functionality here
-            // Edit functionality can be implemented by navigating to the AssignmentEdit screen:
-            navigation.navigate('AssignmentEdit', { assignment });
+            setEditMode({ type: 'assignment', index });
           },
         },
         {
           text: 'Delete',
           onPress: () => {
-            console.log('Delete assignment');
             setAssignments(assignments.filter((_, i) => i !== index));
+            setBackendJSON(prev => ({
+              ...prev,
+              assignments: prev.assignments.filter((_, i) => i !== index)
+            }));
           },
         },
         {
@@ -426,12 +615,7 @@ export default function EventSelection()
   //Function to handle editing or deleting a chore:
   const editDeleteChore = (index) => 
   {
-    // This function will be called when the user taps on a chore in the Events section
-    // We can use an alert to ask the user whether they want to edit or delete the chore:
     const chore = chores[index];
-    const options = ['Edit', 'Delete', 'Cancel'];
-    
-    // Show an alert with options to edit or delete the chore
     Alert.alert(
       'Chore Options',
       `Chore: ${chore.name}\nEffort: ${chore.effort} min\nDeadline: ${format(new Date(chore.windowEnd), "MMM dd, yyyy - h:mm a")}`,
@@ -439,16 +623,17 @@ export default function EventSelection()
         {
           text: 'Edit',
           onPress: () => {
-            console.log('Edit chore');
-            // Implement edit functionality here
-            navigation.navigate('ChoreEdit', { chore, chores, setChores});
+            setEditMode({ type: 'chore', index });
           },
         },
         {
           text: 'Delete',
           onPress: () => {
-            console.log('Delete chore');
             setChores(chores.filter((_, i) => i !== index));
+            setBackendJSON(prev => ({
+              ...prev,
+              chores: prev.chores.filter((_, i) => i !== index)
+            }));
           },
         },
         {
@@ -502,7 +687,7 @@ export default function EventSelection()
           style={{ flex: 1 }}
         >
           <ScrollView contentContainerStyle={styles.containerMeeting} keyboardShouldPersistTaps="handled">
-            <Text style={styles.header}>Set up a Meeting</Text>
+            <Text style={styles.header}>{editMode && editMode.type === 'meeting' ? 'Edit Meeting' : 'Set up a Meeting'}</Text>
 
             <Text style={styles.meetingTime}>
               Start Time:
@@ -603,10 +788,20 @@ export default function EventSelection()
                 </Picker>
               </View>
 
-            <TouchableOpacity style={styles.addButton} onPress = {handleMeeting}>
-              <Text style={styles.eventText}>Add Event</Text>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={editMode && editMode.type === 'meeting' ? handleEditMeeting : handleMeeting}
+            >
+              <Text style={styles.eventText}>{editMode && editMode.type === 'meeting' ? 'Update Meeting' : 'Add Event'}</Text>
             </TouchableOpacity>
-
+            {editMode && editMode.type === 'meeting' && (
+              <TouchableOpacity
+                style={[styles.addButton, { backgroundColor: '#ccc', marginTop: 10 }]}
+                onPress={handleDiscardEdit}
+              >
+                <Text style={[styles.eventText, { color: '#222' }]}>Discard Changes</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={styles.backButton} onPress = {handlePrev}>
               <Text style={styles.eventText}>Go to Home</Text>
             </TouchableOpacity>
@@ -619,9 +814,7 @@ export default function EventSelection()
         <>
           <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible = {false}>
             <SafeAreaView>
-              <Text style={styles.header}>
-                Set up an Assignment
-              </Text>
+              <Text style={styles.header}>{editMode && editMode.type === 'assignment' ? 'Edit Assignment' : 'Set up an Assignment'}</Text>
 
               <Text style={styles.assignmentName}>Name:</Text>
               <TextInput
@@ -655,10 +848,20 @@ export default function EventSelection()
                 />
               </View>
 
-              <TouchableOpacity style={styles.addAssignment} onPress={handleAssignment}>
-                <Text style={styles.eventText}>Add Event</Text>
+              <TouchableOpacity
+                style={styles.addAssignment}
+                onPress={editMode && editMode.type === 'assignment' ? handleEditAssignment : handleAssignment}
+              >
+                <Text style={styles.eventText}>{editMode && editMode.type === 'assignment' ? 'Update Assignment' : 'Add Event'}</Text>
               </TouchableOpacity>
-
+              {editMode && editMode.type === 'assignment' && (
+                <TouchableOpacity
+                  style={[styles.addAssignment, { backgroundColor: '#ccc', marginTop: 10 }]}
+                  onPress={handleDiscardEdit}
+                >
+                  <Text style={[styles.eventText, { color: '#222' }]}>Discard Changes</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity 
                 style={styles.backButton2} 
                 onPress={() => {
@@ -676,9 +879,7 @@ export default function EventSelection()
         <>
           <TouchableWithoutFeedback onPress = {Keyboard.dismiss} accessible = {false}>
             <SafeAreaView>
-              <Text style={styles.header}>
-                Set up Chore/Study
-              </Text>
+              <Text style={styles.header}>{editMode && editMode.type === 'chore' ? 'Edit Chore/Study' : 'Set up Chore/Study'}</Text>
 
               <Text style={styles.choreName}>Name:</Text>
               <TextInput
@@ -729,10 +930,20 @@ export default function EventSelection()
                 />
               </View>
 
-              <TouchableOpacity style={styles.addChore} onPress={handleChore}>
-                <Text style={styles.eventText}>Add Event</Text>
+              <TouchableOpacity
+                style={styles.addChore}
+                onPress={editMode && editMode.type === 'chore' ? handleEditChore : handleChore}
+              >
+                <Text style={styles.eventText}>{editMode && editMode.type === 'chore' ? 'Update Chore' : 'Add Event'}</Text>
               </TouchableOpacity>
-
+              {editMode && editMode.type === 'chore' && (
+                <TouchableOpacity
+                  style={[styles.addChore, { backgroundColor: '#ccc', marginTop: 10 }]}
+                  onPress={handleDiscardEdit}
+                >
+                  <Text style={[styles.eventText, { color: '#222' }]}>Discard Changes</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity 
                 style={styles.backButton2} 
                 onPress={() => {
