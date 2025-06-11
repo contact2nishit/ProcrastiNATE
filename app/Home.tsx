@@ -61,17 +61,8 @@ export default function Home() {
                 name: a.name,
                 start: slot.start,
                 end: slot.end,
-                id: a.ocurrence_ids?.[idx] ?? idx,
-              });
-            });
-          } else if (a.start_end_times) {
-            a.start_end_times.forEach((pair: [string, string], idx: number) => {
-              items.push({
-                type: 'assignment',
-                name: a.name,
-                start: pair[0],
-                end: pair[1],
-                id: a.ocurrence_ids?.[idx] ?? idx,
+                id: `assignment_${a.assignment_id}_${a.ocurrence_ids?.[idx] ?? idx}`,
+                completed: a.completed?.[idx] ?? false,
               });
             });
           }
@@ -86,17 +77,8 @@ export default function Home() {
                 name: c.name,
                 start: slot.start,
                 end: slot.end,
-                id: c.ocurrence_ids?.[idx] ?? idx,
-              });
-            });
-          } else if (c.start_end_times) {
-            c.start_end_times.forEach((pair: [string, string], idx: number) => {
-              items.push({
-                type: 'chore',
-                name: c.name,
-                start: pair[0],
-                end: pair[1],
-                id: c.ocurrence_ids?.[idx] ?? idx,
+                id: `chore_${c.chore_id}_${c.ocurrence_ids?.[idx] ?? idx}`,
+                completed: c.completed?.[idx] ?? false,
               });
             });
           }
@@ -145,13 +127,39 @@ export default function Home() {
     return {};
   };
 
-  const markSessionCompleted = async (occurence_id: number, is_assignment: boolean) => {
+  // Add a local state to track completed status for assignment/chore occurrences
+  const [completedMap, setCompletedMap] = useState<{ [key: string]: boolean }>({});
+
+  // Update completedMap when todoList changes (initialize from backend)
+  useEffect(() => {
+    const map: { [key: string]: boolean } = {};
+    todoList.forEach(item => {
+      if ((item.type === 'assignment' || item.type === 'chore') && item.id !== undefined) {
+        map[item.id] = !!item.completed;
+      }
+    });
+    setCompletedMap(map);
+  }, [todoList.length]);
+
+  const markSessionCompleted = async (occurence_id: string, is_assignment: boolean) => {
     try {
       const url = await AsyncStorage.getItem('backendURL');
       const token = await AsyncStorage.getItem('token');
       if (!url || !token) {
         Alert.alert('Error', 'Backend URL or token not set.');
         return;
+      }
+      // Extract numeric id from our string id
+      const idParts = occurence_id.split('_');
+      const realOccurenceId = idParts[idParts.length - 1];
+      // Determine is_assignment correctly from id
+      let isAssignmentFlag = false;
+      if (occurence_id.startsWith('assignment_')) {
+        isAssignmentFlag = true;
+      } else if (occurence_id.startsWith('chore_')) {
+        isAssignmentFlag = false;
+      } else {
+        isAssignmentFlag = is_assignment; // fallback to passed value
       }
       const response = await fetch(`${url}/markSessionCompleted`, {
         method: 'POST',
@@ -160,9 +168,9 @@ export default function Home() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          occurence_id,
+          occurence_id: Number(realOccurenceId),
           completed: true,
-          is_assignment,
+          is_assignment: isAssignmentFlag,
         }),
       });
       if (!response.ok) {
@@ -170,6 +178,10 @@ export default function Home() {
         Alert.alert('Error', 'Failed to mark session as completed: ' + err);
         return;
       }
+      setCompletedMap(prev => ({
+        ...prev,
+        [occurence_id]: true,
+      }));
       Alert.alert('Success', 'Session marked as completed!');
     } catch (e) {
       Alert.alert('Error', 'Failed to mark session as completed: ' + e);
@@ -260,19 +272,26 @@ export default function Home() {
             </Text>
             {/* Mark session completed for assignments and chores */}
             {(item.type === 'assignment' || item.type === 'chore') && (
-              <TouchableOpacity
-                style={{
-                  marginTop: 10,
-                  backgroundColor: '#333',
-                  borderRadius: 6,
-                  paddingVertical: 8,
-                  paddingHorizontal: 16,
-                  alignSelf: 'flex-start',
-                }}
-                onPress={() => markSessionCompleted(item.id, item.type === 'assignment')}
-              >
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>Mark Session Completed</Text>
-              </TouchableOpacity>
+              completedMap[item.id] ? (
+                <Text style={{ color: 'green', fontWeight: 'bold', marginTop: 10, fontSize: 18 }}>✓ Completed</Text>
+              ) : (
+                <TouchableOpacity
+                  style={{
+                    marginTop: 10,
+                    backgroundColor: '#333',
+                    borderRadius: 6,
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    alignSelf: 'flex-start',
+                  }}
+                  onPress={() => {
+                      markSessionCompleted(item.id, item.type === 'assignment');
+                    }
+                  }
+                >
+                  <Text style={{ color: 'white', fontWeight: 'bold' }}>Mark Session Completed</Text>
+                </TouchableOpacity>
+              )
             )}
             {/* Update/Delete for meetings */}
             {item.type === 'meeting' && (
