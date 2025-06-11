@@ -139,6 +139,7 @@ class ChoreInResponse(ChoreInPotentialSchedule):
     """
     chore_id: int
     ocurrence_ids: List[int]
+    completed: List[bool]
 
 class AssignmentInResponse(AssignmentInPotentialSchedule):
     """Contains a list of unique ocurrence IDs, a unique assignment ID
@@ -147,6 +148,7 @@ class AssignmentInResponse(AssignmentInPotentialSchedule):
     """
     assignment_id: int
     ocurrence_ids: List[int]
+    completed: List[bool]
 
 
 class Schedule(BaseModel):

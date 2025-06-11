@@ -217,7 +217,8 @@ async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(
                         effort_assigned = assignment.schedule.effort_assigned,
                         status = assignment.schedule.status,
                         slots = assignment.schedule.slots,
-                    )
+                    ),
+                    completed = [False] * len(occurence_ids)
                 )
                 assignment_return_list.append(assignment_return)
 
@@ -242,7 +243,8 @@ async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(
                         effort_assigned = chore.schedule.effort_assigned,
                         status = chore.schedule.status,
                         slots = chore.schedule.slots,
-                    )
+                    ),
+                    completed = [False] * len(occurence_ids)
                 )
                 chore_return_list.append(chore_return)
             return ScheduleSetInStone(
@@ -266,13 +268,13 @@ async def mark_session_completed(complete: SessionCompletionDataModel, token: An
                 if assignment_id is not None:
                     return MessageResponseDataModel(message='Successfully marked assignment as complete!')
                 else:
-                    return MessageResponseDataModel(message='Could not find the assignment')
+                    raise HTTPException(status_code=400, detail="You picked a bad occurence id")
             else:
                 chore_id = await conn.fetchval('UPDATE chore_occurences SET completed = $1 WHERE occurence_id = $2 AND user_id = $3 RETURNING chore_id', complete.completed, complete.occurence_id, user.user_id)
                 if chore_id is not None:
                     return MessageResponseDataModel(message='Successfully marked chore as complete!')
                 else:
-                    return MessageResponseDataModel(message='Could not find the chore')
+                    raise HTTPException(status_code=400, detail="You picked a bad occurence id")
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -414,7 +416,7 @@ async def fetch(start_time: str, end_time: str, meetings: bool, assignments: boo
                 meetings = []
             if assignments:
                 assignments = await conn.fetch("""
-                    SELECT ao.occurence_id, ao.assignment_id, ao.start_time, ao.end_time, a.assignment_name, a.effort, a.deadline
+                    SELECT ao.occurence_id, ao.assignment_id, ao.start_time, ao.end_time, ao.completed, a.assignment_name, a.effort, a.deadline
                     FROM assignment_occurences ao
                     JOIN assignments a ON ao.assignment_id = a.assignment_id
                     WHERE ao.user_id = $1 AND ao.end_time > $2 AND ao.start_time < $3
@@ -423,7 +425,7 @@ async def fetch(start_time: str, end_time: str, meetings: bool, assignments: boo
                 assignments = []
             if chores:
                 chores = await conn.fetch("""
-                SELECT co.occurence_id, co.chore_id, co.start_time, co.end_time, c.chore_name, c.effort, c.start_window, c.end_window
+                SELECT co.occurence_id, co.chore_id, co.start_time, co.end_time, co.completed, c.chore_name, c.effort, c.start_window, c.end_window
                 FROM chore_occurences co
                 JOIN chores c ON co.chore_id = c.chore_id
                 WHERE co.user_id = $1 AND co.end_time > $2 AND co.start_time < $3
@@ -454,13 +456,13 @@ async def fetch(start_time: str, end_time: str, meetings: bool, assignments: boo
                 for occurence_list in partitioned_assignments:
                     ass_start_end_times: List[TimeSlot] = []
                     ass_occurence_ids = []
+                    ass_complete = []
                     effort_assigned = 0
                     for occurence in occurence_list:
                         ass_start_end_times += [TimeSlot(start=occurence['start_time'], end=occurence['end_time'])]
                         effort_assigned += (occurence['end_time'] - occurence['start_time']).total_seconds() // 60
                         ass_occurence_ids += [occurence['occurence_id']]
-                    # print(occurence_list[0]['meeting_name'])
-
+                        ass_complete += [occurence['completed']]
                     assignment_response = AssignmentInResponse(
                         ocurrence_ids=ass_occurence_ids,
                         assignment_id=occurence_list[0]['assignment_id'],
@@ -471,22 +473,24 @@ async def fetch(start_time: str, end_time: str, meetings: bool, assignments: boo
                             effort_assigned=effort_assigned,
                             status="unschedulable" if effort_assigned == 0 else ("partially_scheduled" if effort_assigned < occurence['effort'] else "fully_scheduled"),
                             slots = ass_start_end_times
-                        )
+                        ),
+                        completed=ass_complete
                     )
                     assignments_responses.append(assignment_response)
-            if len(assignments) > 0:
+            if len(chores) > 0:
                 partitioned_chores = partition_by_meeting_id(chores, 'chore_id')
                 for occurence_list in partitioned_chores:
                     chore_start_end_times: List[TimeSlot] = []
                     chore_occurence_ids = []
+                    c_complete = []
                     effort_assigned = 0
                     for occurence in occurence_list:
                         chore_start_end_times += [TimeSlot(start=occurence['start_time'], end=occurence['end_time'])]
                         effort_assigned += (occurence['end_time'] - occurence['start_time']).total_seconds() // 60
                         chore_occurence_ids += [occurence['occurence_id']]
-                    # print(occurence_list[0]['meeting_name'])
+                        c_complete += [occurence['completed']]
                     chore_response = ChoreInResponse(
-                        ocurrence_ids=ass_occurence_ids,
+                        ocurrence_ids=chore_occurence_ids,
                         chore_id=occurence_list[0]['chore_id'],
                         name = occurence_list[0]['chore_name'],
                         effort=occurence_list[0]['effort'],
@@ -495,9 +499,11 @@ async def fetch(start_time: str, end_time: str, meetings: bool, assignments: boo
                             effort_assigned=effort_assigned,
                             status="unschedulable" if effort_assigned == 0 else ("partially_scheduled" if effort_assigned < occurence['effort'] else "fully_scheduled"),
                             slots = chore_start_end_times
-                        )
+                        ),
+                        completed=c_complete
                     )
                     chores_responses.append(chore_response)
+            print((FetchResponse(meetings=meetings_responses, assignments=assignments_responses, chores=chores_responses)).json())
             return FetchResponse(meetings=meetings_responses, assignments=assignments_responses, chores=chores_responses)
     except HTTPException as e:
         raise e
