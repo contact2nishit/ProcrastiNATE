@@ -27,13 +27,13 @@ const screenWidth = Dimensions.get('window').width;
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const formatTime = (iso: string) =>
+export const formatTime = (iso: string) =>
   new Date(iso).toLocaleTimeString(undefined, {
     hour: '2-digit',
     minute: '2-digit',
   });
 
-const groupSlotsByDay = (slots: Slot[]) => {
+export const groupSlotsByDay = (slots: Slot[]) => {
   // Group slots by the *local* date of their start time, not by the UTC date string
   const grouped: Record<string, Slot[]> = {};
   for (const slot of slots) {
@@ -49,7 +49,7 @@ const groupSlotsByDay = (slots: Slot[]) => {
   return grouped;
 };
 
-const getWeekDaysFromDate = (referenceDate: Date) => {
+export const getWeekDaysFromDate = (referenceDate: Date) => {
   // Get the week days using local time, not UTC
   const date = new Date(referenceDate);
   // Set to Sunday of the week (local time)
