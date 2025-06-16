@@ -204,6 +204,12 @@ export default function SchedulePicker() {
               )}
               <TouchableOpacity
                 style={styles.closeButton}
+                onPress={() => navigation.replace("CalendarViewPotential")}
+                >
+                <Text style={styles.closeButtonText}>View Potential Schedule</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.closeButton}
                 onPress={() => setModalVisible(false)}
               >
                 <Text style={styles.closeButtonText}>Close</Text>
