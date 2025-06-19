@@ -172,11 +172,7 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
                     link_or_loc=meeting.link_or_loc
                 )
                 meeting_resp += [meeting_response]
-        return {
-            "conflicting_meetings": conflicting_meetings,
-            "meetings": meeting_resp,
-            "schedules": schedules
-        }
+        return ScheduleResponseFormat(conflicting_meetings=conflicting_meetings, meetings=meeting_resp, schedules=schedules)
     except HTTPException as http_exc:
         # Pass through known HTTP exceptions like 401
         raise http_exc
@@ -205,7 +201,7 @@ async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(
                 for timeslot in assignment.schedule.slots:
                     timeslot.start = enforce_timestamp_utc(timeslot.start)
                     timeslot.end = enforce_timestamp_utc(timeslot.end)
-                    occurence_id = await conn.fetchval("INSERT INTO assignment_occurences(user_id, assignment_id, start_time, end_time) VALUES($1, $2, $3, $4) RETURNING occurence_id", user.user_id, assign_id, timeslot.start, timeslot.end)
+                    occurence_id = await conn.fetchval("INSERT INTO assignment_occurences(user_id, assignment_id, start_time, end_time) VALUES($1, $2, $3, $4, $5) RETURNING occurence_id", user.user_id, assign_id, timeslot.start, timeslot.end, timeslot.xp_potential)
                     occurence_ids.append(occurence_id)
                 assignment_return = AssignmentInResponse(
                     assignment_id = assign_id,
@@ -231,7 +227,7 @@ async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(
                 for timeslot in chore.schedule.slots:
                     timeslot.start = enforce_timestamp_utc(timeslot.start)
                     timeslot.end = enforce_timestamp_utc(timeslot.end)
-                    occurence_id = await conn.fetchval("INSERT INTO chore_occurences(chore_id, start_time, end_time, user_id) VALUES($1, $2, $3, $4) RETURNING occurence_id", assign_id, timeslot.start, timeslot.end, user.user_id)
+                    occurence_id = await conn.fetchval("INSERT INTO chore_occurences(chore_id, start_time, end_time, user_id) VALUES($1, $2, $3, $4, $5) RETURNING occurence_id", assign_id, timeslot.start, timeslot.end, user.user_id, timeslot.xp_potential)
                     occurence_ids.append(occurence_id)
                 chore_return = ChoreInResponse(
                     chore_id = assign_id,

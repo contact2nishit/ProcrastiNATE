@@ -6,16 +6,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
 import { useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Slider from '@react-native-community/slider';
 
 export default function Home() {
+  type SessionToMaybeComplete = {
+    occurence_id: string;
+    is_assignment: boolean;
+  };
   const navigation = useNavigation();
   const [todoList, setTodoList] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState<'update' | 'delete' | null>(null);
+  const [modalType, setModalType] = useState<'update' | 'delete' | 'markSession' | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
   const [updateName, setUpdateName] = useState('');
   const [updateLoc, setUpdateLoc] = useState('');
   const [updateTime, setUpdateTime] = useState('');
+  const [selectedSessionToComplete, setSelectedSessionToComplete] = useState<SessionToMaybeComplete>({occurence_id: "A", is_assignment: false});
+  const [lockedInValue, setLockedInValue] = useState(5);
 
   // Refetch todo list
   const fetchTodoList = async () => {
@@ -101,11 +108,6 @@ export default function Home() {
   };
 
   const calendarProceed = async () => {
-    // First check if a schedule has been set or not (aka the user has selected a schedule)
-    // If not, then if the user clicks on show calendar, then an alert shows up saying
-    // 'no schedule selected'
-
-    // Otherwise, navigate to the calendarView file:
     try {
       navigation.navigate('CalendarView');
     }
@@ -141,7 +143,7 @@ export default function Home() {
     setCompletedMap(map);
   }, [todoList.length]);
 
-  const markSessionCompleted = async (occurence_id: string, is_assignment: boolean) => {
+  const markSessionCompleted = async (occurence_id: string, is_assignment: boolean, locked_in: number = 5) => {
     try {
       const url = await AsyncStorage.getItem('backendURL');
       const token = await AsyncStorage.getItem('token');
@@ -171,6 +173,7 @@ export default function Home() {
           occurence_id: Number(realOccurenceId),
           completed: true,
           is_assignment: isAssignmentFlag,
+          locked_in: locked_in,
         }),
       });
       if (!response.ok) {
@@ -183,6 +186,7 @@ export default function Home() {
         [occurence_id]: true,
       }));
       Alert.alert('Success', 'Session marked as completed!');
+      setModalVisible(false);
     } catch (e) {
       Alert.alert('Error', 'Failed to mark session as completed: ' + e);
     }
@@ -285,7 +289,10 @@ export default function Home() {
                     alignSelf: 'flex-start',
                   }}
                   onPress={() => {
-                      markSessionCompleted(item.id, item.type === 'assignment');
+                      setModalType('markSession');
+                      setModalVisible(true);
+                      setSelectedSessionToComplete({occurence_id: item.id, is_assignment: item.type === 'assignment'});
+                      // markSessionCompleted(item.id, item.type === 'assignment');
                     }
                   }
                 >
@@ -341,7 +348,7 @@ export default function Home() {
           <Text style={styles.plus}>+</Text>
         </TouchableOpacity>
       </ScrollView>
-      {/* Update/Delete Modal */}
+      {/* Update/Delete/Session completion Modal */}
       <Modal
         visible={modalVisible}
         animationType="slide"
@@ -399,6 +406,34 @@ export default function Home() {
                   onPress={() => handleDeleteMeeting(true)}
                 >
                   <Text style={styles.modalButtonText}>Delete All Future Occurrences</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {modalType === 'markSession' && (
+              <>
+                <Text style={styles.modalHeader}>Mark Session Completed</Text>
+                <Text style={{ color: '#222', marginBottom: 16, fontWeight: 'bold', fontSize: 16 }}>
+                  How locked in were you? Be honest.
+                </Text>
+                <Slider
+                  style={{ width: 200, height: 40 }}
+                  minimumValue={1}
+                  maximumValue={10}
+                  step={1}
+                  value={lockedInValue}
+                  onValueChange={setLockedInValue}
+                  minimumTrackTintColor="#2563eb"
+                  maximumTrackTintColor="#888"
+                  thumbTintColor="#2563eb"
+                />
+                <Text style={{ color: '#222', marginBottom: 8, fontSize: 16, fontWeight: 'bold' }}>
+                  {lockedInValue}/10
+                </Text>
+                <TouchableOpacity
+                  style={[styles.modalButton, { backgroundColor: '#dc2626', marginTop: 8 }]}
+                  onPress={() => markSessionCompleted(selectedSessionToComplete?.occurence_id, selectedSessionToComplete?.is_assignment, lockedInValue)}
+                >
+                  <Text style={styles.modalButtonText}>Mark Session Completed</Text>
                 </TouchableOpacity>
               </>
             )}

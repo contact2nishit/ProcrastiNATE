@@ -179,7 +179,7 @@ export default function SchedulePicker() {
                       ))}
                     </View>
                   ))}
-
+                  <Text style={styles.itemTitle}>Potential XP: {schedules[selectedScheduleIdx].total_potential_xp}</Text>
                   <TouchableOpacity
                     style={{
                       backgroundColor: '#28a745',
