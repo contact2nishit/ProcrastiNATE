@@ -113,6 +113,36 @@ def loosely_sort_assignments(assignments: List[AssignmentInRequest], bucket_minu
         result.extend(group)
     return result
 
+def calc_xp_for_slot(
+    slot_start: datetime,
+    slot_end: datetime,
+    total_effort: int,
+    due_time: datetime,
+    now: datetime,
+) -> int:
+    """
+    XP is 100 per hour if finished right now, 0 if finished at due_time.
+    Scales linearly with duration and time left.
+    """
+    duration_min = int((slot_end - slot_start).total_seconds() // 60)
+    # If due_time is in the past, XP is 0
+    if due_time <= now:
+        return 0
+    # Time left from now to due
+    total_window = (due_time - now).total_seconds()
+    # Time left from slot_end to due
+    slot_time_left = (due_time - slot_end).total_seconds()
+    # If slot is after due, XP is 0
+    if slot_time_left < 0:
+        return 0
+    # XP per minute if finished now
+    xp_per_min = 100 / 60
+    # XP scales linearly with time left
+    time_factor = max(0, slot_time_left / total_window)
+    # XP for this slot
+    xp = xp_per_min * duration_min * time_factor
+    return int(round(xp))
+
 # ---- Main scheduling function ----
 
 def schedule_tasks(
@@ -123,7 +153,7 @@ def schedule_tasks(
     end_time: datetime = None,
     now: datetime = datetime.now(timezone.utc),
     skip_p: float = 0.0
-) -> List[Schedule]:
+) -> List['Schedule']:
     # Ensure now is timezone-aware UTC
     """
         General flow:
@@ -189,6 +219,8 @@ def schedule_tasks(
             [("chore", c) for c in randomized_chores]
         )
 
+        total_potential_xp = 0
+
         for task_type, task in task_queue:
             if task_type == "assignment":
                 time_range = (now, enforce_timestamp_utc(task.due))
@@ -215,7 +247,21 @@ def schedule_tasks(
             for s in assigned_slots:
                 used_slots.add(s)
 
-            slot_objs = [TimeSlot(start=s[0], end=s[1]) for s in assigned_slots]
+            slot_objs = []
+            if task_type == "assignment":
+                due_time = enforce_timestamp_utc(task.due)
+                total_effort = task.effort
+                for s in assigned_slots:
+                    xp = calc_xp_for_slot(s[0], s[1], total_effort, due_time, now)
+                    total_potential_xp += xp
+                    slot_objs.append(TimeSlot(start=s[0], end=s[1], xp_potential=xp))
+            else:
+                due_time = enforce_timestamp_utc(task.window[1])
+                total_effort = task.effort
+                for s in assigned_slots:
+                    xp = calc_xp_for_slot(s[0], s[1], total_effort, due_time, now)
+                    total_potential_xp += xp
+                    slot_objs.append(TimeSlot(start=s[0], end=s[1], xp_potential=xp))
             schedule_info = ScheduledTaskInfo(
                 effort_assigned=assigned_minutes,
                 status=status,
@@ -243,7 +289,8 @@ def schedule_tasks(
             conflicting_assignments=conflicting_assignments,
             conflicting_chores=conflicting_chores,
             not_enough_time_assignments=not_enough_time_assignments,
-            not_enough_time_chores=not_enough_time_chores
+            not_enough_time_chores=not_enough_time_chores,
+            total_potential_xp=total_potential_xp
         )
         schedules_results.append(schedule)
 

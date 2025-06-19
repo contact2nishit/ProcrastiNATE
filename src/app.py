@@ -260,19 +260,24 @@ async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(
 @app.post("/markSessionCompleted")
 async def mark_session_completed(complete: SessionCompletionDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> MessageResponseDataModel:
     """Mark one session of time allocated to work on an assignment (could be multiple sessions per assignment) as complete or incomplete"""
+    prop_xp: float = complete.locked_in / 10
     try:
         async with app.state.pool.acquire() as conn:
             user = await get_current_user(token, app.state.pool)
             if complete.is_assignment:
-                assignment_id = await conn.fetchval('UPDATE assignment_occurences SET completed = $1 WHERE occurence_id = $2 AND user_id = $3 RETURNING assignment_id', complete.completed, complete.occurence_id, user.user_id)
-                if assignment_id is not None:
-                    return MessageResponseDataModel(message='Successfully marked assignment as complete!')
+                xp_potential: int  = await conn.fetchval('UPDATE assignment_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential', complete.completed, complete.locked_in, complete.occurence_id, user.user_id)
+                if xp_potential is not None:
+                    xp_gained: int = round(prop_xp * xp_potential)
+                    new_xp: int = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2", xp_gained, user.user_id)
+                    return MessageResponseDataModel(message='Successfully marked assignment as complete!', new_xp=new_xp)
                 else:
                     raise HTTPException(status_code=400, detail="You picked a bad occurence id")
             else:
-                chore_id = await conn.fetchval('UPDATE chore_occurences SET completed = $1 WHERE occurence_id = $2 AND user_id = $3 RETURNING chore_id', complete.completed, complete.occurence_id, user.user_id)
-                if chore_id is not None:
-                    return MessageResponseDataModel(message='Successfully marked chore as complete!')
+                xp_potential: int = await conn.fetchval('UPDATE chore_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential', complete.completed, complete.occurence_id, user.user_id)
+                if xp_potential is not None:
+                    xp_gained: int = round(prop_xp * xp_potential)
+                    new_xp: int = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2", xp_gained, user.user_id)
+                    return MessageResponseDataModel(message='Successfully marked chore as complete!', new_xp=new_xp)
                 else:
                     raise HTTPException(status_code=400, detail="You picked a bad occurence id")
     except HTTPException as e:

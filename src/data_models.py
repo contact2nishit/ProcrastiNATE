@@ -18,6 +18,7 @@ class TimeSlot(BaseModel):
     """A block of time"""
     start: datetime
     end: datetime
+    xp_potential: int = 0
 
 class User(BaseModel):
     username: str
@@ -92,6 +93,7 @@ class SessionCompletionDataModel(BaseModel):
     occurence_id: int
     completed: bool
     is_assignment: bool
+    locked_in: int
     
 # Response data models
 
@@ -110,6 +112,7 @@ class UpdateResponseDataModel(BaseModel):
 class MessageResponseDataModel(BaseModel):
     """Simple message response"""
     message: str
+    new_xp: int = 0
 
 class ScheduledTaskInfo(BaseModel):
     """Contains info about all the occurences of a scheduled task in a specific schedule. If you see ocurrence_ids in any other schema, they're in the same order as the list in this one"""
@@ -167,6 +170,7 @@ class Schedule(BaseModel):
     conflicting_chores: List[str]
     not_enough_time_assignments: List[str]
     not_enough_time_chores: List[str]
+    total_potential_xp: int = 0  # New field for total potential XP
 
 class ScheduleResponseFormat(BaseModel):
     """Main element of response: a list of schedules
