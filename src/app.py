@@ -201,7 +201,7 @@ async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(
                 for timeslot in assignment.schedule.slots:
                     timeslot.start = enforce_timestamp_utc(timeslot.start)
                     timeslot.end = enforce_timestamp_utc(timeslot.end)
-                    occurence_id = await conn.fetchval("INSERT INTO assignment_occurences(user_id, assignment_id, start_time, end_time) VALUES($1, $2, $3, $4, $5) RETURNING occurence_id", user.user_id, assign_id, timeslot.start, timeslot.end, timeslot.xp_potential)
+                    occurence_id = await conn.fetchval("INSERT INTO assignment_occurences(user_id, assignment_id, start_time, end_time, xp_potential) VALUES($1, $2, $3, $4, $5) RETURNING occurence_id", user.user_id, assign_id, timeslot.start, timeslot.end, timeslot.xp_potential)
                     occurence_ids.append(occurence_id)
                 assignment_return = AssignmentInResponse(
                     assignment_id = assign_id,
@@ -227,7 +227,7 @@ async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(
                 for timeslot in chore.schedule.slots:
                     timeslot.start = enforce_timestamp_utc(timeslot.start)
                     timeslot.end = enforce_timestamp_utc(timeslot.end)
-                    occurence_id = await conn.fetchval("INSERT INTO chore_occurences(chore_id, start_time, end_time, user_id) VALUES($1, $2, $3, $4, $5) RETURNING occurence_id", assign_id, timeslot.start, timeslot.end, user.user_id, timeslot.xp_potential)
+                    occurence_id = await conn.fetchval("INSERT INTO chore_occurences(chore_id, start_time, end_time, user_id, xp_potential) VALUES($1, $2, $3, $4, $5) RETURNING occurence_id", assign_id, timeslot.start, timeslot.end, user.user_id, timeslot.xp_potential)
                     occurence_ids.append(occurence_id)
                 chore_return = ChoreInResponse(
                     chore_id = assign_id,
@@ -264,15 +264,15 @@ async def mark_session_completed(complete: SessionCompletionDataModel, token: An
                 xp_potential: int  = await conn.fetchval('UPDATE assignment_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential', complete.completed, complete.locked_in, complete.occurence_id, user.user_id)
                 if xp_potential is not None:
                     xp_gained: int = round(prop_xp * xp_potential)
-                    new_xp: int = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2", xp_gained, user.user_id)
+                    new_xp: int = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2 RETURNING xp", xp_gained, user.user_id)
                     return MessageResponseDataModel(message='Successfully marked assignment as complete!', new_xp=new_xp)
                 else:
                     raise HTTPException(status_code=400, detail="You picked a bad occurence id")
             else:
-                xp_potential: int = await conn.fetchval('UPDATE chore_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential', complete.completed, complete.occurence_id, user.user_id)
+                xp_potential: int = await conn.fetchval('UPDATE chore_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential', complete.completed, complete.locked_in, complete.occurence_id, user.user_id)
                 if xp_potential is not None:
                     xp_gained: int = round(prop_xp * xp_potential)
-                    new_xp: int = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2", xp_gained, user.user_id)
+                    new_xp: int = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2 RETURNING xp", xp_gained, user.user_id)
                     return MessageResponseDataModel(message='Successfully marked chore as complete!', new_xp=new_xp)
                 else:
                     raise HTTPException(status_code=400, detail="You picked a bad occurence id")

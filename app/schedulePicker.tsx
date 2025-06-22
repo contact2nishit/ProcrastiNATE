@@ -32,6 +32,12 @@ export default function SchedulePicker() {
     }
   }
 
+  const mapStatus = {
+      "fully_scheduled": "Fully Scheduled",
+      "partially_scheduled": "Partially Scheduled",
+      "unschedulable": "Unschedulable",
+  };
+
   const schedules = parsedData?.schedules || [];
   const meetings = parsedData?.meetings || [];
   const conflicting_meetings = parsedData?.conflicting_meetings || [];
@@ -118,7 +124,7 @@ export default function SchedulePicker() {
                   {schedules[selectedScheduleIdx].assignments.map((a, i) => (
                     <View key={i} style={styles.itemBox}>
                       <Text style={styles.itemTitle}>{a.name}</Text>
-                      <Text>Status: {a.schedule.status}</Text>
+                      <Text>Status: {mapStatus[a.schedule.status]}</Text>
                       <Text>Effort Assigned: {a.schedule.effort_assigned} min</Text>
                       {a.schedule.slots.map((slot, j) => (
                         <Text key={j} style={styles.timeText}>
@@ -135,7 +141,7 @@ export default function SchedulePicker() {
                   {schedules[selectedScheduleIdx].chores.map((c, i) => (
                     <View key={i} style={styles.itemBox}>
                       <Text style={styles.itemTitle}>{c.name}</Text>
-                      <Text>Status: {c.schedule.status}</Text>
+                      <Text>Status: {mapStatus[c.schedule.status]}</Text>
                       <Text>Effort Assigned: {c.schedule.effort_assigned} min</Text>
                       {c.schedule.slots.map((slot, j) => (
                         <Text key={j} style={styles.timeText}>
