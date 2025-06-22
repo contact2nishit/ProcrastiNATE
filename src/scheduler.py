@@ -43,18 +43,7 @@ def find_time_blocks(
     that the algorithm skips forward and tries to schedule the next block 2 hours after.
     After a skip, do not apply the skip rule again until at least 30 minutes of scheduling has occurred.
     If skipping lands past the end, backtrack and try to fill as much as possible.
-
-    General flow: 
-        1. Set up tracking vars
-        2. While not fully assigned and within index range of available_slots:
-            a. If slot not used, check if skipping is possible (p > 0 and 30 min increment but also that being on this specific slot not result of skip)
-            b. If skip is true, calculate start time of the skipped slot
-            c. The inner for loop finds if a slot with the start time that is 2 hours later exists
-            d. If it does, mark this as the last index skipped to, i, and say skip happened, jumping to iteration with i being that
-            e. If skip not possible, just schedule
     """
-
-
     assigned_mins = 0
     scheduled = []
     i = 0
@@ -68,20 +57,24 @@ def find_time_blocks(
             i += 1
             continue
 
-        # Check if we can apply skip rule
+        # Ignore seconds and microseconds for skip logic
+        slot_start = slot[0]
+        minute = slot_start.minute
+        hour = slot_start.hour
+        # Only use hour and minute for skip logic
         can_skip = (
             skip_prob > 0.0 and
-            (slot[0].minute % 30 == 0 and slot[0].second == 0 and slot[0].microsecond == 0) and
+            (minute % 30 == 0) and
             (i - last_skip_idx >= min_gap_slots)
         )
         did_skip = False
         if can_skip and random.random() < skip_prob:
-            # Try to skip forward 2 hours (120 minutes)
-            skip_time = slot[0] + timedelta(hours=2)
-            # Find the next available slot at or after skip_time
+            skip_time = slot_start.replace(second=0, microsecond=0) + timedelta(hours=2)
             next_idx = None
             for j in range(i + 1, n):
-                if available_slots[j][0] >= skip_time and available_slots[j] not in used_slots:
+                # Compare only hour and minute for skip target
+                candidate = available_slots[j][0]
+                if (candidate.hour > skip_time.hour or (candidate.hour == skip_time.hour and candidate.minute >= skip_time.minute)) and available_slots[j] not in used_slots:
                     next_idx = j
                     break
             if next_idx is not None:
@@ -90,7 +83,6 @@ def find_time_blocks(
                 did_skip = True
                 continue
             # If skip would go past end, backtrack: ignore skip, just continue scheduling as normal
-            # (do not increment i here, so we try to schedule this slot)
         # Schedule this slot
         if not scheduled or scheduled[-1][1] != slot[0]:
             scheduled.append(slot)
@@ -98,13 +90,10 @@ def find_time_blocks(
             scheduled[-1] = (scheduled[-1][0], slot[1])
         assigned_mins += CHUNK_MINUTES
         i += 1
-        # After a skip, require at least 30 minutes of scheduling before next skip
         if did_skip:
             last_skip_idx = i - 1
 
-    # If we ended due to a skip that landed past the end, backtrack and try to fill as much as possible
     if assigned_mins < effort_minutes and skip_prob > 0.0:
-        # Try again with skip_prob=0.0 to fill as much as possible
         return find_time_blocks(effort_minutes, available_slots, used_slots, skip_prob=0.0)
     return scheduled
 
@@ -113,7 +102,6 @@ def loosely_sort_assignments(assignments: List[AssignmentInRequest], bucket_minu
     now = datetime.now(timezone.utc)
     buckets = defaultdict(list)
     for a in assignments:
-        # Ensure a.due is timezone-aware (preferably UTC)
         due = enforce_timestamp_utc(a.due)
         bucket_key = int((due - now).total_seconds() // (bucket_minutes * 60))
         buckets[bucket_key].append(a)
@@ -121,9 +109,39 @@ def loosely_sort_assignments(assignments: List[AssignmentInRequest], bucket_minu
     result = []
     for key in sorted_keys:
         group = buckets[key]
-        random.shuffle(group)
+        random.shuffle(group)  # Only shuffle within each bucket
         result.extend(group)
     return result
+
+def calc_xp_for_slot(
+    slot_start: datetime,
+    slot_end: datetime,
+    total_effort: int,
+    due_time: datetime,
+    now: datetime,
+) -> int:
+    """
+    XP is 100 per hour if finished right now, 0 if finished at due_time.
+    Scales linearly with duration and time left.
+    """
+    duration_min = int((slot_end - slot_start).total_seconds() // 60)
+    # If due_time is in the past, XP is 0
+    if due_time <= now:
+        return 0
+    # Time left from now to due
+    total_window = (due_time - now).total_seconds()
+    # Time left from slot_end to due
+    slot_time_left = (due_time - slot_end).total_seconds()
+    # If slot is after due, XP is 0
+    if slot_time_left < 0:
+        return 0
+    # XP per minute if finished now
+    xp_per_min = 100 / 60
+    # XP scales linearly with time left
+    time_factor = max(0, slot_time_left / total_window)
+    # XP for this slot
+    xp = xp_per_min * duration_min * time_factor
+    return int(round(xp))
 
 # ---- Main scheduling function ----
 
@@ -135,7 +153,7 @@ def schedule_tasks(
     end_time: datetime = None,
     now: datetime = datetime.now(timezone.utc),
     skip_p: float = 0.0
-) -> List[Schedule]:
+) -> List['Schedule']:
     # Ensure now is timezone-aware UTC
     """
         General flow:
@@ -201,17 +219,19 @@ def schedule_tasks(
             [("chore", c) for c in randomized_chores]
         )
 
+        total_potential_xp = 0
+
         for task_type, task in task_queue:
             if task_type == "assignment":
                 time_range = (now, enforce_timestamp_utc(task.due))
             else:
                 w0, w1 = enforce_timestamp_utc(task.window[0]), enforce_timestamp_utc(task.window[1])
                 time_range = (w0, w1)
-            # Filter available slots for this task's window and not used
             avail_for_this = [
                 s for s in available
                 if s not in used_slots and s[0] >= time_range[0] and s[1] <= time_range[1]
             ]
+            # DO NOT shuffle avail_for_this
 
             assigned_slots = find_time_blocks(task.effort, avail_for_this, used_slots, skip_prob=skip_p)
             assigned_minutes = 0
@@ -227,7 +247,21 @@ def schedule_tasks(
             for s in assigned_slots:
                 used_slots.add(s)
 
-            slot_objs = [TimeSlot(start=s[0], end=s[1]) for s in assigned_slots]
+            slot_objs = []
+            if task_type == "assignment":
+                due_time = enforce_timestamp_utc(task.due)
+                total_effort = task.effort
+                for s in assigned_slots:
+                    xp = calc_xp_for_slot(s[0], s[1], total_effort, due_time, now)
+                    total_potential_xp += xp
+                    slot_objs.append(TimeSlot(start=s[0], end=s[1], xp_potential=xp))
+            else:
+                due_time = enforce_timestamp_utc(task.window[1])
+                total_effort = task.effort
+                for s in assigned_slots:
+                    xp = calc_xp_for_slot(s[0], s[1], total_effort, due_time, now)
+                    total_potential_xp += xp
+                    slot_objs.append(TimeSlot(start=s[0], end=s[1], xp_potential=xp))
             schedule_info = ScheduledTaskInfo(
                 effort_assigned=assigned_minutes,
                 status=status,
@@ -255,7 +289,8 @@ def schedule_tasks(
             conflicting_assignments=conflicting_assignments,
             conflicting_chores=conflicting_chores,
             not_enough_time_assignments=not_enough_time_assignments,
-            not_enough_time_chores=not_enough_time_chores
+            not_enough_time_chores=not_enough_time_chores,
+            total_potential_xp=total_potential_xp
         )
         schedules_results.append(schedule)
 
