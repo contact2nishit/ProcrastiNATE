@@ -354,29 +354,64 @@ async def delete(deletion: DeleteRequestDataModel, token: Annotated[str, Depends
     try:
         async with app.state.pool.acquire() as conn:
             user = await get_current_user(token, app.state.pool)
-            if deletion.remove_all_future:
-                # Find the meeting_id and the start_time of the occurrence to delete
-                row = await conn.fetchrow(
-                    "SELECT meeting_id, start_time FROM meeting_occurences WHERE occurence_id = $1 AND user_id = $2",
+            if deletion.event_type == "meeting":
+                if deletion.remove_all_future:
+                    # Find the meeting_id and the start_time of the occurrence to delete
+                    row = await conn.fetchrow(
+                        "SELECT meeting_id FROM meeting_occurences WHERE occurence_id = $1 AND user_id = $2",
+                        deletion.occurence_id, user.user_id
+                    )
+                    if not row:
+                        return MessageResponseDataModel(message="Occurrence not found.")
+                    meeting_id = row['meeting_id']
+                    start_time = row['start_time']
+                    # Delete all occurrences with start_time >= this occurrence's start_time
+                    await conn.execute(
+                        "DELETE FROM meeting_occurences WHERE meeting_id = $1 AND user_id = $2 AND start_time >= $3",
+                        meeting_id, user.user_id, start_time
+                    )
+                    await conn.execute(
+                        "DELETE FROM meetings WHERE meeting_id = $1 AND user_id = $2",
+                        meeting_id, user.user_id,
+                    )
+                    return MessageResponseDataModel(message="Deleted this and all future occurrences.")
+                else:
+                    # Only delete the specified occurrence
+                    await conn.execute(
+                        "DELETE FROM meeting_occurences WHERE occurence_id = $1 AND user_id = $2",
+                        deletion.occurence_id, user.user_id
+                    )
+                    return MessageResponseDataModel(message="Occurrence deleted.")
+            elif deletion.event_type == "assignment":
+                ass_id = await conn.fetchrow(
+                    "SELECT assignment_id FROM assignment_occurences WHERE occurence_id = $1 AND user_id = $2",
                     deletion.occurence_id, user.user_id
                 )
                 if not row:
                     return MessageResponseDataModel(message="Occurrence not found.")
-                meeting_id = row['meeting_id']
-                start_time = row['start_time']
-                # Delete all occurrences with start_time >= this occurrence's start_time
                 await conn.execute(
-                    "DELETE FROM meeting_occurences WHERE meeting_id = $1 AND user_id = $2 AND start_time >= $3",
-                    meeting_id, user.user_id, start_time
+                    "DELETE FROM assignment_occurences WHERE assignment_id = $1 AND user_id = $2",
+                    ass_id, user.user_id
                 )
-                return MessageResponseDataModel(message="Deleted this and all future occurrences.")
-            else:
-                # Only delete the specified occurrence
                 await conn.execute(
-                    "DELETE FROM meeting_occurences WHERE occurence_id = $1 AND user_id = $2",
+                    "DELETE FROM assignments WHERE assignment_id = $1 AND user_id = $2",
+                    ass_id, user.user_id,
+                )
+            elif deletion.event_type == "chore":
+                chore_id = await conn.fetchrow(
+                    "SELECT chore_id FROM chore_occurences WHERE occurence_id = $1 AND user_id = $2",
                     deletion.occurence_id, user.user_id
                 )
-                return MessageResponseDataModel(message="Occurrence deleted.")
+                if not row:
+                    return MessageResponseDataModel(message="Occurrence not found.")
+                await conn.execute(
+                    "DELETE FROM chore_occurences WHERE chore_id = $1 AND user_id = $2",
+                    chore_id, user.user_id
+                )
+                await conn.execute(
+                    "DELETE FROM assignments WHERE chore_id = $1 AND user_id = $2",
+                    chore_id, user.user_id,
+                )
     except HTTPException as e:
         raise e
     except Exception as e:

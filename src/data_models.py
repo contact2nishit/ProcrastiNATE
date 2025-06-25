@@ -34,11 +34,13 @@ class LoginData(BaseModel):
 
 class DeleteRequestDataModel(BaseModel):
     """
-    Delete the meeting with the given occurence id in the database
-    remove_all_future set to true removes future ocurrences of recurring meeting
+    Delete the meeting/assignment/chore with the given occurence id in the database
+    remove_all_future set to true removes future ocurrences of recurring meeting. Has no effect if assignment/chore
+    If ass/chore, all occurrences removed by default
     """
     occurence_id: int
     remove_all_future: bool
+    event_type: str = "meeting"
 
 class UpdateRequestDataModel(BaseModel):
     """
