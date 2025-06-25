@@ -417,6 +417,11 @@ async def delete(deletion: DeleteRequestDataModel, token: Annotated[str, Depends
     except Exception as e:
         print(e)
         return MessageResponseDataModel(message="Internal server error")
+    
+@app.post("/reschedule")
+async def reschedule(re: RescheduleRequestDataModel) -> Schedule:
+    """Reschedule just a single assignment/chore and return a new schedule for just that one (setSchedule still needed after)"""
+    pass
 
 @app.get("/fetch")
 async def fetch(start_time: str, end_time: str, meetings: bool, assignments: bool, chores: bool, token: Annotated[str, Depends(oauth2_scheme)]) -> FetchResponse:

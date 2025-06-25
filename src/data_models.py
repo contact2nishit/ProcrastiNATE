@@ -57,6 +57,17 @@ class UpdateRequestDataModel(BaseModel):
     new_time: datetime | None = None
     new_loc_or_link: str | None = None,
 
+class RescheduleRequestDataModel(BaseModel):
+    """Request to reschedule an assignment/chore. Can allow/disallow overlaps with current schedule for same a/c
+        Can also reassign effort/due date/time window. new_window_end is equivalent to due date for assignment, window_start has no effect for assignment
+    """
+    event_type: Literal["assignment", "chore"]
+    allow_overlaps: bool
+    new_effort: int | None = None
+    new_window_start: datetime | None = None
+    new_window_end: datetime | None = None
+
+
 class MeetingInRequest(BaseModel):
     """
     Name, start and end times of each ocurrence
