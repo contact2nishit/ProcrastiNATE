@@ -263,6 +263,39 @@ export default function Home() {
     }
   };
 
+  const handleDeleteEvent = async (occurence_id: string, event_type: "assignment" | "chore") => {
+    try {
+      const url = await AsyncStorage.getItem('backendURL');
+      const token = await AsyncStorage.getItem('token');
+      if (!url || !token) return;
+      const idParts = occurence_id.split('_');
+      const realOccurenceId = idParts[idParts.length - 1];
+      const body = {
+        occurence_id: Number(realOccurenceId),
+        remove_all_future: false,
+        event_type,
+      };
+      const response = await fetch(`${url}/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        Alert.alert('Error', 'Failed to delete: ' + err);
+        return;
+      }
+      Alert.alert('Success', `${event_type.charAt(0).toUpperCase() + event_type.slice(1)} deleted!`);
+      setModalVisible(false);
+      fetchTodoList();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to delete: ' + e);
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
       <Text style={styles.welcomeText}>To Do List for Today</Text>
@@ -276,29 +309,44 @@ export default function Home() {
             </Text>
             {/* Mark session completed for assignments and chores */}
             {(item.type === 'assignment' || item.type === 'chore') && (
-              completedMap[item.id] ? (
-                <Text style={{ color: 'green', fontWeight: 'bold', marginTop: 10, fontSize: 18 }}>✓ Completed</Text>
-              ) : (
+              <>
+                {completedMap[item.id] ? (
+                  <Text style={{ color: 'green', fontWeight: 'bold', marginTop: 10, fontSize: 18 }}>✓ Completed</Text>
+                ) : (
+                  <TouchableOpacity
+                    style={{
+                      marginTop: 10,
+                      backgroundColor: '#333',
+                      borderRadius: 6,
+                      paddingVertical: 8,
+                      paddingHorizontal: 16,
+                      alignSelf: 'flex-start',
+                    }}
+                    onPress={() => {
+                        setModalType('markSession');
+                        setModalVisible(true);
+                        setSelectedSessionToComplete({occurence_id: item.id, is_assignment: item.type === 'assignment'});
+                      }
+                    }
+                  >
+                    <Text style={{ color: 'white', fontWeight: 'bold' }}>Mark Session Completed</Text>
+                  </TouchableOpacity>
+                )}
+                {/* Delete button for assignments/chores */}
                 <TouchableOpacity
                   style={{
                     marginTop: 10,
-                    backgroundColor: '#333',
+                    backgroundColor: '#dc2626',
                     borderRadius: 6,
                     paddingVertical: 8,
                     paddingHorizontal: 16,
                     alignSelf: 'flex-start',
                   }}
-                  onPress={() => {
-                      setModalType('markSession');
-                      setModalVisible(true);
-                      setSelectedSessionToComplete({occurence_id: item.id, is_assignment: item.type === 'assignment'});
-                      // markSessionCompleted(item.id, item.type === 'assignment');
-                    }
-                  }
+                  onPress={() => handleDeleteEvent(item.id, item.type)}
                 >
-                  <Text style={{ color: 'white', fontWeight: 'bold' }}>Mark Session Completed</Text>
+                  <Text style={{ color: 'white', fontWeight: 'bold' }}>Delete</Text>
                 </TouchableOpacity>
-              )
+              </>
             )}
             {/* Update/Delete for meetings */}
             {item.type === 'meeting' && (

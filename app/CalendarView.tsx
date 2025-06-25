@@ -275,6 +275,37 @@ const CalendarView = () => {
     }
   };
 
+  // Add delete handler for assignments/chores
+  const handleDeleteEvent = async (occurence_id: number, event_type: "assignment" | "chore") => {
+    try {
+      const url = await AsyncStorage.getItem('backendURL');
+      const token = await AsyncStorage.getItem('token');
+      if (!url || !token) return;
+      const body = {
+        occurence_id,
+        remove_all_future: false,
+        event_type,
+      };
+      const response = await fetch(`${url}/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        Alert.alert('Error', 'Failed to delete: ' + err);
+        return;
+      }
+      Alert.alert('Success', `${event_type.charAt(0).toUpperCase() + event_type.slice(1)} deleted!`);
+      fetchSchedule();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to delete: ' + e);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Weekly Calendar</Text>
@@ -346,6 +377,22 @@ const CalendarView = () => {
                           <Text style={{ color: 'white', fontWeight: 'bold' }}>Delete</Text>
                         </TouchableOpacity>
                       </View>
+                    )}
+                    {/* Delete button for assignments/chores */}
+                    {(slot.type === 'assignment' || slot.type === 'chore') && slot.occurence_id && (
+                      <TouchableOpacity
+                        style={{
+                          marginTop: 10,
+                          backgroundColor: '#dc2626',
+                          borderRadius: 6,
+                          paddingVertical: 8,
+                          paddingHorizontal: 16,
+                          alignSelf: 'flex-start',
+                        }}
+                        onPress={() => handleDeleteEvent(slot.occurence_id, slot.type)}
+                      >
+                        <Text style={{ color: 'white', fontWeight: 'bold' }}>Delete</Text>
+                      </TouchableOpacity>
                     )}
                   </View>
                 ))}

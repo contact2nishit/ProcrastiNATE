@@ -349,7 +349,8 @@ async def update(changes: UpdateRequestDataModel, token: Annotated[str, Depends(
 @app.post("/delete")
 async def delete(deletion: DeleteRequestDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> MessageResponseDataModel:
     """
-    Delete one occurrence of a meeting. Optionally, also delete all future occurrences.
+    Delete one occurrence of a meeting, assignment, or chore. For meetings, can also delete all future occurrences.
+    For assignments/chores, deletes all occurrences and the parent record.
     """
     try:
         async with app.state.pool.acquire() as conn:
@@ -358,7 +359,7 @@ async def delete(deletion: DeleteRequestDataModel, token: Annotated[str, Depends
                 if deletion.remove_all_future:
                     # Find the meeting_id and the start_time of the occurrence to delete
                     row = await conn.fetchrow(
-                        "SELECT meeting_id FROM meeting_occurences WHERE occurence_id = $1 AND user_id = $2",
+                        "SELECT meeting_id, start_time FROM meeting_occurences WHERE occurence_id = $1 AND user_id = $2",
                         deletion.occurence_id, user.user_id
                     )
                     if not row:
@@ -383,35 +384,47 @@ async def delete(deletion: DeleteRequestDataModel, token: Annotated[str, Depends
                     )
                     return MessageResponseDataModel(message="Occurrence deleted.")
             elif deletion.event_type == "assignment":
-                ass_id = await conn.fetchrow(
+                # Get assignment_id from the occurrence
+                row = await conn.fetchrow(
                     "SELECT assignment_id FROM assignment_occurences WHERE occurence_id = $1 AND user_id = $2",
                     deletion.occurence_id, user.user_id
                 )
                 if not row:
                     return MessageResponseDataModel(message="Occurrence not found.")
+                ass_id = row['assignment_id']
+                # Delete all occurrences for this assignment
                 await conn.execute(
                     "DELETE FROM assignment_occurences WHERE assignment_id = $1 AND user_id = $2",
                     ass_id, user.user_id
                 )
+                # Delete the assignment itself
                 await conn.execute(
                     "DELETE FROM assignments WHERE assignment_id = $1 AND user_id = $2",
                     ass_id, user.user_id,
                 )
+                return MessageResponseDataModel(message="Assignment and all its occurrences deleted.")
             elif deletion.event_type == "chore":
-                chore_id = await conn.fetchrow(
+                # Get chore_id from the occurrence
+                row = await conn.fetchrow(
                     "SELECT chore_id FROM chore_occurences WHERE occurence_id = $1 AND user_id = $2",
                     deletion.occurence_id, user.user_id
                 )
                 if not row:
                     return MessageResponseDataModel(message="Occurrence not found.")
+                chore_id = row['chore_id']
+                # Delete all occurrences for this chore
                 await conn.execute(
                     "DELETE FROM chore_occurences WHERE chore_id = $1 AND user_id = $2",
                     chore_id, user.user_id
                 )
+                # Delete the chore itself
                 await conn.execute(
-                    "DELETE FROM assignments WHERE chore_id = $1 AND user_id = $2",
+                    "DELETE FROM chores WHERE chore_id = $1 AND user_id = $2",
                     chore_id, user.user_id,
                 )
+                return MessageResponseDataModel(message="Chore and all its occurrences deleted.")
+            else:
+                return MessageResponseDataModel(message="Invalid event_type.")
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -419,9 +432,175 @@ async def delete(deletion: DeleteRequestDataModel, token: Annotated[str, Depends
         return MessageResponseDataModel(message="Internal server error")
     
 @app.post("/reschedule")
-async def reschedule(re: RescheduleRequestDataModel) -> Schedule:
-    """Reschedule just a single assignment/chore and return a new schedule for just that one (setSchedule still needed after)"""
-    pass
+async def reschedule(re: RescheduleRequestDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> Schedule:
+    """
+    Reschedule just a single assignment/chore and return a new schedule for just that one (setSchedule still needed after).
+    Deletes all current occurrences but not the parent assignment/chore record.
+    """
+    try:
+        async with app.state.pool.acquire() as conn:
+            user = await get_current_user(token, app.state.pool)
+            now = datetime.now(timezone.utc)
+
+            # Determine which event type
+            if re.event_type == "assignment":
+                # Get assignment info
+                row = await conn.fetchrow(
+                    "SELECT assignment_id, assignment_name, effort, deadline FROM assignments WHERE user_id = $1 AND assignment_id = (SELECT assignment_id FROM assignment_occurences WHERE user_id = $1 AND assignment_id = assignment_id LIMIT 1)",
+                    user.user_id
+                )
+                if not row:
+                    raise HTTPException(status_code=404, detail="Assignment not found")
+                assignment_id = row['assignment_id']
+                name = row['assignment_name']
+                old_effort = row['effort']
+                old_due = row['deadline']
+
+                # Get all current occurrences for this assignment
+                old_occs = await conn.fetch(
+                    "SELECT start_time, end_time FROM assignment_occurences WHERE assignment_id = $1 AND user_id = $2",
+                    assignment_id, user.user_id
+                )
+                old_slots = [[o['start_time'], o['end_time']] for o in old_occs]
+
+                # Delete all occurrences for this assignment
+                await conn.execute(
+                    "DELETE FROM assignment_occurences WHERE assignment_id = $1 AND user_id = $2",
+                    assignment_id, user.user_id
+                )
+
+                # Determine new effort and due
+                new_effort = re.new_effort if re.new_effort is not None else old_effort
+                new_due = re.new_window_end if re.new_window_end is not None else old_due
+
+                # Build AssignmentInRequest for scheduling
+                assignment_req = AssignmentInRequest(
+                    name=name,
+                    effort=new_effort,
+                    due=new_due
+                )
+
+                # Gather all other blocked times (meetings, chores, other assignments)
+                # If allow_overlaps is False, include old_slots as blocked times
+                # Otherwise, do not include old_slots
+                # Get all meetings
+                meetings = await conn.fetch(
+                    "SELECT start_time, end_time FROM meeting_occurences WHERE user_id = $1",
+                    user.user_id
+                )
+                # Get all assignment occurrences except this assignment
+                assignments = await conn.fetch(
+                    "SELECT start_time, end_time FROM assignment_occurences WHERE user_id = $1 AND assignment_id != $2",
+                    user.user_id, assignment_id
+                )
+                # Get all chore occurrences
+                chores = await conn.fetch(
+                    "SELECT start_time, end_time FROM chore_occurences WHERE user_id = $1",
+                    user.user_id
+                )
+                blocked_times = []
+                for r in meetings:
+                    blocked_times.append([r['start_time'], r['end_time']])
+                for r in assignments:
+                    blocked_times.append([r['start_time'], r['end_time']])
+                for r in chores:
+                    blocked_times.append([r['start_time'], r['end_time']])
+                if not re.allow_overlaps:
+                    blocked_times.extend(old_slots)
+
+                # Create a MeetingInRequest for blocked times
+                scheduled_blocker = MeetingInRequest(
+                    name="__already_scheduled__",
+                    start_end_times=blocked_times,
+                    link_or_loc=None
+                )
+
+                # Call scheduler for just this assignment
+                schedules = schedule_tasks(
+                    [scheduled_blocker], [assignment_req], [], num_schedules=1, now=now
+                )
+                return schedules[0]
+
+            elif re.event_type == "chore":
+                # Get chore info
+                row = await conn.fetchrow(
+                    "SELECT chore_id, chore_name, effort, start_window, end_window FROM chores WHERE user_id = $1 AND chore_id = (SELECT chore_id FROM chore_occurences WHERE user_id = $1 AND chore_id = chore_id LIMIT 1)",
+                    user.user_id
+                )
+                if not row:
+                    raise HTTPException(status_code=404, detail="Chore not found")
+                chore_id = row['chore_id']
+                name = row['chore_name']
+                old_effort = row['effort']
+                old_window_start = row['start_window']
+                old_window_end = row['end_window']
+
+                # Get all current occurrences for this chore
+                old_occs = await conn.fetch(
+                    "SELECT start_time, end_time FROM chore_occurences WHERE chore_id = $1 AND user_id = $2",
+                    chore_id, user.user_id
+                )
+                old_slots = [[o['start_time'], o['end_time']] for o in old_occs]
+
+                # Delete all occurrences for this chore
+                await conn.execute(
+                    "DELETE FROM chore_occurences WHERE chore_id = $1 AND user_id = $2",
+                    chore_id, user.user_id
+                )
+
+                # Determine new effort and window
+                new_effort = re.new_effort if re.new_effort is not None else old_effort
+                new_window_start = re.new_window_start if re.new_window_start is not None else old_window_start
+                new_window_end = re.new_window_end if re.new_window_end is not None else old_window_end
+
+                # Build ChoreInRequest for scheduling
+                chore_req = ChoreInRequest(
+                    name=name,
+                    window=[new_window_start, new_window_end],
+                    effort=new_effort
+                )
+
+                # Gather all other blocked times (meetings, assignments, other chores)
+                # If allow_overlaps is False, include old_slots as blocked times
+                meetings = await conn.fetch(
+                    "SELECT start_time, end_time FROM meeting_occurences WHERE user_id = $1",
+                    user.user_id
+                )
+                assignments = await conn.fetch(
+                    "SELECT start_time, end_time FROM assignment_occurences WHERE user_id = $1",
+                    user.user_id
+                )
+                chores = await conn.fetch(
+                    "SELECT start_time, end_time FROM chore_occurences WHERE user_id = $1 AND chore_id != $2",
+                    user.user_id, chore_id
+                )
+                blocked_times = []
+                for r in meetings:
+                    blocked_times.append([r['start_time'], r['end_time']])
+                for r in assignments:
+                    blocked_times.append([r['start_time'], r['end_time']])
+                for r in chores:
+                    blocked_times.append([r['start_time'], r['end_time']])
+                if not re.allow_overlaps:
+                    blocked_times.extend(old_slots)
+
+                scheduled_blocker = MeetingInRequest(
+                    name="__already_scheduled__",
+                    start_end_times=blocked_times,
+                    link_or_loc=None
+                )
+
+                schedules = schedule_tasks(
+                    [scheduled_blocker], [], [chore_req], num_schedules=1, now=now
+                )
+                return schedules[0]
+            else:
+                raise HTTPException(status_code=400, detail="Invalid event_type")
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 @app.get("/fetch")
 async def fetch(start_time: str, end_time: str, meetings: bool, assignments: bool, chores: bool, token: Annotated[str, Depends(oauth2_scheme)]) -> FetchResponse:
