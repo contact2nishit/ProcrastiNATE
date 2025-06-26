@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import RescheduleModal from './RescheduleModal';
 
 type Slot = {
   name: string;
@@ -86,6 +87,10 @@ const CalendarView = () => {
   const [updateName, setUpdateName] = useState('');
   const [updateLoc, setUpdateLoc] = useState('');
   const [updateTime, setUpdateTime] = useState('');
+
+  // Reschedule modal state
+  const [rescheduleModalVisible, setRescheduleModalVisible] = useState(false);
+  const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
 
   // Refetch schedule logic extracted for reuse
   const fetchSchedule = async () => {
@@ -306,6 +311,54 @@ const CalendarView = () => {
     }
   };
 
+  const handleReschedule = (slot: any) => {
+    setRescheduleTarget(slot);
+    setRescheduleModalVisible(true);
+  };
+
+  const submitReschedule = async (params: any) => {
+    try {
+      const url = await AsyncStorage.getItem('backendURL');
+      const token = await AsyncStorage.getItem('token');
+      if (!url || !token || !rescheduleTarget) return;
+      const tz_offset_minutes = -new Date().getTimezoneOffset();
+      const body: any = {
+        event_type: rescheduleTarget.type,
+        id: rescheduleTarget.occurence_id,
+        allow_overlaps: params.allow_overlaps,
+        tz_offset_minutes,
+      };
+      if (params.new_effort !== undefined) body.new_effort = params.new_effort;
+      if (rescheduleTarget.type === 'assignment') {
+        if (params.new_window_end) body.new_window_end = params.new_window_end;
+      } else {
+        if (params.new_window_start) body.new_window_start = params.new_window_start;
+        if (params.new_window_end) body.new_window_end = params.new_window_end;
+      }
+      const response = await fetch(`${url}/reschedule`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        Alert.alert('Error', 'Failed to reschedule: ' + err);
+        return;
+      }
+      const data = await response.json();
+      setRescheduleModalVisible(false);
+      setRescheduleTarget(null);
+      // Save to AsyncStorage and navigate to schedulePicker
+      await AsyncStorage.setItem("schedules", JSON.stringify({ schedules: [data], meetings: [], conflicting_meetings: [] }));
+      navigation.navigate('schedulePicker');
+    } catch (e) {
+      Alert.alert('Error', 'Failed to reschedule: ' + e);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Weekly Calendar</Text>
@@ -380,19 +433,35 @@ const CalendarView = () => {
                     )}
                     {/* Delete button for assignments/chores */}
                     {(slot.type === 'assignment' || slot.type === 'chore') && slot.occurence_id && (
-                      <TouchableOpacity
-                        style={{
-                          marginTop: 10,
-                          backgroundColor: '#dc2626',
-                          borderRadius: 6,
-                          paddingVertical: 8,
-                          paddingHorizontal: 16,
-                          alignSelf: 'flex-start',
-                        }}
-                        onPress={() => handleDeleteEvent(slot.occurence_id, slot.type)}
-                      >
-                        <Text style={{ color: 'white', fontWeight: 'bold' }}>Delete</Text>
-                      </TouchableOpacity>
+                      <>
+                        <TouchableOpacity
+                          style={{
+                            marginTop: 10,
+                            backgroundColor: '#dc2626',
+                            borderRadius: 6,
+                            paddingVertical: 8,
+                            paddingHorizontal: 16,
+                            alignSelf: 'flex-start',
+                          }}
+                          onPress={() => handleDeleteEvent(slot.occurence_id, slot.type)}
+                        >
+                          <Text style={{ color: 'white', fontWeight: 'bold' }}>Delete</Text>
+                        </TouchableOpacity>
+                        {/* Reschedule button */}
+                        <TouchableOpacity
+                          style={{
+                            marginTop: 10,
+                            backgroundColor: '#2563eb',
+                            borderRadius: 6,
+                            paddingVertical: 8,
+                            paddingHorizontal: 16,
+                            alignSelf: 'flex-start',
+                          }}
+                          onPress={() => handleReschedule(slot)}
+                        >
+                          <Text style={{ color: 'white', fontWeight: 'bold' }}>Reschedule</Text>
+                        </TouchableOpacity>
+                      </>
                     )}
                   </View>
                 ))}
@@ -472,6 +541,18 @@ const CalendarView = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Reschedule Modal */}
+      <RescheduleModal
+        visible={rescheduleModalVisible}
+        onClose={() => setRescheduleModalVisible(false)}
+        onSubmit={submitReschedule}
+        eventType={rescheduleTarget?.type}
+        currentEffort={rescheduleTarget?.effort || 0}
+        currentDue={rescheduleTarget?.end}
+        currentWindowStart={rescheduleTarget?.start}
+        currentWindowEnd={rescheduleTarget?.end}
+      />
 
       <TouchableOpacity onPress={() => navigation.replace('Home')} style={styles.but}>
         <Text style={styles.butText}>Back to Home</Text>

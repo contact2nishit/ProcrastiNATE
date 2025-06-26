@@ -7,6 +7,7 @@ import { useNavigation } from 'expo-router';
 import { useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
+import RescheduleModal from './RescheduleModal';
 
 export default function Home() {
   type SessionToMaybeComplete = {
@@ -23,6 +24,8 @@ export default function Home() {
   const [updateTime, setUpdateTime] = useState('');
   const [selectedSessionToComplete, setSelectedSessionToComplete] = useState<SessionToMaybeComplete>({occurence_id: "A", is_assignment: false});
   const [lockedInValue, setLockedInValue] = useState(5);
+  const [rescheduleModalVisible, setRescheduleModalVisible] = useState(false);
+  const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
 
   // Refetch todo list
   const fetchTodoList = async () => {
@@ -296,6 +299,54 @@ export default function Home() {
     }
   };
 
+  const handleReschedule = (item: any) => {
+    setRescheduleTarget(item);
+    setRescheduleModalVisible(true);
+  };
+
+  const submitReschedule = async (params: any) => {
+    try {
+      const url = await AsyncStorage.getItem('backendURL');
+      const token = await AsyncStorage.getItem('token');
+      if (!url || !token || !rescheduleTarget) return;
+      const tz_offset_minutes = -new Date().getTimezoneOffset();
+      const body: any = {
+        event_type: rescheduleTarget.type,
+        id: Number(rescheduleTarget.id.split('_')[2]),
+        allow_overlaps: params.allow_overlaps,
+        tz_offset_minutes,
+      };
+      if (params.new_effort !== undefined) body.new_effort = params.new_effort;
+      if (rescheduleTarget.type === 'assignment') {
+        if (params.new_window_end) body.new_window_end = params.new_window_end;
+      } else {
+        if (params.new_window_start) body.new_window_start = params.new_window_start;
+        if (params.new_window_end) body.new_window_end = params.new_window_end;
+      }
+      const response = await fetch(`${url}/reschedule`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        Alert.alert('Error', 'Failed to reschedule: ' + err);
+        return;
+      }
+      const data = await response.json();
+      setRescheduleModalVisible(false);
+      setRescheduleTarget(null);
+      // Save to AsyncStorage and navigate to schedulePicker
+      await AsyncStorage.setItem("schedules", JSON.stringify({ schedules: [data], meetings: [], conflicting_meetings: [] }));
+      navigation.navigate('schedulePicker');
+    } catch (e) {
+      Alert.alert('Error', 'Failed to reschedule: ' + e);
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
       <Text style={styles.welcomeText}>To Do List for Today</Text>
@@ -345,6 +396,20 @@ export default function Home() {
                   onPress={() => handleDeleteEvent(item.id, item.type)}
                 >
                   <Text style={{ color: 'white', fontWeight: 'bold' }}>Delete</Text>
+                </TouchableOpacity>
+                {/* Reschedule button */}
+                <TouchableOpacity
+                  style={{
+                    marginTop: 10,
+                    backgroundColor: '#2563eb',
+                    borderRadius: 6,
+                    paddingVertical: 8,
+                    paddingHorizontal: 16,
+                    alignSelf: 'flex-start',
+                  }}
+                  onPress={() => handleReschedule(item)}
+                >
+                  <Text style={{ color: 'white', fontWeight: 'bold' }}>Reschedule</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -494,6 +559,16 @@ export default function Home() {
           </View>
         </View>
       </Modal>
+      <RescheduleModal
+        visible={rescheduleModalVisible}
+        onClose={() => setRescheduleModalVisible(false)}
+        onSubmit={submitReschedule}
+        eventType={rescheduleTarget?.type}
+        currentEffort={rescheduleTarget?.effort || 0}
+        currentDue={rescheduleTarget?.end}
+        currentWindowStart={rescheduleTarget?.start}
+        currentWindowEnd={rescheduleTarget?.end}
+      />
       <TouchableOpacity onPress={handleBack}>
         <Text style={styles.buttonBack}>Back to Login</Text>
       </TouchableOpacity>
