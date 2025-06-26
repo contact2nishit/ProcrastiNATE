@@ -1,3 +1,4 @@
+import { Dimensions} from 'react-native';
 export type Slot = {
   name: string;
   type: string;
@@ -52,3 +53,5 @@ export const getWeekDaysFromDate = (referenceDate: Date) => {
     };
   });
 };
+
+export const screenWidth = Dimensions.get('window').width;

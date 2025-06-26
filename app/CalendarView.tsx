@@ -13,9 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { formatTime, getWeekDaysFromDate, groupSlotsByDay, Slot } from './calendarUtils'
-
-const screenWidth = Dimensions.get('window').width;
+import { formatTime, getWeekDaysFromDate, groupSlotsByDay, Slot, screenWidth } from './calendarUtils'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
