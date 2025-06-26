@@ -149,7 +149,7 @@ def schedule_tasks(
     meetings: List[MeetingInRequest],
     assignments: List[AssignmentInRequest],
     chores: List[ChoreInRequest],
-    num_schedules: int = 3,
+    num_schedules: int = 11,
     end_time: datetime = None,
     now: datetime = datetime.now(timezone.utc),
     skip_p: float = 0.0
@@ -196,8 +196,14 @@ def schedule_tasks(
     available = generate_available_slots(all_meeting_times, now, latest_time)
 
     schedules_results = []
+    for i in range(num_schedules):
+        # Set skip_p for each schedule
+        if num_schedules == 1:
+            skip_prob = skip_p
+        else:
+            # For 11 schedules: 0, 0.1, ..., 1.0
+            skip_prob = i / (num_schedules - 1)
 
-    for _ in range(num_schedules):
         used_slots = set(
             slot for start, end in all_meeting_times
             for slot in generate_available_slots([], start, end)
@@ -233,7 +239,7 @@ def schedule_tasks(
             ]
             # DO NOT shuffle avail_for_this
 
-            assigned_slots = find_time_blocks(task.effort, avail_for_this, used_slots, skip_prob=skip_p)
+            assigned_slots = find_time_blocks(task.effort, avail_for_this, used_slots, skip_prob=skip_prob)
             assigned_minutes = 0
             for start, end in assigned_slots:
                 assigned_minutes += (end - start).total_seconds() / 60

@@ -62,6 +62,7 @@ class RescheduleRequestDataModel(BaseModel):
         Can also reassign effort/due date/time window. new_window_end is equivalent to due date for assignment, window_start has no effect for assignment
     """
     event_type: Literal["assignment", "chore"]
+    id: int # assignment or chore ID
     allow_overlaps: bool # if true, the occurences may overlap with the already existing (before deletion) occurences of the same assignment/chore
     new_effort: int | None = None
     new_window_start: datetime | None = None
