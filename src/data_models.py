@@ -67,6 +67,7 @@ class RescheduleRequestDataModel(BaseModel):
     new_effort: int | None = None
     new_window_start: datetime | None = None
     new_window_end: datetime | None = None
+    tz_offset_minutes: int = 0  # NEW: offset from UTC in minutes
 
 
 class MeetingInRequest(BaseModel):
@@ -101,6 +102,7 @@ class ScheduleRequest(BaseModel):
     assignments: List[AssignmentInRequest]
     meetings: List[MeetingInRequest]
     chores: List[ChoreInRequest]
+    tz_offset_minutes: int = 0  # NEW: offset from UTC in minutes
 
 class SessionCompletionDataModel(BaseModel):
     """Mark the assignment/chore work session with occurence_id as completed or incomplete"""

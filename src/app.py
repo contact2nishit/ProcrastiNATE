@@ -121,7 +121,12 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
 
         
         # Call schedule_tasks with the blocker included
-        schedules = schedule_tasks(sched.meetings + [scheduled_blocker], sched.assignments, sched.chores)
+        schedules = schedule_tasks(
+            sched.meetings + [scheduled_blocker],
+            sched.assignments,
+            sched.chores,
+            tz_offset_minutes=getattr(sched, "tz_offset_minutes", 0)
+        )
 
         # Now, check for conflicts between requested meetings and already scheduled blocks
         conflicting_meetings = []
@@ -569,13 +574,14 @@ async def reschedule(re: RescheduleRequestDataModel, token: Annotated[str, Depen
             )
 
             # Call scheduler for just this assignment/chore
+            tz_offset = getattr(re, "tz_offset_minutes", 0)
             if re.event_type == "assignment":
                 schedules = schedule_tasks(
-                    [scheduled_blocker], [assignment_req], []
+                    [scheduled_blocker], [assignment_req], [], tz_offset_minutes=tz_offset
                 )
             else:
                 schedules = schedule_tasks(
-                    [scheduled_blocker], [], [chore_req]
+                    [scheduled_blocker], [], [chore_req], tz_offset_minutes=tz_offset
                 )
             return schedules[0]
 
@@ -696,23 +702,6 @@ async def fetch(start_time: str, end_time: str, meetings: bool, assignments: boo
                         ocurrence_ids=chore_occurence_ids,
                         chore_id=occurence_list[0]['chore_id'],
                         name = occurence_list[0]['chore_name'],
-                        effort=occurence_list[0]['effort'],
-                        window = [occurence_list[0]['start_window'], occurence_list[0]['end_window']],
-                        schedule = ScheduledTaskInfo(
-                            effort_assigned=effort_assigned,
-                            status="unschedulable" if effort_assigned == 0 else ("partially_scheduled" if effort_assigned < occurence['effort'] else "fully_scheduled"),
-                            slots = chore_start_end_times
-                        ),
-                        completed=c_complete
-                    )
-                    chores_responses.append(chore_response)
-            print((FetchResponse(meetings=meetings_responses, assignments=assignments_responses, chores=chores_responses)).json())
-            return FetchResponse(meetings=meetings_responses, assignments=assignments_responses, chores=chores_responses)
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        print(e)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
                         effort=occurence_list[0]['effort'],
                         window = [occurence_list[0]['start_window'], occurence_list[0]['end_window']],
                         schedule = ScheduledTaskInfo(

@@ -155,13 +155,16 @@ export default function EventSelection()
         alert('Backend URL not set.');
         return;
       }
+      // Get device timezone offset in minutes (JavaScript: getTimezoneOffset returns minutes behind UTC, so invert sign)
+      const tz_offset_minutes = -new Date().getTimezoneOffset();
+      const reqBody = { ...backendJSON, tz_offset_minutes };
       const response = await fetch(`${url}/schedule`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify(backendJSON),
+        body: JSON.stringify(reqBody),
       });
       if (!response.ok) {
         const err = await response.text();

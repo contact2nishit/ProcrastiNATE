@@ -12,16 +12,21 @@ CHUNK_MINUTES = 1
 
 # ---- Scheduling Logic ----
 
-def generate_available_slots(meetings: List[Tuple[datetime, datetime]], from_time: datetime, to_time: datetime) -> List[Tuple[datetime, datetime]]:
-    """Returns a time slot """
+def generate_available_slots(meetings: List[Tuple[datetime, datetime]], from_time: datetime, to_time: datetime, tz_offset_minutes: int = 0) -> List[Tuple[datetime, datetime]]:
+    """Returns a time slot, skipping 11PM-7AM in the given timezone offset (in minutes)"""
     step = timedelta(minutes=CHUNK_MINUTES)
     slots = []
     t = from_time
     while t + step <= to_time:
-        # Fix: Exclude slots where ANY overlap with a meeting, not just t in [m_start, m_end)
         slot_start = t
         slot_end = t + step
-        # A slot is available only if it does NOT overlap with any meeting
+        # Convert slot_start to local time in the user's timezone
+        local_start = slot_start + timedelta(minutes=tz_offset_minutes)
+        hour = local_start.hour
+        # Only allow slots between 7AM and 11PM (inclusive of 7:00, exclusive of 23:00)
+        if not (7 <= hour < 23):
+            t += step
+            continue
         overlaps = any(
             not (slot_end <= m_start or slot_start >= m_end)
             for m_start, m_end in meetings
@@ -152,7 +157,8 @@ def schedule_tasks(
     num_schedules: int = 11,
     end_time: datetime = None,
     now: datetime = datetime.now(timezone.utc),
-    skip_p: float = 0.0
+    skip_p: float = 0.0,
+    tz_offset_minutes: int = 0
 ) -> List['Schedule']:
     # Ensure now is timezone-aware UTC
     """
@@ -193,7 +199,7 @@ def schedule_tasks(
         latest_time = now + timedelta(days=1)
 
     # Generate all available slots once for the entire scheduling window
-    available = generate_available_slots(all_meeting_times, now, latest_time)
+    available = generate_available_slots(all_meeting_times, now, latest_time, tz_offset_minutes=tz_offset_minutes)
 
     schedules_results = []
     for i in range(num_schedules):
@@ -206,7 +212,7 @@ def schedule_tasks(
 
         used_slots = set(
             slot for start, end in all_meeting_times
-            for slot in generate_available_slots([], start, end)
+            for slot in generate_available_slots([], start, end, tz_offset_minutes=tz_offset_minutes)
         )
 
         assignments_out = []
