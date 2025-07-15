@@ -450,27 +450,26 @@ async def reschedule(re: RescheduleRequestDataModel, token: Annotated[str, Depen
             if re.event_type not in ("assignment", "chore"):
                 raise HTTPException(status_code=400, detail="Invalid event_type")
 
-            # Table/column names
             table = "assignments" if re.event_type == "assignment" else "chores"
             occ_table = "assignment_occurences" if re.event_type == "assignment" else "chore_occurences"
             id_col = "assignment_id" if re.event_type == "assignment" else "chore_id"
             name_col = "assignment_name" if re.event_type == "assignment" else "chore_name"
 
+            obj_id = re.id
             # Fetch the parent record
             if re.event_type == "assignment":
                 row = await conn.fetchrow(
                     f"SELECT {id_col}, {name_col}, effort, deadline FROM {table} WHERE user_id = $1 AND {id_col} = $2",
-                    user.user_id, re.id
+                    user.user_id, obj_id
                 )
             else:
                 row = await conn.fetchrow(
                     f"SELECT {id_col}, {name_col}, effort, start_window, end_window FROM {table} WHERE user_id = $1 AND {id_col} = $2",
-                    user.user_id, re.id
+                    user.user_id, obj_id
                 )
             if not row:
                 raise HTTPException(status_code=404, detail=f"{re.event_type.capitalize()} not found")
 
-            # Get old values
             obj_id = row[id_col]
             name = row[name_col]
             old_effort = row['effort']
@@ -499,15 +498,21 @@ async def reschedule(re: RescheduleRequestDataModel, token: Annotated[str, Depen
             if re.event_type == "assignment":
                 update_fields = []
                 update_values = []
+                param_idx = 1
                 if re.new_effort is not None:
-                    update_fields.append("effort = $1")
+                    update_fields.append(f"effort = ${param_idx}")
                     update_values.append(re.new_effort)
+                    param_idx += 1
                 if re.new_window_end is not None:
-                    update_fields.append("deadline = $2" if len(update_fields) == 1 else "deadline = $1")
+                    update_fields.append(f"deadline = ${param_idx}")
+                    # Ensure deadline is a datetime, not an int
+                    if isinstance(re.new_window_end, int):
+                        raise HTTPException(status_code=400, detail="Deadline must be a datetime, not an integer")
                     update_values.append(re.new_window_end)
+                    param_idx += 1
                 if update_fields:
                     await conn.execute(
-                        f"UPDATE {table} SET {', '.join(update_fields)} WHERE {id_col} = $1 AND user_id = $2",
+                        f"UPDATE {table} SET {', '.join(update_fields)} WHERE {id_col} = ${param_idx} AND user_id = ${param_idx+1}",
                         *(update_values + [obj_id, user.user_id])
                     )
                 new_effort = re.new_effort if re.new_effort is not None else old_effort
@@ -520,18 +525,26 @@ async def reschedule(re: RescheduleRequestDataModel, token: Annotated[str, Depen
             else:
                 update_fields = []
                 update_values = []
+                param_idx = 1
                 if re.new_effort is not None:
-                    update_fields.append("effort = $1")
+                    update_fields.append(f"effort = ${param_idx}")
                     update_values.append(re.new_effort)
+                    param_idx += 1
                 if re.new_window_start is not None:
-                    update_fields.append("start_window = $2" if len(update_fields) == 1 else "start_window = $1")
+                    update_fields.append(f"start_window = ${param_idx}")
+                    if isinstance(re.new_window_start, int):
+                        raise HTTPException(status_code=400, detail="start_window must be a datetime, not an integer")
                     update_values.append(re.new_window_start)
+                    param_idx += 1
                 if re.new_window_end is not None:
-                    update_fields.append("end_window = $3" if len(update_fields) == 2 else ("end_window = $2" if len(update_fields) == 1 else "end_window = $1"))
+                    update_fields.append(f"end_window = ${param_idx}")
+                    if isinstance(re.new_window_end, int):
+                        raise HTTPException(status_code=400, detail="end_window must be a datetime, not an integer")
                     update_values.append(re.new_window_end)
+                    param_idx += 1
                 if update_fields:
                     await conn.execute(
-                        f"UPDATE {table} SET {', '.join(update_fields)} WHERE {id_col} = $1 AND user_id = $2",
+                        f"UPDATE {table} SET {', '.join(update_fields)} WHERE {id_col} = ${param_idx} AND user_id = ${param_idx+1}",
                         *(update_values + [obj_id, user.user_id])
                     )
                 new_effort = re.new_effort if re.new_effort is not None else old_effort

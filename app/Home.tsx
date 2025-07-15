@@ -310,9 +310,20 @@ export default function Home() {
       const token = await AsyncStorage.getItem('token');
       if (!url || !token || !rescheduleTarget) return;
       const tz_offset_minutes = -new Date().getTimezoneOffset();
+      // Fix: send assignment_id/chore_id, not occurence_id
+      let idToSend: number | undefined;
+      if (rescheduleTarget.type === 'assignment') {
+        // assignment id is in id string: "assignment_<assignment_id>_<occurence_id>"
+        const parts = rescheduleTarget.id.split('_');
+        idToSend = Number(parts[1]);
+      } else if (rescheduleTarget.type === 'chore') {
+        // chore id is in id string: "chore_<chore_id>_<occurence_id>"
+        const parts = rescheduleTarget.id.split('_');
+        idToSend = Number(parts[1]);
+      }
       const body: any = {
         event_type: rescheduleTarget.type,
-        id: Number(rescheduleTarget.id.split('_')[2]),
+        id: idToSend,
         allow_overlaps: params.allow_overlaps,
         tz_offset_minutes,
       };

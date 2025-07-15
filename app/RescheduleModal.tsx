@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, StyleSheet, Switch, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 type RescheduleModalProps = {
@@ -40,114 +40,117 @@ export default function RescheduleModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.content}>
-          <Text style={styles.header}>Reschedule {eventType === 'assignment' ? 'Assignment' : 'Chore'}</Text>
-          <Text style={styles.label}>Effort (minutes):</Text>
-          <View style={styles.inputRow}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.content}>
+            <Text style={styles.header}>Reschedule {eventType === 'assignment' ? 'Assignment' : 'Chore'}</Text>
+            <Text style={styles.label}>Effort (minutes):</Text>
+            <TextInput
+              style={styles.effortInput}
+              keyboardType="numeric"
+              value={String(effort)}
+              onChangeText={txt => {
+                const num = parseInt(txt, 10);
+                if (!isNaN(num) && num > 0) setEffort(num);
+                else if (txt === '') setEffort(0);
+              }}
+              placeholder="Enter effort in minutes"
+              placeholderTextColor="#888"
+              returnKeyType="done"
+            />
+            {eventType === 'assignment' ? (
+              <>
+                <Text style={styles.label}>Due Date:</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowDuePicker(true)}
+                >
+                  <Text style={styles.dateButtonText}>{due.toLocaleString()}</Text>
+                </TouchableOpacity>
+                {showDuePicker && (
+                  <DateTimePicker
+                    value={due}
+                    mode="datetime"
+                    display="default"
+                    onChange={(_, date) => {
+                      setShowDuePicker(false);
+                      if (date) setDue(date);
+                    }}
+                  />
+                )}
+              </>
+            ) : (
+              <>
+                <Text style={styles.label}>Window Start:</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowStartPicker(true)}
+                >
+                  <Text style={styles.dateButtonText}>{windowStart.toLocaleString()}</Text>
+                </TouchableOpacity>
+                {showStartPicker && (
+                  <DateTimePicker
+                    value={windowStart}
+                    mode="datetime"
+                    display="default"
+                    onChange={(_, date) => {
+                      setShowStartPicker(false);
+                      if (date) setWindowStart(date);
+                    }}
+                  />
+                )}
+                <Text style={styles.label}>Window End:</Text>
+                <TouchableOpacity
+                  style={styles.dateButton}
+                  onPress={() => setShowEndPicker(true)}
+                >
+                  <Text style={styles.dateButtonText}>{windowEnd.toLocaleString()}</Text>
+                </TouchableOpacity>
+                {showEndPicker && (
+                  <DateTimePicker
+                    value={windowEnd}
+                    mode="datetime"
+                    display="default"
+                    onChange={(_, date) => {
+                      setShowEndPicker(false);
+                      if (date) setWindowEnd(date);
+                    }}
+                  />
+                )}
+              </>
+            )}
+            <View style={styles.switchRow}>
+              <Text style={styles.label}>Allow overlaps with current occurrences?</Text>
+              <Switch value={allowOverlaps} onValueChange={setAllowOverlaps} />
+            </View>
             <TouchableOpacity
-              style={styles.effortButton}
-              onPress={() => setEffort(Math.max(1, effort - 1))}
+              style={styles.submitButton}
+              onPress={() => {
+                const params: any = { allow_overlaps: allowOverlaps };
+                if (effort !== currentEffort) params.new_effort = effort;
+                if (eventType === 'assignment') {
+                  if (due.toISOString() !== currentDue) params.new_window_end = due.toISOString();
+                } else {
+                  if (windowStart.toISOString() !== currentWindowStart) params.new_window_start = windowStart.toISOString();
+                  if (windowEnd.toISOString() !== currentWindowEnd) params.new_window_end = windowEnd.toISOString();
+                }
+                onSubmit(params);
+              }}
             >
-              <Text style={styles.effortButtonText}>-</Text>
+              <Text style={styles.submitButtonText}>Submit</Text>
             </TouchableOpacity>
-            <Text style={styles.effortValue}>{effort}</Text>
             <TouchableOpacity
-              style={styles.effortButton}
-              onPress={() => setEffort(effort + 1)}
+              style={styles.cancelButton}
+              onPress={onClose}
             >
-              <Text style={styles.effortButtonText}>+</Text>
+              <Text style={styles.cancelButtonText}>Exit</Text>
             </TouchableOpacity>
           </View>
-          {eventType === 'assignment' ? (
-            <>
-              <Text style={styles.label}>Due Date:</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => setShowDuePicker(true)}
-              >
-                <Text style={styles.dateButtonText}>{due.toLocaleString()}</Text>
-              </TouchableOpacity>
-              {showDuePicker && (
-                <DateTimePicker
-                  value={due}
-                  mode="datetime"
-                  display="default"
-                  onChange={(_, date) => {
-                    setShowDuePicker(false);
-                    if (date) setDue(date);
-                  }}
-                />
-              )}
-            </>
-          ) : (
-            <>
-              <Text style={styles.label}>Window Start:</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => setShowStartPicker(true)}
-              >
-                <Text style={styles.dateButtonText}>{windowStart.toLocaleString()}</Text>
-              </TouchableOpacity>
-              {showStartPicker && (
-                <DateTimePicker
-                  value={windowStart}
-                  mode="datetime"
-                  display="default"
-                  onChange={(_, date) => {
-                    setShowStartPicker(false);
-                    if (date) setWindowStart(date);
-                  }}
-                />
-              )}
-              <Text style={styles.label}>Window End:</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => setShowEndPicker(true)}
-              >
-                <Text style={styles.dateButtonText}>{windowEnd.toLocaleString()}</Text>
-              </TouchableOpacity>
-              {showEndPicker && (
-                <DateTimePicker
-                  value={windowEnd}
-                  mode="datetime"
-                  display="default"
-                  onChange={(_, date) => {
-                    setShowEndPicker(false);
-                    if (date) setWindowEnd(date);
-                  }}
-                />
-              )}
-            </>
-          )}
-          <View style={styles.switchRow}>
-            <Text style={styles.label}>Allow overlaps with current occurrences?</Text>
-            <Switch value={allowOverlaps} onValueChange={setAllowOverlaps} />
-          </View>
-          <TouchableOpacity
-            style={styles.submitButton}
-            onPress={() => {
-              const params: any = { allow_overlaps: allowOverlaps };
-              if (effort !== currentEffort) params.new_effort = effort;
-              if (eventType === 'assignment') {
-                if (due.toISOString() !== currentDue) params.new_window_end = due.toISOString();
-              } else {
-                if (windowStart.toISOString() !== currentWindowStart) params.new_window_start = windowStart.toISOString();
-                if (windowEnd.toISOString() !== currentWindowEnd) params.new_window_end = windowEnd.toISOString();
-              }
-              onSubmit(params);
-            }}
-          >
-            <Text style={styles.submitButtonText}>Submit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={onClose}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -168,4 +171,16 @@ const styles = StyleSheet.create({
   submitButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
   cancelButton: { backgroundColor: '#888', borderRadius: 8, padding: 12, marginTop: 10, width: '100%', alignItems: 'center' },
   cancelButtonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+  effortInput: {
+    borderWidth: 1,
+    borderColor: '#888',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+    color: '#222',
+    backgroundColor: '#f5f5f5',
+    marginBottom: 8,
+    width: '100%',
+    textAlign: 'center',
+  },
 });
