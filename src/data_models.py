@@ -34,11 +34,13 @@ class LoginData(BaseModel):
 
 class DeleteRequestDataModel(BaseModel):
     """
-    Delete the meeting with the given occurence id in the database
-    remove_all_future set to true removes future ocurrences of recurring meeting
+    Delete the meeting/assignment/chore with the given occurence id in the database
+    remove_all_future set to true removes future ocurrences of recurring meeting. Has no effect if assignment/chore
+    If ass/chore, all occurrences removed by default
     """
     occurence_id: int
     remove_all_future: bool
+    event_type: str = "meeting"
 
 class UpdateRequestDataModel(BaseModel):
     """
@@ -54,6 +56,19 @@ class UpdateRequestDataModel(BaseModel):
     new_name: str | None = None,
     new_time: datetime | None = None
     new_loc_or_link: str | None = None,
+
+class RescheduleRequestDataModel(BaseModel):
+    """Request to reschedule an assignment/chore. Can allow/disallow overlaps with current schedule for same a/c
+        Can also reassign effort/due date/time window. new_window_end is equivalent to due date for assignment, window_start has no effect for assignment
+    """
+    event_type: Literal["assignment", "chore"]
+    id: int # assignment or chore ID
+    allow_overlaps: bool # if true, the occurences may overlap with the already existing (before deletion) occurences of the same assignment/chore
+    new_effort: int | None = None
+    new_window_start: datetime | None = None
+    new_window_end: datetime | None = None
+    tz_offset_minutes: int = 0  # NEW: offset from UTC in minutes
+
 
 class MeetingInRequest(BaseModel):
     """
@@ -87,6 +102,7 @@ class ScheduleRequest(BaseModel):
     assignments: List[AssignmentInRequest]
     meetings: List[MeetingInRequest]
     chores: List[ChoreInRequest]
+    tz_offset_minutes: int = 0  # NEW: offset from UTC in minutes
 
 class SessionCompletionDataModel(BaseModel):
     """Mark the assignment/chore work session with occurence_id as completed or incomplete"""
