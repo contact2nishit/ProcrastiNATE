@@ -6,7 +6,7 @@ import jwt
 import asyncpg
 import dotenv
 import os
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
@@ -14,12 +14,19 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from scheduler import *
-
+import httpx
+from urllib.parse import urlencode
+from fastapi.responses import RedirectResponse
+import os
 
 
 dotenv.load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")  # e.g. https://xxxx.ngrok.io/auth/google/callback
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -732,4 +739,111 @@ async def fetch(start_time: str, end_time: str, meetings: bool, assignments: boo
     except Exception as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
+# Step-by-step guide for adding Google OAuth endpoints and required DB columns
+
+# 1. Add columns to your users table:
+# - google_id (string, nullable): stores the user's Google sub (unique Google user id)
+# - google_refresh_token (string, nullable): stores the refresh token for Google Calendar sync
+# - google_access_token (string, nullable): optionally, store the access token for short-term use
+
+# Example SQL (PostgreSQL):
+# ALTER TABLE users ADD COLUMN google_id VARCHAR(128);
+# ALTER TABLE users ADD COLUMN google_refresh_token TEXT;
+# ALTER TABLE users ADD COLUMN google_access_token TEXT;
+
+# 2. Add Google OAuth endpoints to your backend
+
+# TODO: GOOGLE TOKEN MAY EXPIRE, USE REFRESH TOKEN
+
+
+@app.get("/login/google")
+async def login_google():
+    # Redirect user to Google's OAuth consent screen
+    base_url = "https://accounts.google.com/o/oauth2/v2/auth"
+
+    params = {
+        "response_type": "code",
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "scope": "openid email profile https://www.googleapis.com/auth/calendar.events.readonly",
+        "access_type": "offline",
+        "prompt": "consent",
+    }
+
+    google_auth_url = f"{base_url}?{urlencode(params)}"
+    return {"redirect_url": google_auth_url}
+
+@app.get("/auth/google/callback")
+async def google_callback(request: Request):
+    # Get code from query params
+    code = request.query_params.get("code")
+    if not code:
+        raise HTTPException(status_code=400, detail="Missing code from Google")
+
+    # Exchange code for tokens
+    async with httpx.AsyncClient() as client:
+        token_resp = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "redirect_uri": GOOGLE_REDIRECT_URI,
+                "grant_type": "authorization_code",
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+        refresh_token = token_data.get("refresh_token")
+        id_token = token_data.get("id_token")
+
+    # Get user info from id_token
+
+    user_info = jwt.decode(id_token, options={"verify_signature": False})
+    google_id = user_info["sub"]
+    email = user_info.get("email")
+    username = email.split("@")[0] if email else f"google_{google_id}"
+
+    # Find or create user in DB
+    async with app.state.pool.acquire() as conn:
+        user_row = await conn.fetchrow("SELECT user_id FROM users WHERE google_id = $1", google_id)
+        if user_row:
+            user_id = user_row["user_id"]
+            # Update tokens
+            await conn.execute(
+                "UPDATE users SET google_access_token = $1, google_refresh_token = $2 WHERE user_id = $3",
+                access_token, refresh_token, user_id
+            )
+        else:
+            # If user with same email exists, link Google account
+            user_row = await conn.fetchrow("SELECT user_id FROM users WHERE email = $1", email)
+            if user_row:
+                user_id = user_row["user_id"]
+                await conn.execute(
+                    "UPDATE users SET google_id = $1, google_access_token = $2, google_refresh_token = $3 WHERE user_id = $4",
+                    google_id, access_token, refresh_token, user_id
+                )
+            else:
+                # Create new user
+                user_id = await conn.fetchval(
+                    "INSERT INTO users(username, email, google_id, google_access_token, google_refresh_token, uses_google_oauth) VALUES($1, $2, $3, $4, $5, $6) RETURNING user_id",
+                    username, email, google_id, access_token, refresh_token, True
+                )
+
+    # Issue your own JWT token for this user
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    jwt_token = create_access_token(data={"sub": str(user_id)}, expires_delta=access_token_expires)
+
+    # Hacky workaround for Expo Go: redirect to exp:// URL with token as query param
+    # You must set EXPO_DEV_URL in your environment to your current exp:// URL (e.g., exp://192.168.1.2:19000)
+    expo_dev_url = os.getenv("EXPO_DEV_URL")
+    if expo_dev_url:
+        # e.g., exp://192.168.1.2:19000/--/auth?token=...
+        deep_link_url = f"{expo_dev_url}/--/auth?token={jwt_token}"
+    else:
+        # fallback to custom scheme for dev client
+        deep_link_url = f"procrastinate://auth?token={jwt_token}"
+    return RedirectResponse(deep_link_url)
 

@@ -294,7 +294,7 @@ def schedule_tasks(
                     conflicting_chores.append(task.name)
                 elif status == "partially_scheduled":
                     not_enough_time_chores.append(task.name)
-
+  
         schedule = Schedule(
             assignments=assignments_out,
             chores=chores_out,
