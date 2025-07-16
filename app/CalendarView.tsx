@@ -14,6 +14,7 @@ import {
 import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { formatTime, getWeekDaysFromDate, groupSlotsByDay, Slot, screenWidth } from './calendarUtils'
+import  CalendarWeekView from './CalendarWeekView'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -123,28 +124,28 @@ const CalendarView = () => {
     fetchSchedule();
   }, [referenceDate]);
 
-  // Get the days of the current reference week
-  const weekDays = getWeekDaysFromDate(referenceDate);
-  const groupedSlots = groupSlotsByDay(slots);
+  // // Get the days of the current reference week
+  // const weekDays = getWeekDaysFromDate(referenceDate);
+  // const groupedSlots = groupSlotsByDay(slots);
 
-  // Handlers for buttons
-  const goToPrevWeek = () => {
-    setReferenceDate((prev) => {
-      const d = new Date(prev);
-      d.setDate(d.getDate() - 7);
-      return d;
-    });
-  };
-  const goToNextWeek = () => {
-    setReferenceDate((prev) => {
-      const d = new Date(prev);
-      d.setDate(d.getDate() + 7);
-      return d;
-    });
-  };
-  const goToCurrentWeek = () => {
-    setReferenceDate(new Date());
-  };
+  // // Handlers for buttons
+  // const goToPrevWeek = () => {
+  //   setReferenceDate((prev) => {
+  //     const d = new Date(prev);
+  //     d.setDate(d.getDate() - 7);
+  //     return d;
+  //   });
+  // };
+  // const goToNextWeek = () => {
+  //   setReferenceDate((prev) => {
+  //     const d = new Date(prev);
+  //     d.setDate(d.getDate() + 7);
+  //     return d;
+  //   });
+  // };
+  // const goToCurrentWeek = () => {
+  //   setReferenceDate(new Date());
+  // };
 
   // Meeting update/delete handlers (same as Home.tsx)
   const handleUpdateMeeting = async () => {
@@ -223,81 +224,26 @@ const CalendarView = () => {
     <View style={styles.container}>
       <Text style={styles.header}>Weekly Calendar</Text>
 
-      {/* Week navigation */}
-      <View style={styles.weekNavContainer}>
-        <TouchableOpacity style={styles.navButton} onPress={goToPrevWeek}>
-          <Text style={styles.navButtonText}>Prev</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.currentWeekButton} onPress={goToCurrentWeek}>
-          <Text style={styles.currentWeekText}>Current Week</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToNextWeek}>
-          <Text style={styles.navButtonText}>Next</Text>
-        </TouchableOpacity>
-      </View>
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#0f0" style={{ marginTop: 40 }} />
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {weekDays.map((day, index) => (
-            <View key={index} style={styles.dayColumn}>
-              <Text style={styles.dayLabel}>{day.label}</Text>
-              <ScrollView style={styles.dayContentS} nestedScrollEnabled={true}>
-                {(groupedSlots[day.iso] || []).map((slot, idx) => (
-                  <View key={idx} style={styles.slotBox}>
-                    <Text style={styles.slotTitle}>{slot.name}</Text>
-                    <Text style={styles.slotSub}>
-                      {slot.type.toUpperCase()} • {formatTime(slot.start)} - {formatTime(slot.end)}
-                    </Text>
-                    {/* Only for meetings: show update/delete buttons */}
-                    {slot.type === 'meeting' && (
-                      <View style={{ flexDirection: 'row', marginTop: 8 }}>
-                        <TouchableOpacity
-                          style={{
-                            backgroundColor: '#2563eb',
-                            borderRadius: 6,
-                            paddingVertical: 6,
-                            paddingHorizontal: 10,
-                            marginRight: 8,
-                          }}
-                          onPress={() => {
-                            setModalType('update');
-                            setSelectedMeeting(slot);
-                            setUpdateName('');
-                            setUpdateLoc('');
-                            setUpdateTime('');
-                            setModalVisible(true);
-                          }}
-                        >
-                          <Text style={{ color: 'white', fontWeight: 'bold' }}>Update</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={{
-                            backgroundColor: '#dc2626',
-                            borderRadius: 6,
-                            paddingVertical: 6,
-                            paddingHorizontal: 10,
-                          }}
-                          onPress={() => {
-                            setModalType('delete');
-                            setSelectedMeeting(slot);
-                            setModalVisible(true);
-                          }}
-                        >
-                          <Text style={{ color: 'white', fontWeight: 'bold' }}>Delete</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          ))}
-        </ScrollView>
-      )}
+      <CalendarWeekView
+        slots={slots}
+        loading={loading}
+        showMeetingActions={true}
+        initialReferenceDate={referenceDate}
+        onReferenceDateChange={setReferenceDate}
+        onUpdateMeeting={(slot: Slot) => {
+          setModalType('update');
+          setSelectedMeeting(slot);
+          setUpdateName('');
+          setUpdateLoc('');
+          setUpdateTime('');
+          setModalVisible(true);
+        }}
+        onDeleteMeeting={(slot: Slot) => {
+          setModalType('delete');
+          setSelectedMeeting(slot);
+          setModalVisible(true);
+        }}
+        />
 
       {/* Meeting Update/Delete Modal */}
       <Modal
