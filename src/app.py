@@ -17,6 +17,8 @@ from scheduler import *
 import httpx
 from urllib.parse import urlencode
 from fastapi.responses import RedirectResponse
+import google.oauth2.credentials
+import google_auth_oauthlib.flow
 import os
 
 
@@ -62,46 +64,67 @@ async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREA
                 return {"error": "An account is already registered with the given username or email"}
             hash = get_password_hash(pwd)
             await conn.execute("INSERT INTO users(username, email, password_hash) VALUES($1, $2, $3)", user, mail, hash)
-            return {"message": "Account created successfully!"}
+            return MessageResponseDataModel(message="Account created Successfully")
+    except HTTPException as e:
+        raise e
     except Exception as e:
         print(e)
-        return {"message": "something is wrong"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Something went wrong on the backend, please check the logs"
+        )
 
 
 @app.post("/login")
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], status_code=status.HTTP_200_OK) -> Token:
     """Authenticate user and provide an access token"""
-    user = await authenticate_user(form_data.username, form_data.password, app.state.pool)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+    try:
+        user = await authenticate_user(form_data.username, form_data.password, app.state.pool)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": str(user.user_id)}, expires_delta=access_token_expires
         )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": str(user.user_id)}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+        return LoginResponse(access_token=access_token)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Something went wrong on the backend, please check the logs"
+        )
 
 # TODO: GOOGLE TOKEN MAY EXPIRE, USE REFRESH TOKEN
 
 @app.get("/login/google")
 async def login_google():
     # Redirect user to Google's OAuth consent screen
-    base_url = "https://accounts.google.com/o/oauth2/v2/auth"
-
-    params = {
-        "response_type": "code",
-        "client_id": GOOGLE_CLIENT_ID,
-        "redirect_uri": GOOGLE_REDIRECT_URI,
-        "scope": "openid email profile https://www.googleapis.com/auth/calendar.events.readonly",
-        "access_type": "offline",
-        "prompt": "consent",
-    }
-
-    google_auth_url = f"{base_url}?{urlencode(params)}"
-    return {"redirect_url": google_auth_url}
+    flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+        'client_secret.json',
+        scopes=[
+            'https://www.googleapis.com/auth/calendar.readonly', 
+            'https://www.googleapis.com/auth/calendar.events.readonly',
+            'openid',
+            'email',
+            'profile'
+        ]
+    )
+    authorization_url, state = flow.authorization_url(
+        # Can refresh without asking
+        access_type='offline',
+        # Optional, enable incremental authorization. Recommended as a best practice.
+        include_granted_scopes='true',
+        # Optional, set prompt to 'consent' will prompt the user for consent
+        prompt='consent',
+        response_type='code'
+    )
+    return GoogleRedirectURL(redirect_url=authorization_url)
 
 @app.get("/auth/google/callback")
 async def google_callback(request: Request):
