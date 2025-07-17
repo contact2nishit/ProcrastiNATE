@@ -14,6 +14,7 @@ src/.env
 tests/__pycache__
 tests/.pytest_cache
 src/client_secret.json
+*/client_secret.json
 
 # Native
 *.orig.*

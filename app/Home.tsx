@@ -10,6 +10,40 @@ import Slider from '@react-native-community/slider';
 import RescheduleModal from './RescheduleModal';
 
 export default function Home() {
+  // Loading state
+  const [loading, setLoading] = useState(false);
+  // Google Calendar sync handler
+  const handleSyncGoogleCalendar = async () => {
+    try {
+      setLoading(true);
+      const url = await AsyncStorage.getItem('backendURL');
+      const token = await AsyncStorage.getItem('token');
+      if (!url || !token) {
+        Alert.alert('Error', 'Backend URL or token not set.');
+        setLoading(false);
+        return;
+      }
+      const response = await fetch(`${url}/googleCalendar/sync`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        Alert.alert('Error', 'Failed to sync Google Calendar: ' + err);
+        setLoading(false);
+        return;
+      }
+      const data = await response.json();
+      Alert.alert('Success', data.message || 'Google Calendar synced!');
+      await fetchTodoList();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to sync Google Calendar: ' + e);
+    } finally {
+      setLoading(false);
+    }
+  };
   type SessionToMaybeComplete = {
     occurence_id: string;
     is_assignment: boolean;
@@ -27,9 +61,10 @@ export default function Home() {
   const [rescheduleModalVisible, setRescheduleModalVisible] = useState(false);
   const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
 
-  // Refetch todo list
+  // Refetch todo list (single definition, with loading)
   const fetchTodoList = async () => {
     try {
+      setLoading(true);
       const url = await AsyncStorage.getItem('backendURL');
       const token = await AsyncStorage.getItem('token');
       if (!url || !token) return;
@@ -98,6 +133,8 @@ export default function Home() {
       setTodoList(items);
     } catch (e) {
       // handle error
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -360,6 +397,14 @@ export default function Home() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+      <TouchableOpacity onPress={handleSyncGoogleCalendar} style={styles.syncButton} disabled={loading}>
+        <Text style={styles.syncButtonText}>{loading ? 'Syncing...' : 'Sync Google Calendar'}</Text>
+      </TouchableOpacity>
+      {loading && (
+        <View style={{ alignItems: 'center', marginVertical: 10 }}>
+          <Text style={{ color: '#888' }}>Loading...</Text>
+        </View>
+      )}
       <Text style={styles.welcomeText}>To Do List for Today</Text>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {todoList.map((item, idx) => (
@@ -591,6 +636,20 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
+  syncButton: {
+    backgroundColor: '#2563eb',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 30,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  syncButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
   welcomeText: {
     fontSize: 24,
     fontWeight: 'bold',

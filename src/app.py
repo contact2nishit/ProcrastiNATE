@@ -20,6 +20,11 @@ from fastapi.responses import RedirectResponse
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import os
+from google.auth.transport.requests import Request as GoogleRequest
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 
 dotenv.load_dotenv()
@@ -115,14 +120,14 @@ async def login_google():
             'profile'
         ]
     )
+    flow.redirect_uri = GOOGLE_REDIRECT_URI
     authorization_url, state = flow.authorization_url(
         # Can refresh without asking
         access_type='offline',
         # Optional, enable incremental authorization. Recommended as a best practice.
         include_granted_scopes='true',
         # Optional, set prompt to 'consent' will prompt the user for consent
-        prompt='consent',
-        response_type='code'
+        prompt='consent'
     )
     return GoogleRedirectURL(redirect_url=authorization_url)
 
@@ -193,6 +198,123 @@ async def google_callback(request: Request):
         # fallback to custom scheme for dev client
         deep_link_url = f"procrastinate://auth?token={jwt_token}"
     return RedirectResponse(deep_link_url)
+
+@app.post("/googleCalendar/sync")
+async def sync(token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> MessageResponseDataModel:
+    """Pull all events from the user's google calendar that aren't already in the DB"""
+    try:
+        user = await get_current_user(token, app.state.pool)
+        async with app.state.pool.acquire() as conn:
+            # Get Google tokens for this user
+            row = await conn.fetchrow(
+                "SELECT google_access_token, google_refresh_token FROM users WHERE user_id = $1",
+                user.user_id
+            )
+            if not row or not row["google_access_token"]:
+                raise HTTPException(status_code=400, detail="User has not linked Google account.")
+            access_token = row["google_access_token"]
+            refresh_token = row["google_refresh_token"]
+
+        creds = Credentials(
+            token=access_token,
+            refresh_token=refresh_token,
+            client_id=GOOGLE_CLIENT_ID,
+            client_secret=GOOGLE_CLIENT_SECRET,
+            token_uri="https://oauth2.googleapis.com/token",
+        )
+        # Refresh token if needed
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+
+        service = build("calendar", "v3", credentials=creds)
+        # Only fetch events with an end time in the future
+        now_iso = datetime.now(timezone.utc).isoformat()
+        events = []
+        page_token = None
+        while True:
+            events_result = (
+                service.events()
+                .list(
+                    calendarId="primary",
+                    singleEvents=True,
+                    orderBy="startTime",
+                    maxResults=2500,  # Google API max per page
+                    pageToken=page_token,
+                    timeMin=now_iso,  # Only fetch events that start in the future
+                )
+                .execute()
+            )
+            items = events_result.get("items", [])
+            events.extend(items)
+            page_token = events_result.get("nextPageToken")
+            if not page_token:
+                break
+
+        # For deduplication: fetch all meetings and their occurrences for this user
+        async with app.state.pool.acquire() as conn:
+            # Get all meetings for this user
+            meetings = await conn.fetch(
+                "SELECT meeting_id, meeting_name FROM meetings WHERE user_id = $1",
+                user.user_id
+            )
+            meeting_name_to_id = {m['meeting_name']: m['meeting_id'] for m in meetings}
+
+            # Get all meeting occurrences for this user, grouped by meeting_id
+            occs = await conn.fetch(
+                "SELECT meeting_id, start_time, end_time FROM meeting_occurences WHERE user_id = $1",
+                user.user_id
+            )
+            occs_by_meeting = {}
+            for occ in occs:
+                occs_by_meeting.setdefault(occ['meeting_id'], set()).add((occ['start_time'], occ['end_time']))
+
+            new_meetings = 0
+            new_occs = 0
+            for event in events:
+                # Only sync events with a start and end time
+                start = event.get("start", {}).get("dateTime")
+                end = event.get("end", {}).get("dateTime")
+                if not start or not end:
+                    continue
+                # Parse datetimes
+                start_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
+                end_dt = datetime.fromisoformat(end.replace("Z", "+00:00"))
+                # Only add if at least one occurrence is in the future
+                if end_dt < datetime.now(timezone.utc):
+                    continue
+                name = event.get("summary", "Google Event")
+                location = event.get("location") or event.get("hangoutLink") or "Google Calendar"
+                recurs = False  # For now, treat all as non-recurring
+
+                # Check if meeting exists by name
+                meeting_id = meeting_name_to_id.get(name)
+                if meeting_id is None:
+                    # Create new meeting
+                    meeting_id = await conn.fetchval(
+                        "INSERT INTO meetings(user_id, meeting_name, recurs, location_or_link) VALUES($1, $2, $3, $4) RETURNING meeting_id",
+                        user.user_id, name, recurs, location
+                    )
+                    meeting_name_to_id[name] = meeting_id
+                    occs_by_meeting[meeting_id] = set()
+                    new_meetings += 1
+
+                # Only add future occurrences
+                occ_tuple = (start_dt, end_dt)
+                if end_dt >= datetime.now(timezone.utc) and occ_tuple not in occs_by_meeting[meeting_id]:
+                    await conn.execute(
+                        "INSERT INTO meeting_occurences(user_id, meeting_id, start_time, end_time) VALUES($1, $2, $3, $4)",
+                        user.user_id, meeting_id, start_dt, end_dt
+                    )
+                    occs_by_meeting[meeting_id].add(occ_tuple)
+                    new_occs += 1
+
+        return MessageResponseDataModel(message=f"Synced {new_meetings} new meetings and {new_occs} new occurrences from Google Calendar.")
+    except HttpError as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Google Calendar API error")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/schedule")
 async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleResponseFormat:
