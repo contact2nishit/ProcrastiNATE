@@ -124,29 +124,6 @@ const CalendarView = () => {
     fetchSchedule();
   }, [referenceDate]);
 
-  // // Get the days of the current reference week
-  // const weekDays = getWeekDaysFromDate(referenceDate);
-  // const groupedSlots = groupSlotsByDay(slots);
-
-  // // Handlers for buttons
-  // const goToPrevWeek = () => {
-  //   setReferenceDate((prev) => {
-  //     const d = new Date(prev);
-  //     d.setDate(d.getDate() - 7);
-  //     return d;
-  //   });
-  // };
-  // const goToNextWeek = () => {
-  //   setReferenceDate((prev) => {
-  //     const d = new Date(prev);
-  //     d.setDate(d.getDate() + 7);
-  //     return d;
-  //   });
-  // };
-  // const goToCurrentWeek = () => {
-  //   setReferenceDate(new Date());
-  // };
-
   // Meeting update/delete handlers (same as Home.tsx)
   const handleUpdateMeeting = async () => {
     try {
