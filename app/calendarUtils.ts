@@ -54,4 +54,13 @@ export const getWeekDaysFromDate = (referenceDate: Date) => {
   });
 };
 
+export const getStartOfWeek = (date = new Date()) => {
+    const d = new Date(date);
+    const day = d.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const diff = d.getDate() - day; // Subtract the day index to get back to Sunday
+    d.setDate(diff);
+    d.setHours(0, 0, 0, 0); // Reset time to midnight
+    return d;
+};
+
 export const screenWidth = Dimensions.get('window').width;

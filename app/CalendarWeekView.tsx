@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import {formatTime, getWeekDaysFromDate, groupSlotsByDay, Slot, screenWidth} from './calendarUtils';
 
+
 type CalendarWeekViewProps = {
     slots: Slot[];
     loading?: boolean;
@@ -23,26 +24,21 @@ export default function CalendarWeekView({
     onUpdateMeeting,
     onDeleteMeeting,
 }: CalendarWeekViewProps) {
-    const [referenceDate, setReferenceDate] = useState(initialReferenceDate);
-
-    const weekDays = getWeekDaysFromDate(referenceDate);
+    const weekDays = getWeekDaysFromDate(initialReferenceDate);
     const groupedSlots = groupSlotsByDay(slots);
 
     const goToPrevWeek = () => {
-        const newDate = new Date(referenceDate);
+        const newDate = new Date(initialReferenceDate);
         newDate.setDate(newDate.getDate() - 7);
-        setReferenceDate(newDate);
         onReferenceDateChange?.(newDate);
     };
     const goToNextWeek = () => {
-        const newDate = new Date(referenceDate);
+        const newDate = new Date(initialReferenceDate);
         newDate.setDate(newDate.getDate() + 7);
-        setReferenceDate(newDate);
         onReferenceDateChange?.(newDate);
     }
     const goToCurrentWeek = () => {
-        const newDate = new Date();
-        setReferenceDate(newDate);
+        const newDate = new Date(initialReferenceDate);
         onReferenceDateChange?.(newDate);
     };
     return (
@@ -93,6 +89,8 @@ export default function CalendarWeekView({
         </View>
     )
 }
+
+
 
 const styles = StyleSheet.create({
     container: {

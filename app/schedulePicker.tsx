@@ -205,9 +205,11 @@ export default function SchedulePicker() {
               )}
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => navigation.navigate("CalendarViewPotential",
-                  { scheduleIdx: selectedScheduleIdx } 
-                )}
+                onPress={() => {
+                  setModalVisible(false);
+                  navigation.navigate("CalendarViewPotential",
+                  { scheduleIdx: selectedScheduleIdx} 
+                )}}
                 >
                 <Text style={styles.closeButtonText}>View Potential Schedule</Text>
               </TouchableOpacity>

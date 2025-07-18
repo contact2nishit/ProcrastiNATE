@@ -2,18 +2,15 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
-  Dimensions,
   Modal,
   TextInput,
 } from 'react-native';
 import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { formatTime, getWeekDaysFromDate, groupSlotsByDay, Slot, screenWidth } from './calendarUtils'
+import { Slot, screenWidth, getStartOfWeek } from './calendarUtils'
 import  CalendarWeekView from './CalendarWeekView'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -205,7 +202,7 @@ const CalendarView = () => {
         slots={slots}
         loading={loading}
         showMeetingActions={true}
-        initialReferenceDate={referenceDate}
+        initialReferenceDate={getStartOfWeek(referenceDate)}
         onReferenceDateChange={setReferenceDate}
         onUpdateMeeting={(slot: Slot) => {
           setModalType('update');
