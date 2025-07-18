@@ -1,26 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, SafeAreaView } from 'react-native';
-import { useNavigation } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+export const getData = async (ScheduleStateSetter: React.Dispatch<React.SetStateAction<any>>) => {
+  try {
+    const daa = await AsyncStorage.getItem("schedules");
+    if (daa) {
+      ScheduleStateSetter(JSON.parse(daa));
+    } else {
+      ScheduleStateSetter({});
+    }
+  } catch (e) {
+    ScheduleStateSetter({});
+  }
+};
 
 export default function SchedulePicker() {
   const navigation = useNavigation();
   const [scheduleData, setScheduleData] = useState<any>({});
 
   useEffect(() => {
-    const getData = async () => {
-      try {
-        const daa = await AsyncStorage.getItem("schedules");
-        if (daa) {
-          setScheduleData(JSON.parse(daa));
-        } else {
-          setScheduleData({});
-        }
-      } catch (e) {
-        setScheduleData({});
-      }
-    };
-    getData();
+    getData(setScheduleData);
   }, []);
 
   let parsedData: any = scheduleData;
@@ -204,7 +205,9 @@ export default function SchedulePicker() {
               )}
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => navigation.replace("CalendarViewPotential")}
+                onPress={() => navigation.navigate("CalendarViewPotential",
+                  { scheduleIdx: selectedScheduleIdx } 
+                )}
                 >
                 <Text style={styles.closeButtonText}>View Potential Schedule</Text>
               </TouchableOpacity>
