@@ -357,11 +357,12 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
         )
 
         
-        # Call schedule_tasks with the blocker included
+        # Call schedule_tasks with the blocker included, always generate 11 schedules
         schedules = schedule_tasks(
             sched.meetings + [scheduled_blocker],
             sched.assignments,
             sched.chores,
+            num_schedules=11,
             tz_offset_minutes=getattr(sched, "tz_offset_minutes", 0)
         )
 
@@ -674,7 +675,7 @@ async def delete(deletion: DeleteRequestDataModel, token: Annotated[str, Depends
         return MessageResponseDataModel(message="Internal server error")
     
 @app.post("/reschedule")
-async def reschedule(re: RescheduleRequestDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> Schedule:
+async def reschedule(re: RescheduleRequestDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> ScheduleResponseFormat:
     """
     Reschedule just a single assignment/chore and return a new schedule for just that one (setSchedule still needed after).
     Deletes all current occurrences but not the parent assignment/chore record.
@@ -827,13 +828,13 @@ async def reschedule(re: RescheduleRequestDataModel, token: Annotated[str, Depen
             tz_offset = getattr(re, "tz_offset_minutes", 0)
             if re.event_type == "assignment":
                 schedules = schedule_tasks(
-                    [scheduled_blocker], [assignment_req], [], tz_offset_minutes=tz_offset
+                    [scheduled_blocker], [assignment_req], [], tz_offset_minutes=tz_offset, num_schedules=11
                 )
             else:
                 schedules = schedule_tasks(
-                    [scheduled_blocker], [], [chore_req], tz_offset_minutes=tz_offset
+                    [scheduled_blocker], [], [chore_req], tz_offset_minutes=tz_offset, num_schedules=11
                 )
-            return schedules[0]
+            return ScheduleResponseFormat(schedules=schedules, conflicting_meetings=[], meetings=[])
 
     except HTTPException as e:
         raise e

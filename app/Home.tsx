@@ -387,8 +387,8 @@ export default function Home() {
       const data = await response.json();
       setRescheduleModalVisible(false);
       setRescheduleTarget(null);
-      // Save to AsyncStorage and navigate to schedulePicker
-      await AsyncStorage.setItem("schedules", JSON.stringify({ schedules: [data], meetings: [], conflicting_meetings: [] }));
+      // Save the full ScheduleResponseFormat object directly
+      await AsyncStorage.setItem("schedules", JSON.stringify(data));
       navigation.navigate('schedulePicker');
     } catch (e) {
       Alert.alert('Error', 'Failed to reschedule: ' + e);
@@ -430,11 +430,22 @@ export default function Home() {
                       alignSelf: 'flex-start',
                     }}
                     onPress={() => {
-                        setModalType('markSession');
-                        setModalVisible(true);
-                        setSelectedSessionToComplete({occurence_id: item.id, is_assignment: item.type === 'assignment'});
+                      const now = new Date();
+                      const startTime = new Date(item.start);
+                      if (startTime > now) {
+                        Alert.alert(
+                          'Too Early!',
+                          "This session hasn't started yet. You can only mark it completed after its start time. If you don't need this assignment or chore on your calendar any longer, you can delete it using the Delete button.",
+                          [
+                            { text: 'OK', style: 'cancel' }
+                          ]
+                        );
+                        return;
                       }
-                    }
+                      setModalType('markSession');
+                      setModalVisible(true);
+                      setSelectedSessionToComplete({occurence_id: item.id, is_assignment: item.type === 'assignment'});
+                    }}
                   >
                     <Text style={{ color: 'white', fontWeight: 'bold' }}>Mark Session Completed</Text>
                   </TouchableOpacity>
