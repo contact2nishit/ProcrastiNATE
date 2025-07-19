@@ -47,7 +47,7 @@ const CalendarView = () => {
       }
 
       const response = await fetch(
-        `${url}/fetch?start_time=${encodeURIComponent(now.toISOString().replace('Z', '+00:00'))}&end_time=${encodeURIComponent(
+        `${url}/fetch?start_time=${encodeURIComponent(getStartOfWeek(referenceDate).toISOString().replace('Z', '+00:00'))}&end_time=${encodeURIComponent(
           monthFromNow.toISOString().replace('Z', '+00:00')
         )}&meetings=true&assignments=true&chores=true`,
         {
@@ -66,14 +66,12 @@ const CalendarView = () => {
       const extractSlots = (items: any[], type: string) => {
         for (const item of items) {
           if (type === 'chore' && item.window) {
-            for (const timeSlot of item.window) {
               allSlots.push({
                 name: item.name,
                 type,
-                start: timeSlot.start || timeSlot[0],
-                end: timeSlot.end || timeSlot[1],
+                start: item.window.start || item.window[0],
+                end: item.window.end || item.window[1],
               });
-            }
           } else if (type === 'meeting' && item.start_end_times) {
             // Add meeting_id and occurence_id for each occurrence
             for (let idx = 0; idx < item.start_end_times.length; idx++) {
@@ -289,7 +287,7 @@ const CalendarView = () => {
           </View>
         </View>
       </Modal>
-
+      <View style = {{flex:1}}></View>
       <TouchableOpacity onPress={() => navigation.replace('Home')} style={styles.but}>
         <Text style={styles.butText}>Back to Home</Text>
       </TouchableOpacity>
