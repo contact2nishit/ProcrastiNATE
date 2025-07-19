@@ -721,16 +721,19 @@ async def reschedule(re: RescheduleRequestDataModel, token: Annotated[str, Depen
 
             # Get all current occurrences for this assignment/chore
             old_occs = await conn.fetch(
-                f"SELECT start_time, end_time FROM {occ_table} WHERE {id_col} = $1 AND user_id = $2",
+                f"SELECT start_time, end_time, occurence_id FROM {occ_table} WHERE {id_col} = $1 AND user_id = $2",
                 obj_id, user.user_id
             )
             old_slots = [[o['start_time'], o['end_time']] for o in old_occs]
 
-            # Delete all occurrences for this assignment/chore
-            await conn.execute(
-                f"DELETE FROM {occ_table} WHERE {id_col} = $1 AND user_id = $2",
-                obj_id, user.user_id
-            )
+            # Only delete occurrences with end_time in the future
+            now_utc = datetime.now(timezone.utc)
+            future_occs = [o['occurence_id'] for o in old_occs if o['end_time'] >= now_utc]
+            if future_occs:
+                await conn.execute(
+                    f"DELETE FROM {occ_table} WHERE occurence_id = ANY($1::int[]) AND user_id = $2",
+                    future_occs, user.user_id
+                )
 
             # Update parent record if new values provided
             if re.event_type == "assignment":
