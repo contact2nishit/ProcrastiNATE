@@ -13,30 +13,81 @@ import {
   TextInput,
 } from 'react-native';
 import { useNavigation } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {Slot, formatTime, screenWidth, } from './calendarUtils'
+//import AsyncStorage from '@react-native-async-storage/async-storage';
+import {Slot, formatTime, screenWidth, getStartOfWeek} from './calendarUtils'
 import CalendarWeekView from './CalendarWeekView';
 import { getData } from './schedulePicker'
-import { set } from 'date-fns';
 
 const CalendarViewPotential = () => {
   const { scheduleIdx } = useLocalSearchParams();
   const navigation = useNavigation();
-  const [schedules, setSchedules] = useState<any>({});
+  const [scheduleData, setSchedules] = useState<any>({});
+  const [referenceDate, setReferenceDate] = useState(new Date());
 
   useEffect(() => {
     getData(setSchedules);
   }, []);
 
+  const extractSlots = (scheduleIdx: number): Slot[] => {
+    console.log(scheduleData);
+    const allSlots: Slot[] = [];
+    const schedule = scheduleData.schedules[scheduleIdx];
+    if (!schedule) {
+      return allSlots;
+    }
+
+    // Assignments
+    if (Array.isArray(schedule.assignments)) {
+      for (const assignment of schedule.assignments) {
+        if (assignment.schedule) {
+          for (const slot of assignment.schedule.slots) {
+            allSlots.push({
+              name: assignment.name,
+              type: 'assignment',
+              start: slot.start,
+              end: slot.end,
+            });
+          }
+        }
+      }
+    }
+
+    // Chores
+    if (Array.isArray(schedule.chores)) {
+      for (const chore of schedule.chores) {
+        if (chore.schedule && Array.isArray(chore.schedule.slots)) {
+          for (const slot of chore.schedule.slots) {
+            allSlots.push({
+              name: chore.name,
+              type: 'chore',
+              start: slot.start,
+              end: slot.end,
+            });
+          }
+        }
+      }
+    }
+
+    // No meetings in potential schedules
+
+    return allSlots;
+  }
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Schedule #{scheduleIdx}</Text>
-
       <CalendarWeekView
-        slots={schedules[scheduleIdx]?.all_slots || []}
+        slots={extractSlots(Number(scheduleIdx))}
         showMeetingActions={false}
+        initialReferenceDate={getStartOfWeek(referenceDate)}
+        onReferenceDateChange={setReferenceDate}
       />
-
+    <View style={{flex:1}}></View>
+    <TouchableOpacity
+      style={styles.backButton}
+      onPress = {() => navigation.goBack()}
+      >
+        <Text style={styles.backButtonText}>Back</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -54,6 +105,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
     marginTop:20,
+  },
+  backButton: {
+    backgroundColor: 'white',
+    width: 180,
+    height: 40,
+    alignItems: 'center',
+    alignSelf: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    marginTop: 20,
+    marginBottom:45,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   }
 })
 
