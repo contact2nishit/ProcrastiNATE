@@ -2,76 +2,18 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
-  Dimensions,
   Modal,
   TextInput,
 } from 'react-native';
 import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-type Slot = {
-  name: string;
-  type: string;
-  start: string;
-  end: string;
-  meeting_id?: number;
-  occurence_id?: number;
-};
-
-const screenWidth = Dimensions.get('window').width;
+import { Slot, screenWidth, getStartOfWeek } from './calendarUtils'
+import  CalendarWeekView from './CalendarWeekView'
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-const formatTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-const groupSlotsByDay = (slots: Slot[]) => {
-  // Group slots by the *local* date of their start time, not by the UTC date string
-  const grouped: Record<string, Slot[]> = {};
-  for (const slot of slots) {
-    // Convert slot.start to local Date, then get local date string (YYYY-MM-DD)
-    const localDate = new Date(slot.start);
-    const year = localDate.getFullYear();
-    const month = String(localDate.getMonth() + 1).padStart(2, '0');
-    const day = String(localDate.getDate()).padStart(2, '0');
-    const dayKey = `${year}-${month}-${day}`;
-    if (!grouped[dayKey]) grouped[dayKey] = [];
-    grouped[dayKey].push(slot);
-  }
-  return grouped;
-};
-
-const getWeekDaysFromDate = (referenceDate: Date) => {
-  // Get the week days using local time, not UTC
-  const date = new Date(referenceDate);
-  // Set to Sunday of the week (local time)
-  date.setDate(date.getDate() - date.getDay());
-  return Array.from({ length: 7 }, (_, i) => {
-    const day = new Date(date);
-    day.setDate(date.getDate() + i);
-    // Get local date string (YYYY-MM-DD)
-    const year = day.getFullYear();
-    const month = String(day.getMonth() + 1).padStart(2, '0');
-    const dayNum = String(day.getDate()).padStart(2, '0');
-    return {
-      date: day,
-      label: day.toLocaleDateString(undefined, {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-      }),
-      iso: `${year}-${month}-${dayNum}`,
-    };
-  });
-};
 
 const CalendarView = () => {
   const navigation = useNavigation();
@@ -105,7 +47,7 @@ const CalendarView = () => {
       }
 
       const response = await fetch(
-        `${url}/fetch?start_time=${encodeURIComponent(now.toISOString().replace('Z', '+00:00'))}&end_time=${encodeURIComponent(
+        `${url}/fetch?start_time=${encodeURIComponent(getStartOfWeek(referenceDate).toISOString().replace('Z', '+00:00'))}&end_time=${encodeURIComponent(
           monthFromNow.toISOString().replace('Z', '+00:00')
         )}&meetings=true&assignments=true&chores=true`,
         {
@@ -124,14 +66,12 @@ const CalendarView = () => {
       const extractSlots = (items: any[], type: string) => {
         for (const item of items) {
           if (type === 'chore' && item.window) {
-            for (const timeSlot of item.window) {
               allSlots.push({
                 name: item.name,
                 type,
-                start: timeSlot.start || timeSlot[0],
-                end: timeSlot.end || timeSlot[1],
+                start: item.window.start || item.window[0],
+                end: item.window.end || item.window[1],
               });
-            }
           } else if (type === 'meeting' && item.start_end_times) {
             // Add meeting_id and occurence_id for each occurrence
             for (let idx = 0; idx < item.start_end_times.length; idx++) {
@@ -178,29 +118,6 @@ const CalendarView = () => {
   useEffect(() => {
     fetchSchedule();
   }, [referenceDate]);
-
-  // Get the days of the current reference week
-  const weekDays = getWeekDaysFromDate(referenceDate);
-  const groupedSlots = groupSlotsByDay(slots);
-
-  // Handlers for buttons
-  const goToPrevWeek = () => {
-    setReferenceDate((prev) => {
-      const d = new Date(prev);
-      d.setDate(d.getDate() - 7);
-      return d;
-    });
-  };
-  const goToNextWeek = () => {
-    setReferenceDate((prev) => {
-      const d = new Date(prev);
-      d.setDate(d.getDate() + 7);
-      return d;
-    });
-  };
-  const goToCurrentWeek = () => {
-    setReferenceDate(new Date());
-  };
 
   // Meeting update/delete handlers (same as Home.tsx)
   const handleUpdateMeeting = async () => {
@@ -279,81 +196,26 @@ const CalendarView = () => {
     <View style={styles.container}>
       <Text style={styles.header}>Weekly Calendar</Text>
 
-      {/* Week navigation */}
-      <View style={styles.weekNavContainer}>
-        <TouchableOpacity style={styles.navButton} onPress={goToPrevWeek}>
-          <Text style={styles.navButtonText}>Prev</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.currentWeekButton} onPress={goToCurrentWeek}>
-          <Text style={styles.currentWeekText}>Current Week</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navButton} onPress={goToNextWeek}>
-          <Text style={styles.navButtonText}>Next</Text>
-        </TouchableOpacity>
-      </View>
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#0f0" style={{ marginTop: 40 }} />
-      ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {weekDays.map((day, index) => (
-            <View key={index} style={styles.dayColumn}>
-              <Text style={styles.dayLabel}>{day.label}</Text>
-              <ScrollView style={styles.dayContentS} nestedScrollEnabled={true}>
-                {(groupedSlots[day.iso] || []).map((slot, idx) => (
-                  <View key={idx} style={styles.slotBox}>
-                    <Text style={styles.slotTitle}>{slot.name}</Text>
-                    <Text style={styles.slotSub}>
-                      {slot.type.toUpperCase()} • {formatTime(slot.start)} - {formatTime(slot.end)}
-                    </Text>
-                    {/* Only for meetings: show update/delete buttons */}
-                    {slot.type === 'meeting' && (
-                      <View style={{ flexDirection: 'row', marginTop: 8 }}>
-                        <TouchableOpacity
-                          style={{
-                            backgroundColor: '#2563eb',
-                            borderRadius: 6,
-                            paddingVertical: 6,
-                            paddingHorizontal: 10,
-                            marginRight: 8,
-                          }}
-                          onPress={() => {
-                            setModalType('update');
-                            setSelectedMeeting(slot);
-                            setUpdateName('');
-                            setUpdateLoc('');
-                            setUpdateTime('');
-                            setModalVisible(true);
-                          }}
-                        >
-                          <Text style={{ color: 'white', fontWeight: 'bold' }}>Update</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={{
-                            backgroundColor: '#dc2626',
-                            borderRadius: 6,
-                            paddingVertical: 6,
-                            paddingHorizontal: 10,
-                          }}
-                          onPress={() => {
-                            setModalType('delete');
-                            setSelectedMeeting(slot);
-                            setModalVisible(true);
-                          }}
-                        >
-                          <Text style={{ color: 'white', fontWeight: 'bold' }}>Delete</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          ))}
-        </ScrollView>
-      )}
+      <CalendarWeekView
+        slots={slots}
+        loading={loading}
+        showMeetingActions={true}
+        initialReferenceDate={getStartOfWeek(referenceDate)}
+        onReferenceDateChange={setReferenceDate}
+        onUpdateMeeting={(slot: Slot) => {
+          setModalType('update');
+          setSelectedMeeting(slot);
+          setUpdateName('');
+          setUpdateLoc('');
+          setUpdateTime('');
+          setModalVisible(true);
+        }}
+        onDeleteMeeting={(slot: Slot) => {
+          setModalType('delete');
+          setSelectedMeeting(slot);
+          setModalVisible(true);
+        }}
+        />
 
       {/* Meeting Update/Delete Modal */}
       <Modal
@@ -425,7 +287,7 @@ const CalendarView = () => {
           </View>
         </View>
       </Modal>
-
+      <View style = {{flex:1}}></View>
       <TouchableOpacity onPress={() => navigation.replace('Home')} style={styles.but}>
         <Text style={styles.butText}>Back to Home</Text>
       </TouchableOpacity>
