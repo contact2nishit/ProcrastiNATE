@@ -6,7 +6,7 @@ import jwt
 import asyncpg
 import dotenv
 import os
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
@@ -14,12 +14,26 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from scheduler import *
-
+import httpx
+from urllib.parse import urlencode
+from fastapi.responses import RedirectResponse
+import google.oauth2.credentials
+import google_auth_oauthlib.flow
+import os
+from google.auth.transport.requests import Request as GoogleRequest
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 
 dotenv.load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,7 +47,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # or your frontend URL
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,29 +69,252 @@ async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREA
                 return {"error": "An account is already registered with the given username or email"}
             hash = get_password_hash(pwd)
             await conn.execute("INSERT INTO users(username, email, password_hash) VALUES($1, $2, $3)", user, mail, hash)
-            return {"message": "Account created successfully!"}
+            return MessageResponseDataModel(message="Account created Successfully")
+    except HTTPException as e:
+        raise e
     except Exception as e:
         print(e)
-        return {"message": "something is wrong"}
-
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Something went wrong on the backend, please check the logs"
+        )
 
 
 @app.post("/login")
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], status_code=status.HTTP_200_OK) -> Token:
     """Authenticate user and provide an access token"""
-    user = await authenticate_user(form_data.username, form_data.password, app.state.pool)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+    try:
+        user = await authenticate_user(form_data.username, form_data.password, app.state.pool)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": str(user.user_id)}, expires_delta=access_token_expires
         )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": str(user.user_id)}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+        return LoginResponse(access_token=access_token)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Something went wrong on the backend, please check the logs"
+        )
 
+# TODO: GOOGLE TOKEN MAY EXPIRE, USE REFRESH TOKEN
+
+@app.get("/login/google")
+async def login_google():
+    # Redirect user to Google's OAuth consent screen
+    flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+        'client_secret.json',
+        scopes=[
+            'https://www.googleapis.com/auth/calendar.readonly', 
+            'https://www.googleapis.com/auth/calendar.events.readonly',
+            'openid',
+            'email',
+            'profile'
+        ]
+    )
+    flow.redirect_uri = GOOGLE_REDIRECT_URI
+    authorization_url, state = flow.authorization_url(
+        # Can refresh without asking
+        access_type='offline',
+        # Optional, enable incremental authorization. Recommended as a best practice.
+        include_granted_scopes='true',
+        # Optional, set prompt to 'consent' will prompt the user for consent
+        prompt='consent'
+    )
+    return GoogleRedirectURL(redirect_url=authorization_url)
+
+@app.get("/auth/google/callback")
+async def google_callback(request: Request):
+
+    code = request.query_params.get("code")
+    if not code:
+        raise HTTPException(status_code=400, detail="Missing code from Google")
+    async with httpx.AsyncClient() as client:
+        token_resp = await client.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "redirect_uri": GOOGLE_REDIRECT_URI,
+                "grant_type": "authorization_code",
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+        refresh_token = token_data.get("refresh_token")
+        id_token = token_data.get("id_token")
+
+    # Get user info from id_token
+
+    user_info = jwt.decode(id_token, options={"verify_signature": False})
+    google_id = user_info["sub"]
+    email = user_info.get("email")
+    username = email.split("@")[0] if email else f"google_{google_id}"
+
+    # Find or create user in DB
+    async with app.state.pool.acquire() as conn:
+        user_row = await conn.fetchrow("SELECT user_id FROM users WHERE google_id = $1", google_id)
+        if user_row:
+            user_id = user_row["user_id"]
+            # Update tokens
+            await conn.execute(
+                "UPDATE users SET google_access_token = $1, google_refresh_token = $2 WHERE user_id = $3",
+                access_token, refresh_token, user_id
+            )
+        else:
+            # If user with same email exists, link Google account
+            user_row = await conn.fetchrow("SELECT user_id FROM users WHERE email = $1", email)
+            if user_row:
+                user_id = user_row["user_id"]
+                await conn.execute(
+                    "UPDATE users SET google_id = $1, google_access_token = $2, google_refresh_token = $3, uses_google_oauth = $4 WHERE user_id = $5",
+                    google_id, access_token, refresh_token, True, user_id
+                )
+            else:
+                # Create new user
+                user_id = await conn.fetchval(
+                    "INSERT INTO users(username, email, google_id, google_access_token, google_refresh_token, uses_google_oauth) VALUES($1, $2, $3, $4, $5, $6) RETURNING user_id",
+                    username, email, google_id, access_token, refresh_token, True
+                )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    jwt_token = create_access_token(data={"sub": str(user_id)}, expires_delta=access_token_expires)
+    # Hacky workaround for Expo Go: redirect to exp:// URL with token as query param
+    # You must set EXPO_DEV_URL in your environment to your current exp:// URL (
+    expo_dev_url = os.getenv("EXPO_DEV_URL")
+    if expo_dev_url:
+        # e.g., exp://192.168.1.2:19000/--/auth?token=...
+        deep_link_url = f"{expo_dev_url}/--/auth?token={jwt_token}"
+    else:
+        # fallback to custom scheme for dev client
+        deep_link_url = f"procrastinate://auth?token={jwt_token}"
+    return RedirectResponse(deep_link_url)
+
+@app.post("/googleCalendar/sync")
+async def sync(token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> MessageResponseDataModel:
+    """Pull all events from the user's google calendar that aren't already in the DB"""
+    try:
+        user = await get_current_user(token, app.state.pool)
+        async with app.state.pool.acquire() as conn:
+            # Get Google tokens for this user
+            row = await conn.fetchrow(
+                "SELECT google_access_token, google_refresh_token FROM users WHERE user_id = $1",
+                user.user_id
+            )
+            if not row or not row["google_access_token"]:
+                raise HTTPException(status_code=400, detail="User has not linked Google account.")
+            access_token = row["google_access_token"]
+            refresh_token = row["google_refresh_token"]
+
+        creds = Credentials(
+            token=access_token,
+            refresh_token=refresh_token,
+            client_id=GOOGLE_CLIENT_ID,
+            client_secret=GOOGLE_CLIENT_SECRET,
+            token_uri="https://oauth2.googleapis.com/token",
+        )
+        # Refresh token if needed
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+
+        service = build("calendar", "v3", credentials=creds)
+        # Only fetch events with an end time in the future
+        now_iso = datetime.now(timezone.utc).isoformat()
+        events = []
+        page_token = None
+        while True:
+            events_result = (
+                service.events()
+                .list(
+                    calendarId="primary",
+                    singleEvents=True,
+                    orderBy="startTime",
+                    maxResults=2500,  # Google API max per page
+                    pageToken=page_token,
+                    timeMin=now_iso,  # Only fetch events that start in the future
+                )
+                .execute()
+            )
+            items = events_result.get("items", [])
+            events.extend(items)
+            page_token = events_result.get("nextPageToken")
+            if not page_token:
+                break
+
+        # For deduplication: fetch all meetings and their occurrences for this user
+        async with app.state.pool.acquire() as conn:
+            # Get all meetings for this user
+            meetings = await conn.fetch(
+                "SELECT meeting_id, meeting_name FROM meetings WHERE user_id = $1",
+                user.user_id
+            )
+            meeting_name_to_id = {m['meeting_name']: m['meeting_id'] for m in meetings}
+
+            # Get all meeting occurrences for this user, grouped by meeting_id
+            occs = await conn.fetch(
+                "SELECT meeting_id, start_time, end_time FROM meeting_occurences WHERE user_id = $1",
+                user.user_id
+            )
+            occs_by_meeting = {}
+            for occ in occs:
+                occs_by_meeting.setdefault(occ['meeting_id'], set()).add((occ['start_time'], occ['end_time']))
+
+            new_meetings = 0
+            new_occs = 0
+            for event in events:
+                # Only sync events with a start and end time
+                start = event.get("start", {}).get("dateTime")
+                end = event.get("end", {}).get("dateTime")
+                if not start or not end:
+                    continue
+                # Parse datetimes
+                start_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
+                end_dt = datetime.fromisoformat(end.replace("Z", "+00:00"))
+                # Only add if at least one occurrence is in the future
+                if end_dt < datetime.now(timezone.utc):
+                    continue
+                name = event.get("summary", "Google Event")
+                location = event.get("location") or event.get("hangoutLink") or "Google Calendar"
+                recurs = False  # For now, treat all as non-recurring
+
+                # Check if meeting exists by name
+                meeting_id = meeting_name_to_id.get(name)
+                if meeting_id is None:
+                    # Create new meeting
+                    meeting_id = await conn.fetchval(
+                        "INSERT INTO meetings(user_id, meeting_name, recurs, location_or_link) VALUES($1, $2, $3, $4) RETURNING meeting_id",
+                        user.user_id, name, recurs, location
+                    )
+                    meeting_name_to_id[name] = meeting_id
+                    occs_by_meeting[meeting_id] = set()
+                    new_meetings += 1
+
+                # Only add future occurrences
+                occ_tuple = (start_dt, end_dt)
+                if end_dt >= datetime.now(timezone.utc) and occ_tuple not in occs_by_meeting[meeting_id]:
+                    await conn.execute(
+                        "INSERT INTO meeting_occurences(user_id, meeting_id, start_time, end_time) VALUES($1, $2, $3, $4)",
+                        user.user_id, meeting_id, start_dt, end_dt
+                    )
+                    occs_by_meeting[meeting_id].add(occ_tuple)
+                    new_occs += 1
+
+        return MessageResponseDataModel(message=f"Synced {new_meetings} new meetings and {new_occs} new occurrences from Google Calendar.")
+    except HttpError as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Google Calendar API error")
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/schedule")
 async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleResponseFormat:
@@ -120,11 +357,12 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
         )
 
         
-        # Call schedule_tasks with the blocker included
+        # Call schedule_tasks with the blocker included, always generate 11 schedules
         schedules = schedule_tasks(
             sched.meetings + [scheduled_blocker],
             sched.assignments,
             sched.chores,
+            num_schedules=11,
             tz_offset_minutes=getattr(sched, "tz_offset_minutes", 0)
         )
 
@@ -437,7 +675,7 @@ async def delete(deletion: DeleteRequestDataModel, token: Annotated[str, Depends
         return MessageResponseDataModel(message="Internal server error")
     
 @app.post("/reschedule")
-async def reschedule(re: RescheduleRequestDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> Schedule:
+async def reschedule(re: RescheduleRequestDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> ScheduleResponseFormat:
     """
     Reschedule just a single assignment/chore and return a new schedule for just that one (setSchedule still needed after).
     Deletes all current occurrences but not the parent assignment/chore record.
@@ -483,16 +721,19 @@ async def reschedule(re: RescheduleRequestDataModel, token: Annotated[str, Depen
 
             # Get all current occurrences for this assignment/chore
             old_occs = await conn.fetch(
-                f"SELECT start_time, end_time FROM {occ_table} WHERE {id_col} = $1 AND user_id = $2",
+                f"SELECT start_time, end_time, occurence_id FROM {occ_table} WHERE {id_col} = $1 AND user_id = $2",
                 obj_id, user.user_id
             )
             old_slots = [[o['start_time'], o['end_time']] for o in old_occs]
 
-            # Delete all occurrences for this assignment/chore
-            await conn.execute(
-                f"DELETE FROM {occ_table} WHERE {id_col} = $1 AND user_id = $2",
-                obj_id, user.user_id
-            )
+            # Only delete occurrences with end_time in the future
+            now_utc = datetime.now(timezone.utc)
+            future_occs = [o['occurence_id'] for o in old_occs if o['end_time'] >= now_utc]
+            if future_occs:
+                await conn.execute(
+                    f"DELETE FROM {occ_table} WHERE occurence_id = ANY($1::int[]) AND user_id = $2",
+                    future_occs, user.user_id
+                )
 
             # Update parent record if new values provided
             if re.event_type == "assignment":
@@ -590,13 +831,13 @@ async def reschedule(re: RescheduleRequestDataModel, token: Annotated[str, Depen
             tz_offset = getattr(re, "tz_offset_minutes", 0)
             if re.event_type == "assignment":
                 schedules = schedule_tasks(
-                    [scheduled_blocker], [assignment_req], [], tz_offset_minutes=tz_offset
+                    [scheduled_blocker], [assignment_req], [], tz_offset_minutes=tz_offset, num_schedules=11
                 )
             else:
                 schedules = schedule_tasks(
-                    [scheduled_blocker], [], [chore_req], tz_offset_minutes=tz_offset
+                    [scheduled_blocker], [], [chore_req], tz_offset_minutes=tz_offset, num_schedules=11
                 )
-            return schedules[0]
+            return ScheduleResponseFormat(schedules=schedules, conflicting_meetings=[], meetings=[])
 
     except HTTPException as e:
         raise e
@@ -732,4 +973,3 @@ async def fetch(start_time: str, end_time: str, meetings: bool, assignments: boo
     except Exception as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
-

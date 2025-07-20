@@ -113,6 +113,13 @@ class SessionCompletionDataModel(BaseModel):
     
 # Response data models
 
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+class GoogleRedirectURL(BaseModel):
+    redirect_url: str
+
 class Token(BaseModel):
     access_token: str
     token_type: str

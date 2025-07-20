@@ -3,6 +3,10 @@ import { Platform, Button, View, Text, StyleSheet, TouchableOpacity, TextInput, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function App() {
 
@@ -52,6 +56,70 @@ export default function App() {
       console.log('Failed to save backendURL:', e);
     }
   };
+
+  // Google login handler
+  const handleGoogleLogin = async () => {
+    try {
+      const url = await AsyncStorage.getItem('backendURL');
+      if (!url) {
+        alert('Backend URL not set.');
+        return;
+      }
+
+      // Request the Google OAuth login URL from your backend
+      const resp = await fetch(`${url}/login/google`);
+      if (!resp.ok) {
+        alert('Failed to get Google login URL');
+        return;
+      }
+      const data = await resp.json();
+      const googleAuthUrl = data.redirect_url;
+
+      // Use Linking.addEventListener is deprecated and may not work as expected.
+      // Instead, use Linking.addEventListener for legacy, but prefer Linking.addListener (Expo SDK 49+).
+      // Even better: use Linking.addEventListener for compatibility, but also handle the result from openAuthSessionAsync.
+
+      // Handler for incoming URLs
+      const handleUrl = (event) => {
+        const url = event.url;
+        console.log("Deep link received:", url);
+        const tokenMatch = url.match(/[?&]token=([^&#]+)/);
+        console.log("Token match result:", tokenMatch);
+        if (tokenMatch && tokenMatch[1]) {
+          const token = decodeURIComponent(tokenMatch[1]);
+          console.log("Extracted token:", token);
+          AsyncStorage.setItem('token', token);
+          navigation.replace('Home');
+        } else {
+          console.log("No token found in URL.");
+        }
+        WebBrowser.dismissBrowser();
+      };
+
+      // Add the event listener for deep links
+      const subscription = Linking.addEventListener('url', handleUrl);
+
+      // Generate the correct redirect URI for Expo Go
+      const redirectTo = Linking.createURL('auth');
+
+      // Open the Google login URL in the browser; backend will redirect to exp:// after login
+      // openAuthSessionAsync returns a result object with a url property if the redirect happens in-app
+      const result = await WebBrowser.openAuthSessionAsync(googleAuthUrl, redirectTo);
+
+      // If the redirect happened in-app, handle it directly (sometimes the event doesn't fire)
+      if (result.type === 'success' && result.url) {
+        console.log("WebBrowser result URL:", result.url);
+        handleUrl({ url: result.url });
+      }
+
+      // Always remove the listener after
+      subscription.remove();
+
+    } catch (e) {
+      alert('Google login error: ' + e);
+    }
+  };
+
 
   return (
     <KeyboardAvoidingView
@@ -106,6 +174,10 @@ export default function App() {
 
           <TouchableOpacity style={styles.loginButton} onPress={handleSubmit}>
             <Text style={styles.loginButtonText}>Sign In</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleGoogleLogin} style={styles.googleButton}>
+            <Text style={styles.googleButtonText}>Sign In with Google</Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress ={handleSignup}>
@@ -173,6 +245,21 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     fontSize: 20,
+    textAlign: 'center',
+    fontWeight: '300',
+    color: '#fff',
+  },
+  googleButton: {
+    backgroundColor: '#4285F4',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 8,
+    elevation: 3,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  googleButtonText: {
+    fontSize: 18,
     textAlign: 'center',
     fontWeight: '300',
     color: '#fff',
