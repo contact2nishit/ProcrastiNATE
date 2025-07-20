@@ -21,17 +21,16 @@ import { getData } from './schedulePicker'
 const CalendarViewPotential = () => {
   const { scheduleIdx } = useLocalSearchParams();
   const navigation = useNavigation();
-  const [scheduleData, setSchedules] = useState<any>({});
+  const [scheduleData, setScheduleData] = useState<any>({});
   const [referenceDate, setReferenceDate] = useState(new Date());
 
   useEffect(() => {
-    getData(setSchedules);
+    getData(setScheduleData);
   }, []);
 
   const extractSlots = (scheduleIdx: number): Slot[] => {
-    console.log(scheduleData);
     const allSlots: Slot[] = [];
-    const schedule = scheduleData.schedules[scheduleIdx];
+    const schedule = scheduleData.schedules?.[scheduleIdx];
     if (!schedule) {
       return allSlots;
     }
