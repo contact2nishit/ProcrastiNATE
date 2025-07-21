@@ -3,6 +3,7 @@ import { TextInput, View, Text, StyleSheet, TouchableOpacity } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import config from './config';
 
 export default function Signup() {
 
@@ -15,7 +16,7 @@ export default function Signup() {
 
     const handleSubmit = async () => {
         try {
-            const url = await AsyncStorage.getItem('backendURL');
+            const url = config.backendURL;
             if (!url) {
                 alert('Backend URL not set.');
                 return;

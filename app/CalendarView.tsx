@@ -12,6 +12,7 @@ import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Slot, screenWidth, getStartOfWeek } from './calendarUtils'
 import  CalendarWeekView from './CalendarWeekView'
+import config from './config';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -37,7 +38,7 @@ const CalendarView = () => {
       const monthFromNow = new Date();
       monthFromNow.setMonth(now.getMonth() + 1);
 
-      const url = await AsyncStorage.getItem('backendURL');
+      const url = config.backendURL;
       const token = await AsyncStorage.getItem('token');
 
       if (!url || !token) {
@@ -122,7 +123,7 @@ const CalendarView = () => {
   // Meeting update/delete handlers (same as Home.tsx)
   const handleUpdateMeeting = async () => {
     try {
-      const url = await AsyncStorage.getItem('backendURL');
+      const url = config.backendURL;
       const token = await AsyncStorage.getItem('token');
       if (!url || !token || !selectedMeeting) return;
       const body: any = {
@@ -161,7 +162,7 @@ const CalendarView = () => {
 
   const handleDeleteMeeting = async (removeAllFuture = false) => {
     try {
-      const url = await AsyncStorage.getItem('backendURL');
+      const url = config.backendURL;
       const token = await AsyncStorage.getItem('token');
       if (!url || !token || !selectedMeeting) return;
       const body = {

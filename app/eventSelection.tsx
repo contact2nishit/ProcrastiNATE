@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
 import { useMeetingContext } from './MeetingContext';
 import { useAssignmentContext } from './AssignmentContext';
+import config from './config';
 
 
 export default function EventSelection() 
@@ -149,7 +150,7 @@ export default function EventSelection()
 
   const submitSchedule = async () => {
     try {
-      const url = await AsyncStorage.getItem('backendURL');
+      const url = config.backendURL;
       const token = await AsyncStorage.getItem('token');
       if (!url) {
         alert('Backend URL not set.');
