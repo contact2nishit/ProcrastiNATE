@@ -12,7 +12,7 @@ from passlib.context import CryptContext
 from data_models import *
 from collections import defaultdict
 
-
+MAX_LEVEL = 100 # Maximum level a user can achieve
 
 dotenv.load_dotenv()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -139,3 +139,14 @@ def get_latest_time(
         latest_time = datetime.now(timezone.utc) + timedelta(days=1)
     
     return latest_time
+
+def get_xp_for_next_level(level: int):
+    '''
+    Given a level, return the XP required to reach the next level.
+    '''
+    if level < 1:
+        return 0
+    elif level >= MAX_LEVEL:
+        return float('inf')
+    else:
+        return int(100 * (level ** 1.5))

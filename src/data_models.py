@@ -214,3 +214,9 @@ class FetchResponse(BaseModel):
     assignments: List[AssignmentInResponse] | None = None
     chores: List[ChoreInResponse] | None = None
     meetings: List[MeetingInResponse] | None = None
+
+class LevelResponse(BaseModel):
+    "Response containing the user's details and level"
+    user_name: str
+    xp: int
+    level: int
