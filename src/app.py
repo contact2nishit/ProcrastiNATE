@@ -68,7 +68,8 @@ async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREA
                 status_code = status.HTTP_409_CONFLICT
                 return {"error": "An account is already registered with the given username or email"}
             hash = get_password_hash(pwd)
-            await conn.execute("INSERT INTO users(username, email, password_hash) VALUES($1, $2, $3)", user, mail, hash)
+            user_id = await conn.fetchval("INSERT INTO users(username, email, password_hash) VALUES($1, $2, $3) RETURNING user_id", user, mail, hash)
+            await conn.execute("INSERT INTO achievements(user_id, xp, levels) VALUES($1, 0, $2)", user_id, 1)
             return MessageResponseDataModel(message="Account created Successfully")
     except HTTPException as e:
         raise e
@@ -186,6 +187,7 @@ async def google_callback(request: Request):
                     "INSERT INTO users(username, email, google_id, google_access_token, google_refresh_token, uses_google_oauth) VALUES($1, $2, $3, $4, $5, $6) RETURNING user_id",
                     username, email, google_id, access_token, refresh_token, True
                 )
+                await conn.execute("INSERT INTO achievements(user_id, xp, levels) VALUES($1, 0, $2)", user_id, 1)
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     jwt_token = create_access_token(data={"sub": str(user_id)}, expires_delta=access_token_expires)
     # Hacky workaround for Expo Go: redirect to exp:// URL with token as query param
@@ -435,10 +437,10 @@ async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(
             user = await get_current_user(token, app.state.pool)
             assignment_return_list:List[AssignmentInResponse] = []
             for assignment in chosen_schedule.assignments:
-                print(assignment.due)
+                #print(assignment.due)
                 assignment.due = enforce_timestamp_utc(assignment.due)
-                print(type(assignment.due))
-                print(assignment.due.tzinfo)
+                #print(type(assignment.due))
+                #print(assignment.due.tzinfo)
                 assign_id = await conn.fetchval("INSERT INTO assignments(user_id, assignment_name, effort, deadline) VALUES($1, $2, $3, $4) RETURNING assignment_id", user.user_id, assignment.name, assignment.effort, assignment.due)
                 occurence_ids = []
                 for timeslot in assignment.schedule.slots:
@@ -503,22 +505,27 @@ async def mark_session_completed(complete: SessionCompletionDataModel, token: An
     try:
         async with app.state.pool.acquire() as conn:
             user = await get_current_user(token, app.state.pool)
+            new_xp: int = 0
             if complete.is_assignment:
                 xp_potential: int  = await conn.fetchval('UPDATE assignment_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential', complete.completed, complete.locked_in, complete.occurence_id, user.user_id)
                 if xp_potential is not None:
                     xp_gained: int = round(prop_xp * xp_potential)
-                    new_xp: int = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2 RETURNING xp", xp_gained, user.user_id)
-                    return MessageResponseDataModel(message='Successfully marked assignment as complete!', new_xp=new_xp)
+                    new_xp = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2 RETURNING xp", xp_gained, user.user_id)
                 else:
                     raise HTTPException(status_code=400, detail="You picked a bad occurence id")
             else:
                 xp_potential: int = await conn.fetchval('UPDATE chore_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential', complete.completed, complete.locked_in, complete.occurence_id, user.user_id)
                 if xp_potential is not None:
                     xp_gained: int = round(prop_xp * xp_potential)
-                    new_xp: int = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2 RETURNING xp", xp_gained, user.user_id)
-                    return MessageResponseDataModel(message='Successfully marked chore as complete!', new_xp=new_xp)
+                    new_xp = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2 RETURNING xp", xp_gained, user.user_id)
                 else:
                     raise HTTPException(status_code=400, detail="You picked a bad occurence id")
+            cur_level: int = await conn.fetchval("SELECT levels FROM achievements WHERE user_id = $1", user.user_id)
+
+            if new_xp > get_xp_for_next_level(cur_level) and cur_level < MAX_LEVEL:
+                await conn.execute("UPDATE achievements SET levels = levels + 1 WHERE user_id = $1", user.user_id)
+
+            return MessageResponseDataModel(message='Successfully marked chore as complete!', new_xp=new_xp)
     except HTTPException as e:
         raise e
     except Exception as e:
@@ -973,3 +980,16 @@ async def fetch(start_time: str, end_time: str, meetings: bool, assignments: boo
     except Exception as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
+
+@app.get("/getLevel")
+async def get_level(token: Annotated[str, Depends(oauth2_scheme)]) -> LevelResponse:
+    user = await get_current_user(token, app.state.pool)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication credentials")
+    # Fetch the user's level from the database or any other source
+    user_details = await app.state.pool.fetchrow("SELECT username, xp FROM users WHERE user_id = $1", user.user_id)
+    return LevelResponse(
+        user_name=user_details['username'],
+        xp = int(user_details['xp']),
+        level = await app.state.pool.fetchval("SELECT levels FROM achievements WHERE user_id = $1", user.user_id)
+    )
