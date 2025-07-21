@@ -5,14 +5,14 @@ import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
+import config from './config';
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function App() {
-
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [backendURL, setBackendURL] = useState('');
+  const backendURL = config.backendURL;
   const navigation = useNavigation();
 
   const handleSubmit = async () => {
@@ -60,7 +60,7 @@ export default function App() {
   // Google login handler
   const handleGoogleLogin = async () => {
     try {
-      const url = await AsyncStorage.getItem('backendURL');
+      const url = config.backendURL;
       if (!url) {
         alert('Backend URL not set.');
         return;
@@ -153,22 +153,6 @@ export default function App() {
               secureTextEntry={true}
               value={password}
               onChangeText={setPassword}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Backend URL</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="http://localhost:8000"
-              placeholderTextColor="#aaa"
-              value={backendURL}
-              onChangeText={text => {
-                setBackendURL(text);
-                handleBackendURLSave(text);
-              }}
-              autoCapitalize="none"
-              autoCorrect={false}
             />
           </View>
 

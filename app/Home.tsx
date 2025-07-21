@@ -8,6 +8,7 @@ import { useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
 import RescheduleModal from './RescheduleModal';
+import config from './config';
 
 export default function Home() {
   // Loading state
@@ -16,7 +17,7 @@ export default function Home() {
   const handleSyncGoogleCalendar = async () => {
     try {
       setLoading(true);
-      const url = await AsyncStorage.getItem('backendURL');
+      const url = config.backendURL;
       const token = await AsyncStorage.getItem('token');
       if (!url || !token) {
         Alert.alert('Error', 'Backend URL or token not set.');
@@ -65,7 +66,7 @@ export default function Home() {
   const fetchTodoList = async () => {
     try {
       setLoading(true);
-      const url = await AsyncStorage.getItem('backendURL');
+      const url = config.backendURL;
       const token = await AsyncStorage.getItem('token');
       if (!url || !token) return;
       const now = new Date();
@@ -185,7 +186,7 @@ export default function Home() {
 
   const markSessionCompleted = async (occurence_id: string, is_assignment: boolean, locked_in: number = 5) => {
     try {
-      const url = await AsyncStorage.getItem('backendURL');
+      const url = config.backendURL;
       const token = await AsyncStorage.getItem('token');
       if (!url || !token) {
         Alert.alert('Error', 'Backend URL or token not set.');
@@ -235,7 +236,7 @@ export default function Home() {
   // Update meeting handler
   const handleUpdateMeeting = async () => {
     try {
-      const url = await AsyncStorage.getItem('backendURL');
+      const url = config.backendURL;
       const token = await AsyncStorage.getItem('token');
       if (!url || !token || !selectedMeeting) return;
       const body: any = {
@@ -273,7 +274,7 @@ export default function Home() {
 
   const handleDeleteMeeting = async (removeAllFuture = false) => {
     try {
-      const url = await AsyncStorage.getItem('backendURL');
+      const url = config.backendURL;
       const token = await AsyncStorage.getItem('token');
       if (!url || !token || !selectedMeeting) return;
       const body = {
@@ -305,7 +306,7 @@ export default function Home() {
 
   const handleDeleteEvent = async (occurence_id: string, event_type: "assignment" | "chore") => {
     try {
-      const url = await AsyncStorage.getItem('backendURL');
+      const url = config.backendURL;
       const token = await AsyncStorage.getItem('token');
       if (!url || !token) return;
       const idParts = occurence_id.split('_');
@@ -343,7 +344,7 @@ export default function Home() {
 
   const submitReschedule = async (params: any) => {
     try {
-      const url = await AsyncStorage.getItem('backendURL');
+      const url = config.backendURL;
       const token = await AsyncStorage.getItem('token');
       if (!url || !token || !rescheduleTarget) return;
       const tz_offset_minutes = -new Date().getTimezoneOffset();
