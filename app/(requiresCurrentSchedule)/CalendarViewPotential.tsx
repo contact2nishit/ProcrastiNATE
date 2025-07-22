@@ -14,8 +14,8 @@ import {
 } from 'react-native';
 import { useNavigation } from 'expo-router';
 //import AsyncStorage from '@react-native-async-storage/async-storage';
-import {Slot, formatTime, screenWidth, getStartOfWeek} from './calendarUtils'
-import CalendarWeekView from '../components/CalendarWeekView';
+import {Slot, formatTime, screenWidth, getStartOfWeek} from '../calendarUtils'
+import CalendarWeekView from '../../components/CalendarWeekView';
 import { getData } from './schedulePicker'
 
 const CalendarViewPotential = () => {

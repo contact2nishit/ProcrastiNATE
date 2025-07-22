@@ -8,7 +8,7 @@ import DropDownPicker from 'react-native-dropdown-picker';
 import { useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
-import config from './config';
+import config from '../config';
 
 
 export default function EventSelection() 

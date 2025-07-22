@@ -7,8 +7,9 @@ import { useNavigation } from 'expo-router';
 import { useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
-import RescheduleModal from '../components/RescheduleModal';
-import config from './config';
+import RescheduleModal from '../../components/RescheduleModal';
+import config from '../config';
+import { Slot } from '../calendarUtils';
 
 export default function Home() {
   // Loading state
@@ -50,7 +51,7 @@ export default function Home() {
     is_assignment: boolean;
   };
   const navigation = useNavigation();
-  const [todoList, setTodoList] = useState<any[]>([]);
+  const [todoList, setTodoList] = useState<Slot[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'update' | 'delete' | 'markSession' | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
@@ -63,6 +64,9 @@ export default function Home() {
   const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
 
   // Refetch todo list (single definition, with loading)
+  const fetchTodoList = async () => {
+    try {
+      setLoading(true);
   const fetchTodoList = async () => {
     try {
       setLoading(true);
@@ -83,7 +87,7 @@ export default function Home() {
       });
       if (!response.ok) return;
       const data = await response.json();
-      const items: any[] = [];
+      const items: Slot[] = [];
       if (data.meetings) {
         for (const m of data.meetings) {
           m.start_end_times.forEach((pair: [string, string], idx: number) => {
@@ -93,7 +97,8 @@ export default function Home() {
               start: pair[0],
               end: pair[1],
               id: m.ocurrence_ids?.[idx] ?? idx,
-              meeting_id: m.meeting_id, // include meeting_id for update/delete
+              meeting_id: m.meeting_id,
+              occurence_id: m.ocurrence_ids?.[idx] ?? idx,
             });
           });
         }
@@ -109,6 +114,8 @@ export default function Home() {
                 end: slot.end,
                 id: `assignment_${a.assignment_id}_${a.ocurrence_ids?.[idx] ?? idx}`,
                 completed: a.completed?.[idx] ?? false,
+                assignment_id: a.assignment_id,
+                occurence_id: a.ocurrence_ids?.[idx] ?? idx,
               });
             });
           }
@@ -125,6 +132,8 @@ export default function Home() {
                 end: slot.end,
                 id: `chore_${c.chore_id}_${c.ocurrence_ids?.[idx] ?? idx}`,
                 completed: c.completed?.[idx] ?? false,
+                chore_id: c.chore_id,
+                occurence_id: c.ocurrence_ids?.[idx] ?? idx,
               });
             });
           }
@@ -138,11 +147,6 @@ export default function Home() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchTodoList();
-  }, []);
-
   const handleBack = () => {
     AsyncStorage.removeItem("token");
     navigation.navigate('index');
