@@ -7,7 +7,7 @@ import { useNavigation } from 'expo-router';
 import { useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
-import RescheduleModal from './RescheduleModal';
+import RescheduleModal from '../components/RescheduleModal';
 import config from './config';
 
 export default function Home() {

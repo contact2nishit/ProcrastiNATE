@@ -11,7 +11,7 @@ import {
 import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Slot, screenWidth, getStartOfWeek } from './calendarUtils'
-import  CalendarWeekView from './CalendarWeekView'
+import  CalendarWeekView from '../components/CalendarWeekView'
 import config from './config';
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
