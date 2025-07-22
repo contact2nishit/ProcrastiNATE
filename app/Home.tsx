@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
 import RescheduleModal from './RescheduleModal';
 import config from './config';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function Home() {
   // Loading state
@@ -398,14 +399,16 @@ export default function Home() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
-      <TouchableOpacity onPress={handleSyncGoogleCalendar} style={styles.syncButton} disabled={loading}>
-        <Text style={styles.syncButtonText}>{loading ? 'Syncing...' : 'Sync Google Calendar'}</Text>
-      </TouchableOpacity>
       {loading && (
         <View style={{ alignItems: 'center', marginVertical: 10 }}>
           <Text style={{ color: '#888' }}>Loading...</Text>
         </View>
       )}
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 20, marginRight: 16 }}>
+        <TouchableOpacity onPress={calendarProceed} style={styles.calendarButton}>
+          <MaterialCommunityIcons name='calendar-month' size={32} color='white'/>
+        </TouchableOpacity>
+      </View>
       <Text style={styles.welcomeText}>To Do List for Today</Text>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {todoList.map((item, idx) => (
@@ -529,6 +532,10 @@ export default function Home() {
           <Text style={styles.plus}>+</Text>
         </TouchableOpacity>
       </ScrollView>
+      <View style={{flex: 1}}></View>
+      <TouchableOpacity onPress={handleSyncGoogleCalendar} style={styles.syncButton} disabled={loading}>
+        <Text style={styles.syncButtonText}>{loading ? 'Syncing...' : 'Sync Google Calendar'}</Text>
+      </TouchableOpacity>
       {/* Update/Delete/Session completion Modal */}
       <Modal
         visible={modalVisible}
@@ -640,9 +647,6 @@ export default function Home() {
       <TouchableOpacity onPress={handleBack}>
         <Text style={styles.buttonBack}>Back to Login</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={calendarProceed}>
-        <Text style={styles.calendarButton}>View Calendar</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -737,14 +741,18 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   calendarButton:{
-     backgroundColor: '#333',
-    padding: 10,
-    borderRadius: 5,
-    marginTop: 20,
-    marginLeft: 10,
+    backgroundColor: '#333',
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+  },
+  calendarButtonText: {
     color: 'white',
-    width: 150,
     fontSize: 16,
+    fontWeight: 'bold',
     textAlign: 'center',
   },
   modalOverlay: {
