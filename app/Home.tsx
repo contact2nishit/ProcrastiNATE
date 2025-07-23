@@ -7,6 +7,7 @@ import { useNavigation } from 'expo-router';
 import { useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
+import { ProgressBar } from 'react-native-paper';
 import RescheduleModal from './RescheduleModal';
 import config from './config';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -62,7 +63,41 @@ export default function Home() {
   const [lockedInValue, setLockedInValue] = useState(5);
   const [rescheduleModalVisible, setRescheduleModalVisible] = useState(false);
   const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
+  const [levelInfo, setLevelInfo] = useState<{xp: number; level: number; user_name: string } | null>(null);
+  const [xpForNextLevel, setXpForNextLevel] = useState<number>(100);
 
+  // Fetch user level info
+  const fetchLevelInfo = async () => {
+    try {
+      const url = config.backendURL;
+      const token = await AsyncStorage.getItem('token');
+      if (!url || !token) {
+        Alert.alert('Error', "Backend URL or token not set.");
+        return;
+      }
+      const response = await fetch(`${url}/getLevel`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      setLevelInfo({
+        xp: data.xp,
+        level: data.level,
+        user_name: data.user_name
+      })
+      // Set XP for next level based on level
+      setXpForNextLevel(Math.floor(100 * Math.pow(1.5, data.level)));
+    } catch (e) {
+      Alert.alert('Error', 'Failed to fetch level info: ' + e);
+    }
+  }
+
+  useEffect(() => {
+    fetchLevelInfo();
+  }, []);
   // Refetch todo list (single definition, with loading)
   const fetchTodoList = async () => {
     try {
@@ -229,6 +264,7 @@ export default function Home() {
       }));
       Alert.alert('Success', 'Session marked as completed!');
       setModalVisible(false);
+      await fetchLevelInfo();
     } catch (e) {
       Alert.alert('Error', 'Failed to mark session as completed: ' + e);
     }
@@ -404,11 +440,34 @@ export default function Home() {
           <Text style={{ color: '#888' }}>Loading...</Text>
         </View>
       )}
-      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 20, marginRight: 16 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, marginHorizontal: 16 }}>
         <TouchableOpacity onPress={calendarProceed} style={styles.calendarButton}>
           <MaterialCommunityIcons name='calendar-month' size={32} color='white'/>
         </TouchableOpacity>
       </View>
+      <View style={{ alignItems: 'center', marginTop: 20}}>
+        <Text style={styles.levelText}>
+          {levelInfo ? `Welcome, ${levelInfo.user_name}!` : `Welcome!`}
+        </Text>
+      </View>
+      {levelInfo && (
+        <View style={styles.levelContainer}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
+            Level: {levelInfo.level}
+          </Text>
+          <Text style={{ fontSize: 16, marginTop: 4 }}>
+            XP: {levelInfo.xp} / {xpForNextLevel}
+          </Text>
+          <ProgressBar
+            progress={Math.min(levelInfo.xp / xpForNextLevel, 1)}
+            color="#2563eb"
+            style={{ height: 12, borderRadius: 6, width: 250, marginTop: 8 }}
+          />
+          <Text style={{ fontSize: 14, marginTop: 4 }}>
+            {xpForNextLevel - levelInfo.xp} XP to next level
+          </Text>
+        </View>
+      )}
       <Text style={styles.welcomeText}>To Do List for Today</Text>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {todoList.map((item, idx) => (
@@ -669,8 +728,8 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 24,
     fontWeight: 'bold',
-    textAlign: 'left',
-    marginTop: 50,
+    textAlign: 'center',
+    marginTop: 20,
     marginLeft: 10,
     color: '#333',
   },
@@ -799,5 +858,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
     textAlign: 'center',
+  },
+  levelText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  levelContainer: {
+    alignItems: 'center',
+    marginTop: 10,
   },
 });

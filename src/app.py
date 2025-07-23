@@ -69,7 +69,7 @@ async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREA
                 return {"error": "An account is already registered with the given username or email"}
             hash = get_password_hash(pwd)
             user_id = await conn.fetchval("INSERT INTO users(username, email, password_hash) VALUES($1, $2, $3) RETURNING user_id", user, mail, hash)
-            await conn.execute("INSERT INTO achievements(user_id, xp, levels) VALUES($1, 0, $2)", user_id, 1)
+            await conn.execute("INSERT INTO achievements(user_id, levels) VALUES($1, $2)", user_id, 1)
             return MessageResponseDataModel(message="Account created Successfully")
     except HTTPException as e:
         raise e
@@ -187,7 +187,7 @@ async def google_callback(request: Request):
                     "INSERT INTO users(username, email, google_id, google_access_token, google_refresh_token, uses_google_oauth) VALUES($1, $2, $3, $4, $5, $6) RETURNING user_id",
                     username, email, google_id, access_token, refresh_token, True
                 )
-                await conn.execute("INSERT INTO achievements(user_id, xp, levels) VALUES($1, 0, $2)", user_id, 1)
+                await conn.execute("INSERT INTO achievements(user_id, levels) VALUES($1, $2)", user_id, 1)
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     jwt_token = create_access_token(data={"sub": str(user_id)}, expires_delta=access_token_expires)
     # Hacky workaround for Expo Go: redirect to exp:// URL with token as query param
