@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 
 
 const EventSelection: React.FC = () => {
-  const { setPotentialSchedules } = usePotentialScheduleContext();
+  const { potentialSchedules, setPotentialSchedules } = usePotentialScheduleContext();
   const [selected, setSelected] = useState('Meeting');
   const router = useRouter();
   // Use a useEffect state hook to reset all input fields when selected changes:
@@ -57,13 +57,7 @@ const EventSelection: React.FC = () => {
     effort: number;
   }
 
-  const [open, setOpen] = useState(false);
   const [recurrence, setRecurrence] = useState<string | null>(null);
-  const [items, setItems] = useState([
-    { label: 'Daily', value: 'Daily' },
-    { label: 'Once', value: 'Once' },
-    { label: 'Every Mon', value: 'Mon' }
-  ]);
 
   const [startDateTime, setStartDateTime] = useState(new Date());
   const [endDateTime, setEndDateTime] = useState(new Date());

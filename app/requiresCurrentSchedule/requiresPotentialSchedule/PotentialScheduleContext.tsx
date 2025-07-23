@@ -51,28 +51,20 @@ export type PotentialSchedulesData = {
 export type PotentialScheduleContextType = {
   potentialSchedules: PotentialSchedulesData | null;
   setPotentialSchedules: (data: PotentialSchedulesData) => void;
-  clearPotentialSchedules: () => void;
 };
 
 const PotentialScheduleContext = createContext<PotentialScheduleContextType | undefined>(undefined);
 
 export const PotentialScheduleProvider = ({ children }: { children: ReactNode }) => {
-  const [potentialSchedules, setPotentialSchedulesState] = useState<PotentialSchedulesData | null>(null);
+  const [potentialSchedules, setPotentialSchedules] = useState<PotentialSchedulesData | null>(null);
 
-  const setPotentialSchedules = (data: PotentialSchedulesData) => {
-    setPotentialSchedulesState(data);
-  };
 
-  const clearPotentialSchedules = () => {
-    setPotentialSchedulesState(null);
-  };
 
   return (
     <PotentialScheduleContext.Provider
       value={{
-        potentialSchedules,
-        setPotentialSchedules,
-        clearPotentialSchedules,
+        potentialSchedules: potentialSchedules,
+        setPotentialSchedules: setPotentialSchedules,
       }}
     >
       {children}

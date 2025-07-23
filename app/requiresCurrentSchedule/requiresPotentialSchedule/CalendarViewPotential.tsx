@@ -16,23 +16,20 @@ import { useNavigation } from 'expo-router';
 //import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Slot, formatTime, screenWidth, getStartOfWeek} from '../../calendarUtils'
 import CalendarWeekView from '../../../components/CalendarWeekView';
-import { getData } from './schedulePicker'
 import { useRouter } from 'expo-router';
-
+import { usePotentialScheduleContext } from './PotentialScheduleContext';
 
 const CalendarViewPotential = () => {
   const { scheduleIdx } = useLocalSearchParams();
   const navigation = useNavigation();
-  const [scheduleData, setScheduleData] = useState<any>({});
+  const { potentialSchedules, setPotentialSchedules } = usePotentialScheduleContext();
   const [referenceDate, setReferenceDate] = useState(new Date());
   const router = useRouter();
-  useEffect(() => {
-    getData(setScheduleData);
-  }, []);
+
 
   const extractSlots = (scheduleIdx: number): Slot[] => {
     const allSlots: Slot[] = [];
-    const schedule = scheduleData.schedules?.[scheduleIdx];
+    const schedule = potentialSchedules.schedules?.[scheduleIdx];
     if (!schedule) {
       return allSlots;
     }

@@ -1,16 +1,15 @@
-
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, SafeAreaView } from 'react-native';
 import { useNavigation, useRouter } from 'expo-router';
 import config from '../../config';
 import { usePotentialScheduleContext } from './PotentialScheduleContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-
-
+const SchedulePicker = () => {
 
   const navigation = useNavigation();
   const router = useRouter();
-  const { potentialSchedules, clearPotentialSchedules } = usePotentialScheduleContext();
+  const { potentialSchedules, setPotentialSchedules } = usePotentialScheduleContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedScheduleIdx, setSelectedScheduleIdx] = useState<number | null>(null);
 
@@ -27,15 +26,12 @@ import { usePotentialScheduleContext } from './PotentialScheduleContext';
   const meetings = parsedData?.meetings || [];
   const conflicting_meetings = parsedData?.conflicting_meetings || [];
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedScheduleIdx, setSelectedScheduleIdx] = useState<number | null>(null);
-
   const fmt = (iso: string) => new Date(iso).toLocaleString();
 
   const submitSchedule = async (schedule: any) => {
     try {
       const url = config.backendURL;
-      const token = await (await import('@react-native-async-storage/async-storage')).default.getItem('token');
+      const token = await AsyncStorage.getItem('token');
       if (!url || !token) {
         alert('Backend URL or token not set.');
         return;
@@ -54,7 +50,6 @@ import { usePotentialScheduleContext } from './PotentialScheduleContext';
         return;
       }
       alert('Schedule set successfully!');
-      clearPotentialSchedules();
       router.push('/requiresCurrentSchedule/Home');
     } catch (e) {
       alert('Error setting schedule: ' + e);
@@ -192,7 +187,7 @@ import { usePotentialScheduleContext } from './PotentialScheduleContext';
                 onPress={() => {
                   setModalVisible(false);
                   navigation.navigate("CalendarViewPotential",
-                  { scheduleIdx: selectedScheduleIdx} 
+                  { scheduleIdx: selectedScheduleIdx } 
                 )}}
                 >
                 <Text style={styles.closeButtonText}>View Potential Schedule</Text>
@@ -254,3 +249,5 @@ const styles = StyleSheet.create({
   }
 });
 
+
+export default SchedulePicker;
