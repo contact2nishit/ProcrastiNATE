@@ -6,6 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import config from './config';
+import { useRouter } from 'expo-router';
+
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -14,6 +16,7 @@ export default function App() {
   const [password, setPassword] = useState('');
   const backendURL = config.backendURL;
   const navigation = useNavigation();
+  const router = useRouter();
 
   const handleSubmit = async () => {
     try {
@@ -39,7 +42,7 @@ export default function App() {
       if (data.access_token) {
         await AsyncStorage.setItem('token', data.access_token);
       }
-      navigation.replace('Home');
+      router.push('/requiresCurrentSchedule/Home');
     } catch (e) {
       alert('Login error: ' + e);
     }
@@ -89,7 +92,7 @@ export default function App() {
           const token = decodeURIComponent(tokenMatch[1]);
           console.log("Extracted token:", token);
           AsyncStorage.setItem('token', token);
-          navigation.replace('Home');
+          router.push('/requiresCurrentSchedule/Home');
         } else {
           console.log("No token found in URL.");
         }

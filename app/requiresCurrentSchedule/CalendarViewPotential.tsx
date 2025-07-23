@@ -17,13 +17,15 @@ import { useNavigation } from 'expo-router';
 import {Slot, formatTime, screenWidth, getStartOfWeek} from '../calendarUtils'
 import CalendarWeekView from '../../components/CalendarWeekView';
 import { getData } from './schedulePicker'
+import { useRouter } from 'expo-router';
+
 
 const CalendarViewPotential = () => {
   const { scheduleIdx } = useLocalSearchParams();
   const navigation = useNavigation();
   const [scheduleData, setScheduleData] = useState<any>({});
   const [referenceDate, setReferenceDate] = useState(new Date());
-
+  const router = useRouter();
   useEffect(() => {
     getData(setScheduleData);
   }, []);

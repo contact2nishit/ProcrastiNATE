@@ -9,12 +9,13 @@ import { useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { format } from 'date-fns';
 import config from '../config';
+import { useRouter } from 'expo-router';
 
 
 export default function EventSelection() 
 {
   const [selected, setSelected] = useState('Meeting');
-
+  const router = useRouter();
   // Use a useEffect state hook to reset all input fields when selected changes:
   useEffect(() => {
     setStartDateTime(new Date());

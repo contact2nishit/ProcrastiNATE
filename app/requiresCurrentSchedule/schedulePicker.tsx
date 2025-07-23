@@ -4,6 +4,7 @@ import { useNavigation, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../config';
 
+
 export const getData = async (ScheduleStateSetter: React.Dispatch<React.SetStateAction<any>>) => {
   try {
     const daa = await AsyncStorage.getItem("schedules");
@@ -20,7 +21,7 @@ export const getData = async (ScheduleStateSetter: React.Dispatch<React.SetState
 export default function SchedulePicker() {
   const navigation = useNavigation();
   const [scheduleData, setScheduleData] = useState<any>({});
-
+  const router = useRouter();
   useEffect(() => {
     getData(setScheduleData);
   }, []);

@@ -10,9 +10,11 @@ import {
 } from 'react-native';
 import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Slot, screenWidth, getStartOfWeek } from './calendarUtils'
-import  CalendarWeekView from '../components/CalendarWeekView'
-import config from './config';
+import { Slot, screenWidth, getStartOfWeek } from '../calendarUtils'
+import  CalendarWeekView from '../../components/CalendarWeekView'
+import config from '../config';
+import { useRouter } from 'expo-router';
+
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -21,7 +23,7 @@ const CalendarView = () => {
   const [loading, setLoading] = useState(true);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [referenceDate, setReferenceDate] = useState(new Date()); // controls the week shown
-
+  const router = useRouter();
   // Modal state for meeting update/delete
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'update' | 'delete' | null>(null);
