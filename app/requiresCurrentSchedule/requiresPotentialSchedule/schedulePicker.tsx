@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, SafeAreaView } from 'react-native';
 import { useNavigation, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import config from '../config';
+import config from '../../config';
 
 
 export const getData = async (ScheduleStateSetter: React.Dispatch<React.SetStateAction<any>>) => {

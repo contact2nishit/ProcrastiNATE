@@ -14,16 +14,16 @@ import { Slot, screenWidth, getStartOfWeek } from '../calendarUtils'
 import  CalendarWeekView from '../../components/CalendarWeekView'
 import config from '../config';
 import { useRouter } from 'expo-router';
+import { useCurrentScheduleContext } from './CurrentScheduleContext';
 
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const CalendarView = () => {
+  const { currSchedule, setCurrSchedule, ensureScheduleRange, refetchSchedule } = useCurrentScheduleContext();
   const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
-  const [slots, setSlots] = useState<Slot[]>([]);
   const [referenceDate, setReferenceDate] = useState(new Date()); // controls the week shown
-  const router = useRouter();
   // Modal state for meeting update/delete
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'update' | 'delete' | null>(null);
@@ -32,87 +32,17 @@ const CalendarView = () => {
   const [updateLoc, setUpdateLoc] = useState('');
   const [updateTime, setUpdateTime] = useState('');
 
-  // Refetch schedule logic extracted for reuse
+  // Use context to ensure we have the week's schedule
   const fetchSchedule = async () => {
     try {
       setLoading(true);
-      const now = new Date();
-      const monthFromNow = new Date();
-      monthFromNow.setMonth(now.getMonth() + 1);
-
-      const url = config.backendURL;
-      const token = await AsyncStorage.getItem('token');
-
-      if (!url || !token) {
-        Alert.alert('Configuration Error', 'Missing backend URL or authentication token');
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(
-        `${url}/fetch?start_time=${encodeURIComponent(getStartOfWeek(referenceDate).toISOString().replace('Z', '+00:00'))}&end_time=${encodeURIComponent(
-          monthFromNow.toISOString().replace('Z', '+00:00')
-        )}&meetings=true&assignments=true&chores=true`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) throw new Error(await response.text());
-
-      const data = await response.json();
-      const allSlots: Slot[] = [];
-
-      // Helper to extract slots and IDs for meetings
-      const extractSlots = (items: any[], type: string) => {
-        for (const item of items) {
-          if (type === 'chore' && item.window) {
-              allSlots.push({
-                name: item.name,
-                type,
-                start: item.window.start || item.window[0],
-                end: item.window.end || item.window[1],
-              });
-          } else if (type === 'meeting' && item.start_end_times) {
-            // Add meeting_id and occurence_id for each occurrence
-            for (let idx = 0; idx < item.start_end_times.length; idx++) {
-              const timeSlot = item.start_end_times[idx];
-              allSlots.push({
-                name: item.name,
-                type,
-                start: timeSlot.start || timeSlot[0],
-                end: timeSlot.end || timeSlot[1],
-                meeting_id: item.meeting_id,
-                occurence_id: item.ocurrence_ids ? item.ocurrence_ids[idx] : undefined,
-              });
-            }
-          } else if (type === 'assignment' && item.schedule?.slots) {
-            for (const slot of item.schedule.slots) {
-              allSlots.push({
-                name: item.name,
-                type,
-                start: slot.start,
-                end: slot.end,
-              });
-            }
-          }
-        }
-      };
-
-      extractSlots(data.assignments || [], 'assignment');
-      extractSlots(data.chores || [], 'chore');
-      extractSlots(data.meetings || [], 'meeting');
-
-      allSlots.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-      setSlots(allSlots);
-
-      // Remove artificial delay for instant reload after update/delete
-      // await delay(1500);
-    } catch (err: any) {
-      console.error('Error loading schedule:', err);
-      Alert.alert('Error', `Could not load schedule: ${err.message}`);
+      const weekStart = getStartOfWeek(referenceDate);
+      const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const startISO = weekStart.toISOString().replace('Z', '+00:00');
+      const endISO = weekEnd.toISOString().replace('Z', '+00:00');
+      await ensureScheduleRange(startISO, endISO);
+    } catch (e) {
+      // handle error
     } finally {
       setLoading(false);
     }
@@ -155,8 +85,8 @@ const CalendarView = () => {
       setUpdateLoc('');
       setUpdateTime('');
       setSelectedMeeting(null);
-      // Immediately reload calendar view
-      fetchSchedule();
+      await refetchSchedule();
+      await fetchSchedule();
     } catch (e) {
       Alert.alert('Error', 'Failed to update meeting: ' + e);
     }
@@ -188,12 +118,19 @@ const CalendarView = () => {
       Alert.alert('Success', removeAllFuture ? 'All future occurrences deleted!' : 'Meeting deleted!');
       setModalVisible(false);
       setSelectedMeeting(null);
-      // Immediately reload calendar view
-      fetchSchedule();
+      await refetchSchedule();
+      await fetchSchedule();
     } catch (e) {
       Alert.alert('Error', 'Failed to delete meeting: ' + e);
     }
   };
+
+  // Filter slots for the current week from context
+  const weekStart = getStartOfWeek(referenceDate);
+  const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const startISO = weekStart.toISOString().replace('Z', '+00:00');
+  const endISO = weekEnd.toISOString().replace('Z', '+00:00');
+  const slots = currSchedule.slots.filter(slot => slot.start >= startISO && slot.end <= endISO);
 
   return (
     <View style={styles.container}>
@@ -218,7 +155,7 @@ const CalendarView = () => {
           setSelectedMeeting(slot);
           setModalVisible(true);
         }}
-        />
+      />
 
       {/* Meeting Update/Delete Modal */}
       <Modal

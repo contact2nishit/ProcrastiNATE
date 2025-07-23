@@ -1,20 +1,22 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Alert, ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
 import RescheduleModal from '../../components/RescheduleModal';
 import config from '../config';
 import { useRouter } from 'expo-router';
+import { useCurrentScheduleContext } from './CurrentScheduleContext';
 
 
 export default function Home() {
   // Loading state
   const [loading, setLoading] = useState(false);
+  const { currSchedule, setCurrSchedule, ensureScheduleRange, refetchSchedule } = useCurrentScheduleContext();
   const router = useRouter();
   // Google Calendar sync handler
   const handleSyncGoogleCalendar = async () => {
@@ -66,85 +68,36 @@ export default function Home() {
   const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
 
   // Refetch todo list (single definition, with loading)
-  const fetchTodoList = async () => {
+  const fetchTodoList = useCallback(async () => {
     try {
       setLoading(true);
-      const url = config.backendURL;
-      const token = await AsyncStorage.getItem('token');
-      if (!url || !token) return;
+      // Use context to ensure we have today's schedule
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
       const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
       const startISO = start.toISOString().replace('Z', '+00:00');
       const endISO = end.toISOString().replace('Z', '+00:00');
-      const params = `start_time=${encodeURIComponent(startISO)}&end_time=${encodeURIComponent(endISO)}&meetings=true&assignments=true&chores=true`;
-      const response = await fetch(`${url}/fetch?${params}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) return;
-      const data = await response.json();
-      const items: any[] = [];
-      if (data.meetings) {
-        for (const m of data.meetings) {
-          m.start_end_times.forEach((pair: [string, string], idx: number) => {
-            items.push({
-              type: 'meeting',
-              name: m.name,
-              start: pair[0],
-              end: pair[1],
-              id: m.ocurrence_ids?.[idx] ?? idx,
-              meeting_id: m.meeting_id, // include meeting_id for update/delete
-            });
-          });
-        }
-      }
-      if (data.assignments) {
-        for (const a of data.assignments) {
-          if (a.schedule && a.schedule.slots) {
-            a.schedule.slots.forEach((slot: any, idx: number) => {
-              items.push({
-                type: 'assignment',
-                name: a.name,
-                start: slot.start,
-                end: slot.end,
-                id: `assignment_${a.assignment_id}_${a.ocurrence_ids?.[idx] ?? idx}`,
-                completed: a.completed?.[idx] ?? false,
-              });
-            });
-          }
-        }
-      }
-      if (data.chores) {
-        for (const c of data.chores) {
-          if (c.schedule && c.schedule.slots) {
-            c.schedule.slots.forEach((slot: any, idx: number) => {
-              items.push({
-                type: 'chore',
-                name: c.name,
-                start: slot.start,
-                end: slot.end,
-                id: `chore_${c.chore_id}_${c.ocurrence_ids?.[idx] ?? idx}`,
-                completed: c.completed?.[idx] ?? false,
-              });
-            });
-          }
-        }
-      }
-      items.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+      await ensureScheduleRange(startISO, endISO);
+      // Filter slots for today
+      const items = currSchedule.slots.filter(slot => slot.start >= startISO && slot.end <= endISO);
       setTodoList(items);
     } catch (e) {
       // handle error
     } finally {
       setLoading(false);
     }
-  };
+  }, [currSchedule, ensureScheduleRange]);
 
-  useEffect(() => {
-    fetchTodoList();
-  }, []);
+
+  // Always refetch schedule and todo list when Home comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        await refetchSchedule();
+        await fetchTodoList();
+      })();
+    }, [refetchSchedule, fetchTodoList])
+  );
 
   const handleBack = () => {
     AsyncStorage.removeItem("token");
@@ -231,6 +184,8 @@ export default function Home() {
       }));
       Alert.alert('Success', 'Session marked as completed!');
       setModalVisible(false);
+      await refetchSchedule();
+      await fetchTodoList();
     } catch (e) {
       Alert.alert('Error', 'Failed to mark session as completed: ' + e);
     }
@@ -269,7 +224,8 @@ export default function Home() {
       setUpdateLoc('');
       setUpdateTime('');
       setSelectedMeeting(null);
-      fetchTodoList();
+      await refetchSchedule();
+      await fetchTodoList();
     } catch (e) {
       Alert.alert('Error', 'Failed to update meeting: ' + e);
     }
@@ -301,7 +257,8 @@ export default function Home() {
       Alert.alert('Success', removeAllFuture ? 'All future occurrences deleted!' : 'Meeting deleted!');
       setModalVisible(false);
       setSelectedMeeting(null);
-      fetchTodoList();
+      await refetchSchedule();
+      await fetchTodoList();
     } catch (e) {
       Alert.alert('Error', 'Failed to delete meeting: ' + e);
     }
@@ -334,7 +291,8 @@ export default function Home() {
       }
       Alert.alert('Success', `${event_type.charAt(0).toUpperCase() + event_type.slice(1)} deleted!`);
       setModalVisible(false);
-      fetchTodoList();
+      await refetchSchedule();
+      await fetchTodoList();
     } catch (e) {
       Alert.alert('Error', 'Failed to delete: ' + e);
     }
@@ -391,8 +349,8 @@ export default function Home() {
       const data = await response.json();
       setRescheduleModalVisible(false);
       setRescheduleTarget(null);
-      // Save the full ScheduleResponseFormat object directly
-      await AsyncStorage.setItem("schedules", JSON.stringify(data));
+      await refetchSchedule();
+      await fetchTodoList();
       navigation.navigate('schedulePicker');
     } catch (e) {
       Alert.alert('Error', 'Failed to reschedule: ' + e);
