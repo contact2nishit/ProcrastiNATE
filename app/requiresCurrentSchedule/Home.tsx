@@ -64,8 +64,7 @@ export default function Home() {
   const [updateTime, setUpdateTime] = useState('');
   const [selectedSessionToComplete, setSelectedSessionToComplete] = useState<SessionToMaybeComplete>({occurence_id: "A", is_assignment: false});
   const [lockedInValue, setLockedInValue] = useState(5);
-  const [rescheduleModalVisible, setRescheduleModalVisible] = useState(false);
-  const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
+  // Remove reschedule modal state, use navigation instead
 
   // Refetch todo list (single definition, with loading)
   const fetchTodoList = useCallback(async () => {
@@ -116,7 +115,7 @@ export default function Home() {
   }
 
   const handleAddEvent = () => {
-    navigation.navigate('eventSelection');
+    router.push('/requiresCurrentSchedule/requiresPotentialSchedule/eventSelection');
   };
 
   const getCardStyle = (type: string) => {
@@ -299,8 +298,19 @@ export default function Home() {
   };
 
   const handleReschedule = (item: any) => {
-    setRescheduleTarget(item);
-    setRescheduleModalVisible(true);
+    // Extract id for assignment/chore (assignment_<assignment_id>_<occurence_id> or chore_<chore_id>_<occurence_id>)
+    let idToSend: number | undefined;
+    if (item.type === 'assignment' || item.type === 'chore') {
+      const parts = item.id.split('_');
+      idToSend = Number(parts[1]);
+    }
+    navigation.navigate('RescheduleScreen', {
+      id: idToSend,
+      type: item.type,
+      effort: item.effort,
+      start: item.start,
+      end: item.end,
+    });
   };
 
   const submitReschedule = async (params: any) => {
@@ -588,16 +598,7 @@ export default function Home() {
           </View>
         </View>
       </Modal>
-      <RescheduleModal
-        visible={rescheduleModalVisible}
-        onClose={() => setRescheduleModalVisible(false)}
-        onSubmit={submitReschedule}
-        eventType={rescheduleTarget?.type}
-        currentEffort={rescheduleTarget?.effort || 0}
-        currentDue={rescheduleTarget?.end}
-        currentWindowStart={rescheduleTarget?.start}
-        currentWindowEnd={rescheduleTarget?.end}
-      />
+      {/* RescheduleModal removed; now handled by RescheduleScreen */}
       <TouchableOpacity onPress={handleBack}>
         <Text style={styles.buttonBack}>Back to Login</Text>
       </TouchableOpacity>
