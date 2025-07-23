@@ -441,6 +441,9 @@ export default function Home() {
         </View>
       )}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, marginHorizontal: 16 }}>
+        <TouchableOpacity style={styles.calendarButton}>
+          <MaterialCommunityIcons name="account" size={32} color="white" />
+        </TouchableOpacity>
         <TouchableOpacity onPress={calendarProceed} style={styles.calendarButton}>
           <MaterialCommunityIcons name='calendar-month' size={32} color='white'/>
         </TouchableOpacity>
