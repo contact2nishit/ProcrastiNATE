@@ -8,7 +8,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-import { useNavigation } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Slot, screenWidth, getStartOfWeek } from '../calendarUtils'
 import  CalendarWeekView from '../../components/CalendarWeekView'
@@ -228,7 +228,7 @@ const CalendarView = () => {
         </View>
       </Modal>
       <View style = {{flex:1}}></View>
-      <TouchableOpacity onPress={() => navigation.replace('Home')} style={styles.but}>
+      <TouchableOpacity onPress={() => router.push('/requiresCurrentSchedule/Home')} style={styles.but}>
         <Text style={styles.butText}>Back to Home</Text>
       </TouchableOpacity>
     </View>

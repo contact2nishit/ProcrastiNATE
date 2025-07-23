@@ -2,18 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { KeyboardAvoidingView, Alert, View, SafeAreaView, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { useNavigation } from 'expo-router';
+// import { useNavigation } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { usePotentialScheduleContext } from './PotentialScheduleContext';
 import { format } from 'date-fns';
 import config from '../../config';
 import { useRouter } from 'expo-router';
 
 
-export default function EventSelection() 
-{
+const EventSelection: React.FC = () => {
+  const { setPotentialSchedules } = usePotentialScheduleContext();
   const [selected, setSelected] = useState('Meeting');
   const router = useRouter();
   // Use a useEffect state hook to reset all input fields when selected changes:
@@ -33,14 +34,14 @@ export default function EventSelection()
   }, [selected]);
 
   type Meeting = {
-  startTime: string;
-  endTime: string;
-  name: string;
-  recurrence: string | null;
-  link_or_loc: string | null;
-  meetingID: number;
-  occurrenceID: number;
-  meetingRepeatEnd?: string; // optional, for editing
+    startTime: string;
+    endTime: string;
+    name: string;
+    recurrence: string | null;
+    link_or_loc: string | null;
+    meetingID: number;
+    occurrenceID: number;
+    meetingRepeatEnd?: string; // optional, for editing
   };
 
   type Assignment = {
@@ -88,7 +89,7 @@ export default function EventSelection()
     { label: 'Events', icon: 'calendar-check' },
   ];
 
-  const navigation = useNavigation();
+  // const navigation = useNavigation();
   const [date, setDate] = useState(new Date());
   // const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -182,14 +183,13 @@ export default function EventSelection()
         return;
       }
       const data = await response.json();
-      // Fix: AsyncStorage only stores strings, so use JSON.stringify
-      await AsyncStorage.setItem("schedules", JSON.stringify(data));
+      setPotentialSchedules(data);
       // Clear the scheduling cart after successful scheduling
       setMeetings([]);
       setAssignments([]);
       setChores([]);
       setBackendJSON({ meetings: [], assignments: [], chores: [] });
-      navigation.navigate('schedulePicker', { scheduleData: data }); // If TS error, cast navigation as any
+      router.push('/requiresCurrentSchedule/requiresPotentialSchedule/schedulePicker');
     } catch (e) {
       alert('Error submitting schedule: ' + e);
     }
@@ -362,7 +362,7 @@ export default function EventSelection()
 
 
   const handlePrev = () => {
-    (navigation as any).replace('Home'); // If TS error, cast navigation as any
+    router.replace('/requiresCurrentSchedule/Home'); // Home screen
   }
 
 
@@ -562,7 +562,7 @@ export default function EventSelection()
   };
 
   //Function to handle editing or deleting a meeting:
-  const editDeleteMeeting = (index) => 
+  const editDeleteMeeting = (index: number) =>
   {
     const meeting = meetings[index];
     Alert.alert(
@@ -594,7 +594,7 @@ export default function EventSelection()
   }
 
   //Function to handle editing or deleting an assignment:
-  const editDeleteAssignment = (index) => 
+  const editDeleteAssignment = (index: number) =>
   {
     const assignment = assignments[index];
     Alert.alert(
@@ -626,7 +626,7 @@ export default function EventSelection()
   }
 
   //Function to handle editing or deleting a chore:
-  const editDeleteChore = (index) => 
+  const editDeleteChore = (index: number) =>
   {
     const chore = chores[index];
     Alert.alert(
@@ -878,7 +878,7 @@ export default function EventSelection()
               <TouchableOpacity 
                 style={styles.backButton2} 
                 onPress={() => {
-                  navigation.replace('Home');
+                  router.replace('/requiresCurrentSchedule/Home');
                 }}
               >
                 <Text style={styles.eventText}>Go to home</Text>
@@ -960,7 +960,7 @@ export default function EventSelection()
               <TouchableOpacity 
                 style={styles.backButton2} 
                 onPress={() => {
-                  navigation.replace('Home');
+                  router.replace('/requiresCurrentSchedule/Home');
                 }}
               >
                 <Text style={styles.eventText}>Go to home</Text>
@@ -1602,3 +1602,5 @@ meetingRecurrenceText: {
 
 
 });
+
+export default EventSelection;

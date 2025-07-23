@@ -105,7 +105,7 @@ export default function Home() {
 
   const calendarProceed = async () => {
     try {
-      navigation.navigate('CalendarView');
+      router.push('/requiresCurrentSchedule/CalendarView');
     }
     catch (error) {
       Alert.alert('Error', 'Failed to check schedule.');
@@ -304,7 +304,7 @@ export default function Home() {
       const parts = item.id.split('_');
       idToSend = Number(parts[1]);
     }
-    navigation.navigate('RescheduleScreen', {
+    router.push('/requiresCurrentSchedule/requiresPotentialSchedule/RescheduleScreen', {
       id: idToSend,
       type: item.type,
       effort: item.effort,
@@ -361,7 +361,7 @@ export default function Home() {
       setRescheduleTarget(null);
       await refetchSchedule();
       await fetchTodoList();
-      navigation.navigate('schedulePicker');
+      router.push('/requiresCurrentSchedule/requiresPotentialSchedule/schedulePicker');
     } catch (e) {
       Alert.alert('Error', 'Failed to reschedule: ' + e);
     }

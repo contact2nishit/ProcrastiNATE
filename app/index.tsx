@@ -49,7 +49,7 @@ export default function App() {
   };
 
   const handleSignup = () => {
-    navigation.navigate('Signup');
+    router.push('/Signup');
   }
 
   const handleBackendURLSave = async (url: string) => {

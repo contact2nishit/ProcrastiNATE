@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Switch, Alert, Platform, KeyboardAvoidingView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { useCurrentScheduleContext } from './CurrentScheduleContext';
-import config from '../config';
+import { usePotentialScheduleContext } from './PotentialScheduleContext';
+import config from '../../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function RescheduleScreen() {
@@ -11,7 +11,7 @@ export default function RescheduleScreen() {
   const route = useRoute();
   // Route params: id, type ('assignment' | 'chore'), effort, start, end
   const { id, type, effort, start, end } = route.params as any;
-  const { refetchSchedule } = useCurrentScheduleContext();
+  const { setPotentialSchedules } = usePotentialScheduleContext();
 
   const [newEffort, setNewEffort] = useState<number>(effort || 0);
   const [windowStart, setWindowStart] = useState<Date>(start ? new Date(start) : new Date());
@@ -54,9 +54,10 @@ export default function RescheduleScreen() {
         Alert.alert('Error', 'Failed to reschedule: ' + err);
         return;
       }
-      await refetchSchedule();
+      const data = await response.json();
+      setPotentialSchedules(data);
       Alert.alert('Success', 'Rescheduled!');
-      navigation.goBack();
+      navigation.navigate('schedulePicker');
     } catch (e) {
       Alert.alert('Error', 'Failed to reschedule: ' + e);
     } finally {

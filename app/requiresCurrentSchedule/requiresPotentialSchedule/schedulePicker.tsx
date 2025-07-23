@@ -1,39 +1,21 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, SafeAreaView } from 'react-native';
 import { useNavigation, useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../../config';
+import { usePotentialScheduleContext } from './PotentialScheduleContext';
 
 
-export const getData = async (ScheduleStateSetter: React.Dispatch<React.SetStateAction<any>>) => {
-  try {
-    const daa = await AsyncStorage.getItem("schedules");
-    if (daa) {
-      ScheduleStateSetter(JSON.parse(daa));
-    } else {
-      ScheduleStateSetter({});
-    }
-  } catch (e) {
-    ScheduleStateSetter({});
-  }
-};
 
-export default function SchedulePicker() {
+
   const navigation = useNavigation();
-  const [scheduleData, setScheduleData] = useState<any>({});
   const router = useRouter();
-  useEffect(() => {
-    getData(setScheduleData);
-  }, []);
+  const { potentialSchedules, clearPotentialSchedules } = usePotentialScheduleContext();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedScheduleIdx, setSelectedScheduleIdx] = useState<number | null>(null);
 
-  let parsedData: any = scheduleData;
-  if (typeof scheduleData === 'string') {
-    try {
-      parsedData = JSON.parse(scheduleData);
-    } catch (e) {
-      parsedData = {};
-    }
-  }
+  // Use context for all data
+  const parsedData = potentialSchedules || {};
 
   const mapStatus = {
       "fully_scheduled": "Fully Scheduled",
@@ -53,16 +35,16 @@ export default function SchedulePicker() {
   const submitSchedule = async (schedule: any) => {
     try {
       const url = config.backendURL;
-      const token = await AsyncStorage.getItem('token');
-      if (!url) {
-        alert('Backend URL not set.');
+      const token = await (await import('@react-native-async-storage/async-storage')).default.getItem('token');
+      if (!url || !token) {
+        alert('Backend URL or token not set.');
         return;
       }
       const response = await fetch(`${url}/setSchedule`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(schedule),
       });
@@ -72,8 +54,8 @@ export default function SchedulePicker() {
         return;
       }
       alert('Schedule set successfully!');
-      navigation.replace("Home");
-      // Optionally, you can navigate or update state here
+      clearPotentialSchedules();
+      router.push('/requiresCurrentSchedule/Home');
     } catch (e) {
       alert('Error setting schedule: ' + e);
     }
