@@ -13,18 +13,30 @@ const SchedulePicker = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedScheduleIdx, setSelectedScheduleIdx] = useState<number | null>(null);
 
-  // Use context for all data
-  const parsedData = potentialSchedules || {};
-
-  const mapStatus = {
-      "fully_scheduled": "Fully Scheduled",
-      "partially_scheduled": "Partially Scheduled",
-      "unschedulable": "Unschedulable",
+  const mapStatus: { [key: string]: string } = {
+    fully_scheduled: "Fully Scheduled",
+    partially_scheduled: "Partially Scheduled",
+    unschedulable: "Unschedulable",
   };
 
-  const schedules = parsedData?.schedules || [];
-  const meetings = parsedData?.meetings || [];
-  const conflicting_meetings = parsedData?.conflicting_meetings || [];
+  // Use context for all data
+  const parsedData: {
+    conflicting_meetings?: string[];
+    schedules?: {
+      assignments: { name: string; schedule: { status: string; slots: { start: string; end: string }[] } }[];
+      chores: { name: string; schedule: { status: string; slots: { start: string; end: string }[] } }[];
+      conflicting_assignments: string[];
+      conflicting_chores: string[];
+      not_enough_time_assignments: string[];
+      not_enough_time_chores: string[];
+      total_potential_xp: number;
+    }[];
+    meetings?: { name: string; start_end_times: [string, string][] }[];
+  } = potentialSchedules || {};
+
+  const conflicting_meetings = parsedData.conflicting_meetings || [];
+  const schedules = parsedData.schedules || [];
+  const meetings = parsedData.meetings || [];
 
   const fmt = (iso: string) => new Date(iso).toLocaleString();
 
@@ -50,6 +62,7 @@ const SchedulePicker = () => {
         return;
       }
       alert('Schedule set successfully!');
+      setModalVisible(false); // Close modal immediately
       router.push('/requiresCurrentSchedule/Home');
     } catch (e) {
       alert('Error setting schedule: ' + e);
@@ -63,14 +76,14 @@ const SchedulePicker = () => {
       {conflicting_meetings.length > 0 && (
         <View style={styles.conflictBox}>
           <Text style={styles.conflictHeader}>Conflicting Meetings:</Text>
-          {conflicting_meetings.map((m, i) => (
+          {conflicting_meetings.map((m: string, i: number) => (
             <Text key={i} style={styles.conflictText}>{m}</Text>
           ))}
         </View>
       )}
 
       <ScrollView>
-        {schedules.map((schedule, idx) => (
+        {schedules.map((schedule, idx: number) => (
           <TouchableOpacity
             key={idx}
             style={styles.scheduleBox}
@@ -101,12 +114,11 @@ const SchedulePicker = () => {
                   {schedules[selectedScheduleIdx].assignments.length === 0 && (
                     <Text style={styles.noneText}>None</Text>
                   )}
-                  {schedules[selectedScheduleIdx].assignments.map((a, i) => (
+                  {schedules[selectedScheduleIdx].assignments.map((a: any, i: number) => (
                     <View key={i} style={styles.itemBox}>
                       <Text style={styles.itemTitle}>{a.name}</Text>
                       <Text>Status: {mapStatus[a.schedule.status]}</Text>
-                      <Text>Effort Assigned: {a.schedule.effort_assigned} min</Text>
-                      {a.schedule.slots.map((slot, j) => (
+                      {a.schedule.slots.map((slot: { start: string; end: string }, j: number) => (
                         <Text key={j} style={styles.timeText}>
                           {fmt(slot.start)} - {fmt(slot.end)}
                         </Text>
@@ -118,12 +130,11 @@ const SchedulePicker = () => {
                   {schedules[selectedScheduleIdx].chores.length === 0 && (
                     <Text style={styles.noneText}>None</Text>
                   )}
-                  {schedules[selectedScheduleIdx].chores.map((c, i) => (
+                  {schedules[selectedScheduleIdx].chores.map((c: any, i: number) => (
                     <View key={i} style={styles.itemBox}>
                       <Text style={styles.itemTitle}>{c.name}</Text>
                       <Text>Status: {mapStatus[c.schedule.status]}</Text>
-                      <Text>Effort Assigned: {c.schedule.effort_assigned} min</Text>
-                      {c.schedule.slots.map((slot, j) => (
+                      {c.schedule.slots.map((slot: { start: string; end: string }, j: number) => (
                         <Text key={j} style={styles.timeText}>
                           {fmt(slot.start)} - {fmt(slot.end)}
                         </Text>
@@ -138,16 +149,16 @@ const SchedulePicker = () => {
                    schedules[selectedScheduleIdx].not_enough_time_chores.length === 0 && (
                     <Text style={styles.noneText}>None</Text>
                   )}
-                  {schedules[selectedScheduleIdx].conflicting_assignments.map((n, i) => (
+                  {schedules[selectedScheduleIdx].conflicting_assignments.map((n: string, i: number) => (
                     <Text key={i} style={styles.conflictText}>Assignment conflict: {n}</Text>
                   ))}
-                  {schedules[selectedScheduleIdx].conflicting_chores.map((n, i) => (
+                  {schedules[selectedScheduleIdx].conflicting_chores.map((n: string, i: number) => (
                     <Text key={i} style={styles.conflictText}>Chore conflict: {n}</Text>
                   ))}
-                  {schedules[selectedScheduleIdx].not_enough_time_assignments.map((n, i) => (
+                  {schedules[selectedScheduleIdx].not_enough_time_assignments.map((n: string, i: number) => (
                     <Text key={i} style={styles.conflictText}>Not enough time for assignment: {n}</Text>
                   ))}
-                  {schedules[selectedScheduleIdx].not_enough_time_chores.map((n, i) => (
+                  {schedules[selectedScheduleIdx].not_enough_time_chores.map((n: string, i: number) => (
                     <Text key={i} style={styles.conflictText}>Not enough time for chore: {n}</Text>
                   ))}
 
@@ -155,10 +166,10 @@ const SchedulePicker = () => {
                   {meetings.length === 0 && (
                     <Text style={styles.noneText}>None</Text>
                   )}
-                  {meetings.map((m, i) => (
+                  {meetings.map((m: { name: string; start_end_times: [string, string][] }, i: number) => (
                     <View key={i} style={styles.itemBox}>
                       <Text style={styles.itemTitle}>{m.name}</Text>
-                      {m.start_end_times.map((pair, j) => (
+                      {m.start_end_times.map((pair: [string, string], j: number) => (
                         <Text key={j} style={styles.timeText}>
                           {fmt(pair[0])} - {fmt(pair[1])}
                         </Text>
@@ -186,10 +197,9 @@ const SchedulePicker = () => {
                 style={styles.closeButton}
                 onPress={() => {
                   setModalVisible(false);
-                  navigation.navigate("CalendarViewPotential",
-                  { scheduleIdx: selectedScheduleIdx } 
-                )}}
-                >
+                  router.push(`/requiresCurrentSchedule/requiresPotentialSchedule/CalendarViewPotential?scheduleIdx=${selectedScheduleIdx}`);
+                }}
+              >
                 <Text style={styles.closeButtonText}>View Potential Schedule</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -205,9 +215,9 @@ const SchedulePicker = () => {
       {/* Button to navigate back to the All Events Page */}
       <TouchableOpacity
         onPress={() => navigation.goBack()}
-        style = {styles.goBack}
+        style={styles.goBack}
       >
-        <Text style = {styles.txt}>Go Back</Text>
+        <Text style={styles.txt}>Go Back</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );

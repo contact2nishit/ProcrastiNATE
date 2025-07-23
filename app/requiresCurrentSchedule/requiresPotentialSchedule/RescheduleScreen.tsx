@@ -22,7 +22,7 @@ const RescheduleScreen = () => {
   const { id, type, effort, start, end } = params;
   const { setPotentialSchedules } = usePotentialScheduleContext();
 
-  const [newEffort, setNewEffort] = useState<number>(type === 'chore' && typeof effort === 'number' ? effort : 0);
+  const [newEffort, setNewEffort] = useState<number>(typeof effort === 'number' ? effort : 0);
   const [windowStart, setWindowStart] = useState<Date>(type === 'chore' && typeof start === 'string' ? new Date(start) : new Date());
   const [windowEnd, setWindowEnd] = useState<Date>(typeof end === 'string' ? new Date(end) : new Date());
   const [showStartPicker, setShowStartPicker] = useState(false);
@@ -89,6 +89,25 @@ const RescheduleScreen = () => {
     >
       <View style={styles.container}>
         <Text style={styles.header}>Reschedule {type === 'assignment' ? 'Assignment' : 'Chore'}</Text>
+
+        {type === 'assignment' && (
+          <>
+            <Text style={styles.label}>Remaining Effort (minutes):</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              value={String(newEffort)}
+              onChangeText={(txt) => {
+                const num = parseInt(txt, 10);
+                if (!isNaN(num) && num > 0) setNewEffort(num);
+                else if (txt === '') setNewEffort(0);
+              }}
+              placeholder="Enter remaining effort in minutes"
+              placeholderTextColor="#888"
+              returnKeyType="done"
+            />
+          </>
+        )}
 
         {type === 'chore' && (
           <>

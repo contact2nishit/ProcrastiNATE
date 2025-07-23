@@ -64,6 +64,9 @@ export default function Home() {
   const [updateTime, setUpdateTime] = useState('');
   const [selectedSessionToComplete, setSelectedSessionToComplete] = useState<SessionToMaybeComplete>({occurence_id: "A", is_assignment: false});
   const [lockedInValue, setLockedInValue] = useState(5);
+  const [rescheduleTarget, setRescheduleTarget] = useState<{ type: 'assignment' | 'chore'; id: string; effort: number; start: string; end: string } | null>(null);
+  const [rescheduleModalVisible, setRescheduleModalVisible] = useState(false);
+
   // Remove reschedule modal state, use navigation instead
 
   // Refetch todo list (single definition, with loading)
@@ -300,17 +303,18 @@ export default function Home() {
   const handleReschedule = (item: any) => {
     // Extract id for assignment/chore (assignment_<assignment_id>_<occurence_id> or chore_<chore_id>_<occurence_id>)
     let idToSend: number | undefined;
-    if (item.type === 'assignment' || item.type === 'chore') {
+    let label: string = '';
+    if (item.type === 'assignment') {
       const parts = item.id.split('_');
       idToSend = Number(parts[1]);
+      label = 'Reschedule Assignment';
+    } else if (item.type === 'chore') {
+      const parts = item.id.split('_');
+      idToSend = Number(parts[1]);
+      label = 'Reschedule Chore';
     }
-    router.push('/requiresCurrentSchedule/requiresPotentialSchedule/RescheduleScreen', {
-      id: idToSend,
-      type: item.type,
-      effort: item.effort,
-      start: item.start,
-      end: item.end,
-    });
+
+    router.push(`/requiresCurrentSchedule/requiresPotentialSchedule/RescheduleScreen?id=${idToSend}&type=${item.type}&effort=${item.effort}&start=${item.start}&end=${item.end}&label=${label}`);
   };
 
   const submitReschedule = async (params: any) => {
