@@ -773,9 +773,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
-<<<<<<< HEAD:app/requiresCurrentSchedule/Home.tsx
-});
-=======
   levelText: {
     fontSize: 22,
     fontWeight: 'bold',
@@ -786,4 +783,3 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 });
->>>>>>> main:app/Home.tsx
