@@ -7,11 +7,11 @@ import { useNavigation } from 'expo-router';
 import { useRoute, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
-import RescheduleModal from '../../components/RescheduleModal';
 import config from '../config';
 import { useRouter } from 'expo-router';
 import { useCurrentScheduleContext } from './CurrentScheduleContext';
-
+import { ProgressBar } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function Home() {
   // Loading state
@@ -68,7 +68,41 @@ export default function Home() {
   const [rescheduleModalVisible, setRescheduleModalVisible] = useState(false);
 
   // Remove reschedule modal state, use navigation instead
+  const [levelInfo, setLevelInfo] = useState<{xp: number; level: number; user_name: string } | null>(null);
+  const [xpForNextLevel, setXpForNextLevel] = useState<number>(100);
 
+  // Fetch user level info
+  const fetchLevelInfo = async () => {
+    try {
+      const url = config.backendURL;
+      const token = await AsyncStorage.getItem('token');
+      if (!url || !token) {
+        Alert.alert('Error', "Backend URL or token not set.");
+        return;
+      }
+      const response = await fetch(`${url}/getLevel`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      setLevelInfo({
+        xp: data.xp,
+        level: data.level,
+        user_name: data.user_name
+      })
+      // Set XP for next level based on level
+      setXpForNextLevel(Math.floor(100 * Math.pow(1.5, data.level)));
+    } catch (e) {
+      Alert.alert('Error', 'Failed to fetch level info: ' + e);
+    }
+  }
+
+  useEffect(() => {
+    fetchLevelInfo();
+  }, []);
   // Refetch todo list (single definition, with loading)
   const fetchTodoList = useCallback(async () => {
     try {
@@ -188,6 +222,7 @@ export default function Home() {
       setModalVisible(false);
       await refetchSchedule();
       await fetchTodoList();
+      await fetchLevelInfo();
     } catch (e) {
       Alert.alert('Error', 'Failed to mark session as completed: ' + e);
     }
@@ -317,68 +352,42 @@ export default function Home() {
     router.push(`/requiresCurrentSchedule/requiresPotentialSchedule/RescheduleScreen?id=${idToSend}&type=${item.type}&effort=${item.effort}&start=${item.start}&end=${item.end}&label=${label}`);
   };
 
-  const submitReschedule = async (params: any) => {
-    try {
-      const url = config.backendURL;
-      const token = await AsyncStorage.getItem('token');
-      if (!url || !token || !rescheduleTarget) return;
-      const tz_offset_minutes = -new Date().getTimezoneOffset();
-      // Fix: send assignment_id/chore_id, not occurence_id
-      let idToSend: number | undefined;
-      if (rescheduleTarget.type === 'assignment') {
-        // assignment id is in id string: "assignment_<assignment_id>_<occurence_id>"
-        const parts = rescheduleTarget.id.split('_');
-        idToSend = Number(parts[1]);
-      } else if (rescheduleTarget.type === 'chore') {
-        // chore id is in id string: "chore_<chore_id>_<occurence_id>"
-        const parts = rescheduleTarget.id.split('_');
-        idToSend = Number(parts[1]);
-      }
-      const body: any = {
-        event_type: rescheduleTarget.type,
-        id: idToSend,
-        allow_overlaps: params.allow_overlaps,
-        tz_offset_minutes,
-      };
-      if (params.new_effort !== undefined) body.new_effort = params.new_effort;
-      if (rescheduleTarget.type === 'assignment') {
-        if (params.new_window_end) body.new_window_end = params.new_window_end;
-      } else {
-        if (params.new_window_start) body.new_window_start = params.new_window_start;
-        if (params.new_window_end) body.new_window_end = params.new_window_end;
-      }
-      const response = await fetch(`${url}/reschedule`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) {
-        const err = await response.text();
-        Alert.alert('Error', 'Failed to reschedule: ' + err);
-        return;
-      }
-      const data = await response.json();
-      setRescheduleModalVisible(false);
-      setRescheduleTarget(null);
-      await refetchSchedule();
-      await fetchTodoList();
-      router.push('/requiresCurrentSchedule/requiresPotentialSchedule/schedulePicker');
-    } catch (e) {
-      Alert.alert('Error', 'Failed to reschedule: ' + e);
-    }
-  };
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
-      <TouchableOpacity onPress={handleSyncGoogleCalendar} style={styles.syncButton} disabled={loading}>
-        <Text style={styles.syncButtonText}>{loading ? 'Syncing...' : 'Sync Google Calendar'}</Text>
-      </TouchableOpacity>
       {loading && (
         <View style={{ alignItems: 'center', marginVertical: 10 }}>
           <Text style={{ color: '#888' }}>Loading...</Text>
+        </View>
+      )}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, marginHorizontal: 16 }}>
+        <TouchableOpacity style={styles.calendarButton}>
+          <MaterialCommunityIcons name="account" size={32} color="white" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={calendarProceed} style={styles.calendarButton}>
+          <MaterialCommunityIcons name='calendar-month' size={32} color='white'/>
+        </TouchableOpacity>
+      </View>
+      <View style={{ alignItems: 'center', marginTop: 20}}>
+        <Text style={styles.levelText}>
+          {levelInfo ? `Welcome, ${levelInfo.user_name}!` : `Welcome!`}
+        </Text>
+      </View>
+      {levelInfo && (
+        <View style={styles.levelContainer}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
+            Level: {levelInfo.level}
+          </Text>
+          <Text style={{ fontSize: 16, marginTop: 4 }}>
+            XP: {levelInfo.xp} / {xpForNextLevel}
+          </Text>
+          <ProgressBar
+            progress={Math.min(levelInfo.xp / xpForNextLevel, 1)}
+            color="#2563eb"
+            style={{ height: 12, borderRadius: 6, width: 250, marginTop: 8 }}
+          />
+          <Text style={{ fontSize: 14, marginTop: 4 }}>
+            {xpForNextLevel - levelInfo.xp} XP to next level
+          </Text>
         </View>
       )}
       <Text style={styles.welcomeText}>To Do List for Today</Text>
@@ -504,6 +513,10 @@ export default function Home() {
           <Text style={styles.plus}>+</Text>
         </TouchableOpacity>
       </ScrollView>
+      <View style={{flex: 1}}></View>
+      <TouchableOpacity onPress={handleSyncGoogleCalendar} style={styles.syncButton} disabled={loading}>
+        <Text style={styles.syncButtonText}>{loading ? 'Syncing...' : 'Sync Google Calendar'}</Text>
+      </TouchableOpacity>
       {/* Update/Delete/Session completion Modal */}
       <Modal
         visible={modalVisible}
@@ -606,9 +619,6 @@ export default function Home() {
       <TouchableOpacity onPress={handleBack}>
         <Text style={styles.buttonBack}>Back to Login</Text>
       </TouchableOpacity>
-      <TouchableOpacity onPress={calendarProceed}>
-        <Text style={styles.calendarButton}>View Calendar</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -631,8 +641,8 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 24,
     fontWeight: 'bold',
-    textAlign: 'left',
-    marginTop: 50,
+    textAlign: 'center',
+    marginTop: 20,
     marginLeft: 10,
     color: '#333',
   },
@@ -703,14 +713,18 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   calendarButton:{
-     backgroundColor: '#333',
-    padding: 10,
-    borderRadius: 5,
-    marginTop: 20,
-    marginLeft: 10,
+    backgroundColor: '#333',
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+  },
+  calendarButtonText: {
     color: 'white',
-    width: 150,
     fontSize: 16,
+    fontWeight: 'bold',
     textAlign: 'center',
   },
   modalOverlay: {
@@ -758,4 +772,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
+<<<<<<< HEAD:app/requiresCurrentSchedule/Home.tsx
 });
+=======
+  levelText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  levelContainer: {
+    alignItems: 'center',
+    marginTop: 10,
+  },
+});
+>>>>>>> main:app/Home.tsx
