@@ -150,3 +150,18 @@ def get_xp_for_next_level(level: int):
         return float('inf')
     else:
         return int(100 * (level ** 1.5))
+    
+def check_assignment_completed (
+    assignments: List[List[bool]],
+) -> bool:
+    """
+    Check if all assignments in the list are completed.
+    Args:
+        assignments (List[List[bool]]): List of lists containing completion status of assignments.
+    Returns:
+        bool: True if all assignments are completed, False otherwise.
+    """
+    for assignment in assignments:
+        if not all(assignment):
+            return False
+    return True
