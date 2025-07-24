@@ -512,6 +512,7 @@ export default function Home() {
         <TouchableOpacity onPress={handleAddEvent} style={styles.plusButton}>
           <Text style={styles.plus}>+</Text>
         </TouchableOpacity>
+        <Text style={{ fontSize: 14, textAlign: "center" }}> Add event </Text>
       </ScrollView>
       <View style={{flex: 1}}></View>
       <TouchableOpacity onPress={handleSyncGoogleCalendar} style={styles.syncButton} disabled={loading}>
@@ -661,7 +662,7 @@ const styles = StyleSheet.create({
   plusButton: {
     alignSelf: 'center',
     marginTop: 40,
-    marginBottom: 20,
+    marginBottom: 5,
   },
   plus: {
     backgroundColor: 'black',
