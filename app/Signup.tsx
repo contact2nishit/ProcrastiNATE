@@ -38,7 +38,7 @@ export default function Signup() {
                 return;
             }
             alert('Registration successful!');
-            navigation.replace('index');
+            navigation.navigate('index');
         } catch (e) {
             alert('Registration error: ' + e);
         }

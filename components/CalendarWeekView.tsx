@@ -1,6 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
-import {formatTime, getWeekDaysFromDate, groupSlotsByDay, Slot, screenWidth} from './calendarUtils';
+import {formatTime, getWeekDaysFromDate, groupSlotsByDay, Slot, screenWidth} from '../app/calendarUtils';
 
 
 type CalendarWeekViewProps = {

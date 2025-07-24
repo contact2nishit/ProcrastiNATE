@@ -1,24 +1,22 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import App from './index';
-import { useNavigation } from 'expo-router';
+import App from '../app/index';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const pushMock = jest.fn();
 
-const navigateMock = jest.fn();
-const replaceMock = jest.fn();
-
-// Mock useNavigation
+// Mock useRouter
 jest.mock('expo-router', () => ({
-  useNavigation: jest.fn(),
+  useRouter: jest.fn(),
 }));
 
-// Mock AsyncStorage (used for asyncStorage tests)
+// Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(),
 }));
 
-// Mock global fetch (will be used for fetch tests)
+// Mock global fetch
 global.fetch = jest.fn(() =>
   Promise.resolve({
     ok: true,
@@ -27,14 +25,10 @@ global.fetch = jest.fn(() =>
 ) as jest.Mock;
 
 describe('Login Screen', () => {
-
   beforeEach(() => {
-    // Provide the return value for useNavigation mock
-    (useNavigation as jest.Mock).mockReturnValue({
-      navigate: navigateMock,
-      replace: replaceMock,
+    (useRouter as jest.Mock).mockReturnValue({
+      push: pushMock,
     });
-
     global.alert = jest.fn();
   });
 
@@ -45,17 +39,15 @@ describe('Login Screen', () => {
   it('submits the form and navigates to Home on successful login', async () => {
     const { getByPlaceholderText, getByText } = render(<App />);
 
-    // Filling out the form
     fireEvent.changeText(getByPlaceholderText('Username'), 'Sai');
     fireEvent.changeText(getByPlaceholderText('Password'), 'sai');
-    fireEvent.changeText(getByPlaceholderText('http://localhost:8000'), 'http://mockapi.com');
 
-    // Press sign-in button next
     fireEvent.press(getByText('Sign In'));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('http://mockapi.com/login', expect.any(Object));
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/login'), expect.any(Object));
       expect(AsyncStorage.setItem).toHaveBeenCalledWith('token', 'fake_token');
+      expect(pushMock).toHaveBeenCalledWith('/requiresCurrentSchedule/Home');
     });
   });
 
@@ -72,14 +64,31 @@ describe('Login Screen', () => {
     alertMock.mockRestore();
   });
 
-  it('navigation to sign up screen is done', async () => {
+  it('navigates to the Signup page when Sign Up is pressed', async () => {
     const { getByText } = render(<App />);
 
-    fireEvent.press(getByText('Sign Up'));
+    fireEvent.press(getByText("Don't have an account? Sign Up"));
 
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith('Signup');
+      expect(pushMock).toHaveBeenCalledWith('/Signup');
     });
   });
 
+  it('alerts on login failure', async () => {
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      text: () => Promise.resolve('Invalid credentials'),
+    });
+
+    const { getByPlaceholderText, getByText } = render(<App />);
+
+    fireEvent.changeText(getByPlaceholderText('Username'), 'Sai');
+    fireEvent.changeText(getByPlaceholderText('Password'), 'wrongpassword');
+
+    fireEvent.press(getByText('Sign In'));
+
+    await waitFor(() => {
+      expect(global.alert).toHaveBeenCalledWith('Login failed: Invalid credentials');
+    });
+  });
 });

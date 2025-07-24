@@ -1,11 +1,17 @@
 import { Dimensions} from 'react-native';
 export type Slot = {
   name: string;
-  type: string;
+  type: 'meeting' | 'assignment' | 'chore';
   start: string;
   end: string;
   meeting_id?: number;
-  occurence_id?: number;
+  assignment_id?: number;
+  chore_id?: number;
+  occurence_id?: number | string;
+  id?: string | number;
+  completed?: boolean;
+  // For future extensibility
+  [key: string]: any;
 };
 
 export const formatTime = (iso: string) =>

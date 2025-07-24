@@ -1,20 +1,23 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Alert, ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
+import config from '../config';
+import { useRouter } from 'expo-router';
+import { useCurrentScheduleContext } from './CurrentScheduleContext';
 import { ProgressBar } from 'react-native-paper';
-import RescheduleModal from './RescheduleModal';
-import config from './config';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function Home() {
   // Loading state
   const [loading, setLoading] = useState(false);
+  const { currSchedule, setCurrSchedule, ensureScheduleRange, refetchSchedule } = useCurrentScheduleContext();
+  const router = useRouter();
   // Google Calendar sync handler
   const handleSyncGoogleCalendar = async () => {
     try {
@@ -61,8 +64,10 @@ export default function Home() {
   const [updateTime, setUpdateTime] = useState('');
   const [selectedSessionToComplete, setSelectedSessionToComplete] = useState<SessionToMaybeComplete>({occurence_id: "A", is_assignment: false});
   const [lockedInValue, setLockedInValue] = useState(5);
+  const [rescheduleTarget, setRescheduleTarget] = useState<{ type: 'assignment' | 'chore'; id: string; effort: number; start: string; end: string } | null>(null);
   const [rescheduleModalVisible, setRescheduleModalVisible] = useState(false);
-  const [rescheduleTarget, setRescheduleTarget] = useState<any>(null);
+
+  // Remove reschedule modal state, use navigation instead
   const [levelInfo, setLevelInfo] = useState<{xp: number; level: number; user_name: string } | null>(null);
   const [xpForNextLevel, setXpForNextLevel] = useState<number>(100);
 
@@ -99,94 +104,45 @@ export default function Home() {
     fetchLevelInfo();
   }, []);
   // Refetch todo list (single definition, with loading)
-  const fetchTodoList = async () => {
+  const fetchTodoList = useCallback(async () => {
     try {
       setLoading(true);
-      const url = config.backendURL;
-      const token = await AsyncStorage.getItem('token');
-      if (!url || !token) return;
+      // Use context to ensure we have today's schedule
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
       const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
       const startISO = start.toISOString().replace('Z', '+00:00');
       const endISO = end.toISOString().replace('Z', '+00:00');
-      const params = `start_time=${encodeURIComponent(startISO)}&end_time=${encodeURIComponent(endISO)}&meetings=true&assignments=true&chores=true`;
-      const response = await fetch(`${url}/fetch?${params}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) return;
-      const data = await response.json();
-      const items: any[] = [];
-      if (data.meetings) {
-        for (const m of data.meetings) {
-          m.start_end_times.forEach((pair: [string, string], idx: number) => {
-            items.push({
-              type: 'meeting',
-              name: m.name,
-              start: pair[0],
-              end: pair[1],
-              id: m.ocurrence_ids?.[idx] ?? idx,
-              meeting_id: m.meeting_id, // include meeting_id for update/delete
-            });
-          });
-        }
-      }
-      if (data.assignments) {
-        for (const a of data.assignments) {
-          if (a.schedule && a.schedule.slots) {
-            a.schedule.slots.forEach((slot: any, idx: number) => {
-              items.push({
-                type: 'assignment',
-                name: a.name,
-                start: slot.start,
-                end: slot.end,
-                id: `assignment_${a.assignment_id}_${a.ocurrence_ids?.[idx] ?? idx}`,
-                completed: a.completed?.[idx] ?? false,
-              });
-            });
-          }
-        }
-      }
-      if (data.chores) {
-        for (const c of data.chores) {
-          if (c.schedule && c.schedule.slots) {
-            c.schedule.slots.forEach((slot: any, idx: number) => {
-              items.push({
-                type: 'chore',
-                name: c.name,
-                start: slot.start,
-                end: slot.end,
-                id: `chore_${c.chore_id}_${c.ocurrence_ids?.[idx] ?? idx}`,
-                completed: c.completed?.[idx] ?? false,
-              });
-            });
-          }
-        }
-      }
-      items.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+      await ensureScheduleRange(startISO, endISO);
+      // Filter slots for today
+      const items = currSchedule.slots.filter(slot => slot.start >= startISO && slot.end <= endISO);
       setTodoList(items);
     } catch (e) {
       // handle error
     } finally {
       setLoading(false);
     }
-  };
+  }, [currSchedule, ensureScheduleRange]);
 
-  useEffect(() => {
-    fetchTodoList();
-  }, []);
+
+  // Always refetch schedule and todo list when Home comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        await refetchSchedule();
+        await fetchTodoList();
+      })();
+    }, [refetchSchedule, fetchTodoList])
+  );
 
   const handleBack = () => {
     AsyncStorage.removeItem("token");
-    navigation.navigate('index');
+    router.replace('/');
   };
 
   const calendarProceed = async () => {
     try {
-      navigation.navigate('CalendarView');
+      router.push('/requiresCurrentSchedule/CalendarView');
     }
     catch (error) {
       Alert.alert('Error', 'Failed to check schedule.');
@@ -196,7 +152,7 @@ export default function Home() {
   }
 
   const handleAddEvent = () => {
-    navigation.navigate('eventSelection');
+    router.push('/requiresCurrentSchedule/requiresPotentialSchedule/eventSelection');
   };
 
   const getCardStyle = (type: string) => {
@@ -264,6 +220,8 @@ export default function Home() {
       }));
       Alert.alert('Success', 'Session marked as completed!');
       setModalVisible(false);
+      await refetchSchedule();
+      await fetchTodoList();
       await fetchLevelInfo();
     } catch (e) {
       Alert.alert('Error', 'Failed to mark session as completed: ' + e);
@@ -303,7 +261,8 @@ export default function Home() {
       setUpdateLoc('');
       setUpdateTime('');
       setSelectedMeeting(null);
-      fetchTodoList();
+      await refetchSchedule();
+      await fetchTodoList();
     } catch (e) {
       Alert.alert('Error', 'Failed to update meeting: ' + e);
     }
@@ -335,7 +294,8 @@ export default function Home() {
       Alert.alert('Success', removeAllFuture ? 'All future occurrences deleted!' : 'Meeting deleted!');
       setModalVisible(false);
       setSelectedMeeting(null);
-      fetchTodoList();
+      await refetchSchedule();
+      await fetchTodoList();
     } catch (e) {
       Alert.alert('Error', 'Failed to delete meeting: ' + e);
     }
@@ -368,69 +328,28 @@ export default function Home() {
       }
       Alert.alert('Success', `${event_type.charAt(0).toUpperCase() + event_type.slice(1)} deleted!`);
       setModalVisible(false);
-      fetchTodoList();
+      await refetchSchedule();
+      await fetchTodoList();
     } catch (e) {
       Alert.alert('Error', 'Failed to delete: ' + e);
     }
   };
 
   const handleReschedule = (item: any) => {
-    setRescheduleTarget(item);
-    setRescheduleModalVisible(true);
-  };
-
-  const submitReschedule = async (params: any) => {
-    try {
-      const url = config.backendURL;
-      const token = await AsyncStorage.getItem('token');
-      if (!url || !token || !rescheduleTarget) return;
-      const tz_offset_minutes = -new Date().getTimezoneOffset();
-      // Fix: send assignment_id/chore_id, not occurence_id
-      let idToSend: number | undefined;
-      if (rescheduleTarget.type === 'assignment') {
-        // assignment id is in id string: "assignment_<assignment_id>_<occurence_id>"
-        const parts = rescheduleTarget.id.split('_');
-        idToSend = Number(parts[1]);
-      } else if (rescheduleTarget.type === 'chore') {
-        // chore id is in id string: "chore_<chore_id>_<occurence_id>"
-        const parts = rescheduleTarget.id.split('_');
-        idToSend = Number(parts[1]);
-      }
-      const body: any = {
-        event_type: rescheduleTarget.type,
-        id: idToSend,
-        allow_overlaps: params.allow_overlaps,
-        tz_offset_minutes,
-      };
-      if (params.new_effort !== undefined) body.new_effort = params.new_effort;
-      if (rescheduleTarget.type === 'assignment') {
-        if (params.new_window_end) body.new_window_end = params.new_window_end;
-      } else {
-        if (params.new_window_start) body.new_window_start = params.new_window_start;
-        if (params.new_window_end) body.new_window_end = params.new_window_end;
-      }
-      const response = await fetch(`${url}/reschedule`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) {
-        const err = await response.text();
-        Alert.alert('Error', 'Failed to reschedule: ' + err);
-        return;
-      }
-      const data = await response.json();
-      setRescheduleModalVisible(false);
-      setRescheduleTarget(null);
-      // Save the full ScheduleResponseFormat object directly
-      await AsyncStorage.setItem("schedules", JSON.stringify(data));
-      navigation.navigate('schedulePicker');
-    } catch (e) {
-      Alert.alert('Error', 'Failed to reschedule: ' + e);
+    // Extract id for assignment/chore (assignment_<assignment_id>_<occurence_id> or chore_<chore_id>_<occurence_id>)
+    let idToSend: number | undefined;
+    let label: string = '';
+    if (item.type === 'assignment') {
+      const parts = item.id.split('_');
+      idToSend = Number(parts[1]);
+      label = 'Reschedule Assignment';
+    } else if (item.type === 'chore') {
+      const parts = item.id.split('_');
+      idToSend = Number(parts[1]);
+      label = 'Reschedule Chore';
     }
+
+    router.push(`/requiresCurrentSchedule/requiresPotentialSchedule/RescheduleScreen?id=${idToSend}&type=${item.type}&effort=${item.effort}&start=${item.start}&end=${item.end}&label=${label}`);
   };
 
   return (
@@ -697,16 +616,7 @@ export default function Home() {
           </View>
         </View>
       </Modal>
-      <RescheduleModal
-        visible={rescheduleModalVisible}
-        onClose={() => setRescheduleModalVisible(false)}
-        onSubmit={submitReschedule}
-        eventType={rescheduleTarget?.type}
-        currentEffort={rescheduleTarget?.effort || 0}
-        currentDue={rescheduleTarget?.end}
-        currentWindowStart={rescheduleTarget?.start}
-        currentWindowEnd={rescheduleTarget?.end}
-      />
+      {/* RescheduleModal removed; now handled by RescheduleScreen */}
       <TouchableOpacity onPress={handleBack}>
         <Text style={styles.buttonBack}>Back to Login</Text>
       </TouchableOpacity>

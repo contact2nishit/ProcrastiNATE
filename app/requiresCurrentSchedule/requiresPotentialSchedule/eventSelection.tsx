@@ -2,21 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { KeyboardAvoidingView, Alert, View, SafeAreaView, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
-import { useNavigation } from 'expo-router';
+// import { useNavigation } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { usePotentialScheduleContext } from './PotentialScheduleContext';
 import { format } from 'date-fns';
-import { useMeetingContext } from './MeetingContext';
-import { useAssignmentContext } from './AssignmentContext';
-import config from './config';
+import config from '../../config';
+import { useRouter } from 'expo-router';
 
 
-export default function EventSelection() 
-{
+const EventSelection: React.FC = () => {
+  const { potentialSchedules, setPotentialSchedules } = usePotentialScheduleContext();
   const [selected, setSelected] = useState('Meeting');
-
+  const router = useRouter();
   // Use a useEffect state hook to reset all input fields when selected changes:
   useEffect(() => {
     setStartDateTime(new Date());
@@ -37,10 +37,11 @@ export default function EventSelection()
     startTime: string;
     endTime: string;
     name: string;
-    recurrence: null | string;
+    recurrence: string | null;
     link_or_loc: string | null;
     meetingID: number;
     occurrenceID: number;
+    meetingRepeatEnd?: string; // optional, for editing
   };
 
   type Assignment = {
@@ -56,13 +57,7 @@ export default function EventSelection()
     effort: number;
   }
 
-  const [open, setOpen] = useState(false);
-  const [recurrence, setRecurrence] = useState(null);
-  const [items, setItems] = useState([
-    { label: 'Daily', value: 'Daily' },
-    { label: 'Once', value: 'Once' },
-    { label: 'Every Mon', value: 'Mon' }
-  ]);
+  const [recurrence, setRecurrence] = useState<string | null>(null);
 
   const [startDateTime, setStartDateTime] = useState(new Date());
   const [endDateTime, setEndDateTime] = useState(new Date());
@@ -88,13 +83,13 @@ export default function EventSelection()
     { label: 'Events', icon: 'calendar-check' },
   ];
 
-  const navigation = useNavigation();
+  // const navigation = useNavigation();
   const [date, setDate] = useState(new Date());
   // const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // list of all the meetings the user has added to their schedule
-  const { meetings, setMeetings } = useMeetingContext();
-  const { assignments, setAssignments } = useAssignmentContext();
+  // Local state for meetings, assignments, and chores
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
   //Will fix this one as well later using useChoreContext() function
   const [chores, setChores] = useState<Chore[]>([]);
 
@@ -102,26 +97,35 @@ export default function EventSelection()
   const [editMode, setEditMode] = useState<null | { type: 'meeting' | 'assignment' | 'chore', index: number }> (null);
 
   // Maintain a JSON object matching the backend schemas
-  const [backendJSON, setBackendJSON] = useState({
+  type BackendJSON = {
+    meetings: Array<{ name: string; start_end_times: [string, string][]; link_or_loc: string | null }>;
+    assignments: Array<{ name: string; effort: number; due: string }>;
+    chores: Array<{ name: string; window: [string, string]; effort: number }>;
+  };
+  const [backendJSON, setBackendJSON] = useState<BackendJSON>({
     meetings: [],
     assignments: [],
     chores: [],
   });
 
   // Helper to update backendJSON after adding an item
-  const updateBackendJSON = (type, item, recurrence = null) => {
+  const updateBackendJSON = (
+    type: 'meetings' | 'assignments' | 'chores',
+    item: any,
+    recurrence: string | null = null
+  ) => {
     setBackendJSON(prev => {
       const updated = { ...prev };
       // For meetings, handle recurrence: add a new occurrence if meeting with same name exists
       if (type === 'meetings' && recurrence) {
         // Find if meeting with same name exists
-        const idx = updated.meetings.findIndex(m => m.name === item.name);
+      const idx = updated.meetings.findIndex((m: any) => m.name === item.name);
         if (idx !== -1) {
           // Append occurrence to start_end_times
           updated.meetings[idx] = {
             ...updated.meetings[idx],
             start_end_times: [
-              ...updated.meetings[idx].start_end_times,
+              ...(updated.meetings[idx].start_end_times || []),
               ...item.start_end_times
             ]
           };
@@ -129,18 +133,18 @@ export default function EventSelection()
           updated.meetings = [...updated.meetings, item];
         }
       } else {
-        updated[type] = [...updated[type], item];
+        (updated[type] as any[]).push(item);
       }
       return updated;
     });
   };
 
-  const onDateChange = (event, selectedDate) => {
+  const onDateChange = (_event: any, selectedDate: Date | undefined) => {
     const currDate = selectedDate || date;
     setDate(currDate);
   }
 
-   const formatDate = (date) => {
+  const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -173,14 +177,13 @@ export default function EventSelection()
         return;
       }
       const data = await response.json();
-      // Fix: AsyncStorage only stores strings, so use JSON.stringify
-      await AsyncStorage.setItem("schedules", JSON.stringify(data));
+      setPotentialSchedules(data);
       // Clear the scheduling cart after successful scheduling
       setMeetings([]);
       setAssignments([]);
       setChores([]);
       setBackendJSON({ meetings: [], assignments: [], chores: [] });
-      navigation.navigate('schedulePicker', { scheduleData: data });
+      router.push('/requiresCurrentSchedule/requiresPotentialSchedule/schedulePicker');
     } catch (e) {
       alert('Error submitting schedule: ' + e);
     }
@@ -353,7 +356,7 @@ export default function EventSelection()
 
 
   const handlePrev = () => {
-    navigation.replace('Home');
+    router.replace('/requiresCurrentSchedule/Home'); // Home screen
   }
 
 
@@ -553,7 +556,7 @@ export default function EventSelection()
   };
 
   //Function to handle editing or deleting a meeting:
-  const editDeleteMeeting = (index) => 
+  const editDeleteMeeting = (index: number) =>
   {
     const meeting = meetings[index];
     Alert.alert(
@@ -585,7 +588,7 @@ export default function EventSelection()
   }
 
   //Function to handle editing or deleting an assignment:
-  const editDeleteAssignment = (index) => 
+  const editDeleteAssignment = (index: number) =>
   {
     const assignment = assignments[index];
     Alert.alert(
@@ -617,7 +620,7 @@ export default function EventSelection()
   }
 
   //Function to handle editing or deleting a chore:
-  const editDeleteChore = (index) => 
+  const editDeleteChore = (index: number) =>
   {
     const chore = chores[index];
     Alert.alert(
@@ -869,7 +872,7 @@ export default function EventSelection()
               <TouchableOpacity 
                 style={styles.backButton2} 
                 onPress={() => {
-                  navigation.replace('Home');
+                  router.replace('/requiresCurrentSchedule/Home');
                 }}
               >
                 <Text style={styles.eventText}>Go to home</Text>
@@ -951,7 +954,7 @@ export default function EventSelection()
               <TouchableOpacity 
                 style={styles.backButton2} 
                 onPress={() => {
-                  navigation.replace('Home');
+                  router.replace('/requiresCurrentSchedule/Home');
                 }}
               >
                 <Text style={styles.eventText}>Go to home</Text>
@@ -1593,3 +1596,5 @@ meetingRecurrenceText: {
 
 
 });
+
+export default EventSelection;
