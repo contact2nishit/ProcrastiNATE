@@ -524,16 +524,24 @@ async def mark_session_completed(complete: SessionCompletionDataModel, token: An
             user = await get_current_user(token, app.state.pool)
             new_xp: int = 0
             if complete.is_assignment:
-                xp_potential: int  = await conn.fetchval('UPDATE assignment_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential', complete.completed, complete.locked_in, complete.occurence_id, user.user_id)
+                xp_potential  = await conn.fetchrow('UPDATE assignment_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential, assignment_id', complete.completed, complete.locked_in, complete.occurence_id, user.user_id)
                 if xp_potential is not None:
-                    xp_gained: int = round(prop_xp * xp_potential)
+                    xp_gained: int = round(prop_xp * xp_potential['xp_potential'])
+                    assignment_list = await conn.fetch("SELECT completed FROM assignment_occurences WHERE assignment_id = $1 AND user_id = $2", xp_potential['assignment_id'], user.user_id)
+                    # Check if all occurrences are completed
+                    if (check_assignment_completed(assignment_list)):
+                        await conn.execute("UPDATE assignments SET completed = TRUE WHERE user_id = $1 and assignment_id = $2", user.user_id, xp_potential['assignment_id'])
                     new_xp = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2 RETURNING xp", xp_gained, user.user_id)
                 else:
                     raise HTTPException(status_code=400, detail="You picked a bad occurence id")
             else:
-                xp_potential: int = await conn.fetchval('UPDATE chore_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential', complete.completed, complete.locked_in, complete.occurence_id, user.user_id)
+                xp_potential = await conn.fetchrow('UPDATE chore_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential, chore_id', complete.completed, complete.locked_in, complete.occurence_id, user.user_id)
                 if xp_potential is not None:
-                    xp_gained: int = round(prop_xp * xp_potential)
+                    xp_gained: int = round(prop_xp * xp_potential['xp_potential'])
+                    chore_list = await conn.fetch("SELECT completed FROM chore_occurences WHERE chore_id = $1 AND user_id = $2", xp_potential['chore_id'], user.user_id)
+                    # Check if all occurrences are completed
+                    if (check_assignment_completed(chore_list)):
+                        await conn.execute("UPDATE chores SET completed = TRUE WHERE user_id = $1 and chore_id = $2", user.user_id, xp_potential['chore_id'])
                     new_xp = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2 RETURNING xp", xp_gained, user.user_id)
                 else:
                     raise HTTPException(status_code=400, detail="You picked a bad occurence id")
