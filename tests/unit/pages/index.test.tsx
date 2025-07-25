@@ -13,6 +13,8 @@ jest.mock('../../../app/config', () => ({
   backendURL: 'http://mock-backend-url.com',
 }));
 
+global.alert = jest.fn();
+
 describe('Index Component', () => {
   let mockPush: jest.Mock;
 
@@ -101,6 +103,7 @@ describe('Index Component', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         'http://mock-backend-url.com/login/google'
       );
+      expect(global.alert).toHaveBeenCalledWith(expect.stringContaining('Google login error:'));
     });
   });
 });
