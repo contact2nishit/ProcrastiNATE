@@ -1,4 +1,5 @@
-import { Dimensions} from 'react-native';
+import { Dimensions } from 'react-native';
+
 export type Slot = {
   name: string;
   type: 'meeting' | 'assignment' | 'chore';
@@ -14,14 +15,32 @@ export type Slot = {
   [key: string]: any;
 };
 
+/**
+ * Formats a given ISO date string into a human-readable time string.
+ * The time is formatted based on the local timezone.
+ *
+ * @param iso - The ISO date string to format.
+ * @returns A string representing the time in 'hh:mm AM/PM' format.
+ */
 export const formatTime = (iso: string) =>
   new Date(iso).toLocaleTimeString(undefined, {
     hour: '2-digit',
     minute: '2-digit',
   });
 
+/**
+ * Groups an array of slots by their local start date.
+ *
+ * @param slots - An array of Slot objects to group.
+ * @returns An object where keys are local date strings (YYYY-MM-DD) and values are arrays of slots.
+ */
 export const groupSlotsByDay = (slots: Slot[]) => {
-  // Group slots by the *local* date of their start time, not by the UTC date string
+  /**
+   * Groups an array of slots by their local start date.
+   *
+   * @param slots - An array of Slot objects to group.
+   * @returns An object where keys are local date strings (YYYY-MM-DD) and values are arrays of slots.
+   */
   const grouped: Record<string, Slot[]> = {};
   for (const slot of slots) {
     // Convert slot.start to local Date, then get local date string (YYYY-MM-DD)
@@ -36,8 +55,19 @@ export const groupSlotsByDay = (slots: Slot[]) => {
   return grouped;
 };
 
+/**
+ * Generates an array of week days starting from the Sunday of the given reference date.
+ *
+ * @param referenceDate - The date to calculate the week days from.
+ * @returns An array of objects containing the date, label, and ISO string for each day of the week.
+ */
 export const getWeekDaysFromDate = (referenceDate: Date) => {
-  // Get the week days using local time, not UTC
+  /**
+   * Generates an array of week days starting from the Sunday of the given reference date.
+   *
+   * @param referenceDate - The date to calculate the week days from.
+   * @returns An array of objects containing the date, label, and ISO string for each day of the week.
+   */
   const date = new Date(referenceDate);
   // Set to Sunday of the week (local time)
   date.setDate(date.getDate() - date.getDay());
@@ -60,13 +90,30 @@ export const getWeekDaysFromDate = (referenceDate: Date) => {
   });
 };
 
+/**
+ * Calculates the start of the week (Sunday midnight) for a given date.
+ *
+ * @param date - The date to calculate the start of the week for. Defaults to the current date.
+ * @returns A Date object representing Sunday midnight of the week.
+ */
 export const getStartOfWeek = (date = new Date()) => {
-    const d = new Date(date);
-    const day = d.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-    const diff = d.getDate() - day; // Subtract the day index to get back to Sunday
-    d.setDate(diff);
-    d.setHours(0, 0, 0, 0); // Reset time to midnight
-    return d;
+  /**
+   * Calculates the start of the week (Sunday midnight) for a given date.
+   *
+   * @param date - The date to calculate the start of the week for. Defaults to the current date.
+   * @returns A Date object representing Sunday midnight of the week.
+   */
+  const d = new Date(date);
+  const day = d.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const diff = d.getDate() - day; // Subtract the day index to get back to Sunday
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0); // Reset time to midnight
+  return d;
 };
 
+/**
+ * Gets the screen width of the device.
+ *
+ * @returns The width of the device screen in pixels.
+ */
 export const screenWidth = Dimensions.get('window').width;
