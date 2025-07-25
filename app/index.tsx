@@ -15,7 +15,6 @@ export default function App() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const backendURL = config.backendURL;
-  const navigation = useNavigation();
   const router = useRouter();
 
   const handleSubmit = async () => {
@@ -52,13 +51,6 @@ export default function App() {
     router.push('/Signup');
   }
 
-  const handleBackendURLSave = async (url: string) => {
-    try {
-      await AsyncStorage.setItem('backendURL', url);
-    } catch (e) {
-      console.log('Failed to save backendURL:', e);
-    }
-  };
 
   // Google login handler
   const handleGoogleLogin = async () => {
@@ -167,7 +159,7 @@ export default function App() {
             <Text style={styles.googleButtonText}>Sign In with Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress ={handleSignup}>
+          <TouchableOpacity onPress ={handleSignup} testID="signupLink">
             <Text style = {styles.noAccount}>
               Don't have an account? <Text style = {styles.signupButtonText}>Sign Up</Text>
             </Text>

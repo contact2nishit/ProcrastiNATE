@@ -4,10 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from './config';
+import { useRouter } from 'expo-router';
 
 export default function Signup() {
 
-    const navigation = useNavigation();
+    const router = useRouter();
 
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
@@ -38,7 +39,7 @@ export default function Signup() {
                 return;
             }
             alert('Registration successful!');
-            navigation.navigate('index');
+            router.push('/index');
         } catch (e) {
             alert('Registration error: ' + e);
         }
@@ -46,7 +47,7 @@ export default function Signup() {
 
     return (
         <SafeAreaView style = {styles.background}>
-            <Text style = {styles.signup}>
+            <Text style = {styles.signup} testID="signupTitle">
                 Sign Up
             </Text>
 
@@ -87,9 +88,9 @@ export default function Signup() {
                 </View>
 
 
-                <TouchableOpacity style = {styles.signupButton} onPress = {handleSubmit}>
+                <TouchableOpacity style = {styles.signupButton} onPress = {handleSubmit} testID="signupButton">
                     <Text style = {styles.signupButtonText}>
-                        Sign Up
+                        Register
                     </Text>
                 </TouchableOpacity>
 
