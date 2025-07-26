@@ -78,7 +78,7 @@ const EventSelection: React.FC = () => {
 
   const navItems = [
     { label: 'Meeting', icon: 'calendar-alt' },
-    { label: 'Assignment', icon: 'book' },
+    { label: 'Assignment', icon: 'book-open' },
     { label: 'Chore/Study', icon: 'tasks' },
     { label: 'Events', icon: 'calendar-check' },
   ];
@@ -1074,25 +1074,25 @@ const EventSelection: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'black',
+    backgroundColor:'rgba(41, 42, 43, 1)',
     flex: 1,
   },
   navBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: 10,
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(51, 53, 54, 1)',
   },
   navButton: {
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(21, 154, 249, 1)',
     alignItems: 'center',
     minWidth: 85,
   },
   navButtonSelected: {
-    backgroundColor: 'black',
+    backgroundColor: 'rgba(65, 62, 241, 1)',
     borderColor: 'white',
     borderWidth: 1,
   },
@@ -1106,7 +1106,7 @@ const styles = StyleSheet.create({
   },
 
   containerMeeting: {
-    backgroundColor: 'black',
+    backgroundColor: 'rgba(41, 42, 43, 1)',
     paddingHorizontal: 20,
     paddingTop: 30,
     marginTop:-20,
