@@ -54,7 +54,6 @@ export default function Home() {
     occurence_id: string;
     is_assignment: boolean;
   };
-  const navigation = useNavigation();
   const [todoList, setTodoList] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<'update' | 'delete' | 'markSession' | null>(null);
@@ -363,7 +362,7 @@ export default function Home() {
         <TouchableOpacity style={styles.calendarButton}>
           <MaterialCommunityIcons name="account" size={32} color="white" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={calendarProceed} style={styles.calendarButton}>
+        <TouchableOpacity onPress={calendarProceed} style={styles.calendarButton} testID="calendar-button">
           <MaterialCommunityIcons name='calendar-month' size={32} color='white'/>
         </TouchableOpacity>
       </View>
