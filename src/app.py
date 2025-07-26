@@ -25,7 +25,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-
+from achievements_check import check_achievements
 
 dotenv.load_dotenv()
 
@@ -499,7 +499,7 @@ async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error")
 
 @app.post("/markSessionCompleted")
-async def mark_session_completed(complete: SessionCompletionDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> MessageResponseDataModel:
+async def mark_session_completed(complete: SessionCompletionDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> SessionCompletionResponse:
     """Mark one session of time allocated to work on an assignment (could be multiple sessions per assignment) as complete or incomplete"""
     prop_xp: float = complete.locked_in / 10
     try:
@@ -510,9 +510,9 @@ async def mark_session_completed(complete: SessionCompletionDataModel, token: An
                 xp_potential  = await conn.fetchrow('UPDATE assignment_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential, assignment_id', complete.completed, complete.locked_in, complete.occurence_id, user.user_id)
                 if xp_potential is not None:
                     xp_gained: int = round(prop_xp * xp_potential['xp_potential'])
-                    assignment_list = await conn.fetch("SELECT completed FROM assignment_occurences WHERE assignment_id = $1 AND user_id = $2", xp_potential['assignment_id'], user.user_id)
+                    all_completed = await conn.fetchval("SELECT bool_and(completed) FROM assignment_occurences WHERE assignment_id = $1 AND user_id = $2", xp_potential['assignment_id'], user.user_id)
                     # Check if all occurrences are completed
-                    if (check_assignment_completed(assignment_list)):
+                    if all_completed:
                         await conn.execute("UPDATE assignments SET completed = TRUE WHERE user_id = $1 and assignment_id = $2", user.user_id, xp_potential['assignment_id'])
                     new_xp = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2 RETURNING xp", xp_gained, user.user_id)
                 else:
@@ -521,9 +521,9 @@ async def mark_session_completed(complete: SessionCompletionDataModel, token: An
                 xp_potential = await conn.fetchrow('UPDATE chore_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential, chore_id', complete.completed, complete.locked_in, complete.occurence_id, user.user_id)
                 if xp_potential is not None:
                     xp_gained: int = round(prop_xp * xp_potential['xp_potential'])
-                    chore_list = await conn.fetch("SELECT completed FROM chore_occurences WHERE chore_id = $1 AND user_id = $2", xp_potential['chore_id'], user.user_id)
+                    all_completed = await conn.fetchval("SELECT bool_and(completed) FROM chore_occurences WHERE chore_id = $1 AND user_id = $2", xp_potential['chore_id'], user.user_id)
                     # Check if all occurrences are completed
-                    if (check_assignment_completed(chore_list)):
+                    if all_completed:
                         await conn.execute("UPDATE chores SET completed = TRUE WHERE user_id = $1 and chore_id = $2", user.user_id, xp_potential['chore_id'])
                     new_xp = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2 RETURNING xp", xp_gained, user.user_id)
                 else:
@@ -533,7 +533,7 @@ async def mark_session_completed(complete: SessionCompletionDataModel, token: An
             if new_xp > get_xp_for_next_level(cur_level) and cur_level < MAX_LEVEL:
                 await conn.execute("UPDATE achievements SET levels = levels + 1 WHERE user_id = $1", user.user_id)
 
-            return MessageResponseDataModel(message='Successfully marked chore as complete!', new_xp=new_xp)
+            return SessionCompletionResponse(message='Successfully marked chore as complete!', new_xp=new_xp, achievements=check_achievements(user.user_id, app.state.pool))
     except HTTPException as e:
         raise e
     except Exception as e:

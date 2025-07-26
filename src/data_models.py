@@ -220,3 +220,7 @@ class LevelResponse(BaseModel):
     user_name: str
     xp: int
     level: int
+
+class SessionCompletionResponse(MessageResponseDataModel):
+    """Response for marking a session as completed"""
+    achievements : dict[str, bool] | None = None
