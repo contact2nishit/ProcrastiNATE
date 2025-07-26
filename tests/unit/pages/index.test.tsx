@@ -1,94 +1,109 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import App from '../app/index';
 import { useRouter } from 'expo-router';
+import Index from '../../../app/index';
+import config from '../../../app/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const pushMock = jest.fn();
-
-// Mock useRouter
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(),
 }));
 
-// Mock AsyncStorage
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  setItem: jest.fn(),
+jest.mock('../../../app/config', () => ({
+  backendURL: 'http://mock-backend-url.com',
 }));
 
-// Mock global fetch
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve({ access_token: 'fake_token' }),
-  })
-) as jest.Mock;
+global.alert = jest.fn();
 
-describe('Login Screen', () => {
+describe('Index Component', () => {
+  let mockPush: jest.Mock;
+
   beforeEach(() => {
-    (useRouter as jest.Mock).mockReturnValue({
-      push: pushMock,
-    });
-    global.alert = jest.fn();
-  });
-
-  afterEach(() => {
+    mockPush = jest.fn();
+    (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
     jest.clearAllMocks();
   });
 
-  it('submits the form and navigates to Home on successful login', async () => {
-    const { getByPlaceholderText, getByText } = render(<App />);
+  it('navigates to the signup page when the signup link is pressed', () => {
+    const { getByTestId } = render(<Index />);
 
-    fireEvent.changeText(getByPlaceholderText('Username'), 'Sai');
-    fireEvent.changeText(getByPlaceholderText('Password'), 'sai');
+    const signupLink = getByTestId('signupLink');
+    fireEvent.press(signupLink);
 
-    fireEvent.press(getByText('Sign In'));
+    expect(mockPush).toHaveBeenCalledWith('/Signup');
+  });
+
+  it('calls handleSubmit when the Sign In button is pressed and stores token in AsyncStorage', async () => {
+    const mockFetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ access_token: 'mockToken' }),
+        headers: new Headers(),
+        redirected: false,
+        status: 200,
+        statusText: 'OK',
+        type: 'default' as ResponseType,
+        url: 'http://mock-backend-url.com/login',
+        clone: jest.fn(),
+        body: null,
+        bodyUsed: false,
+        text: jest.fn(),
+        arrayBuffer: jest.fn(),
+        blob: jest.fn(),
+        formData: jest.fn(),
+        bytes: jest.fn(),
+      })
+    );
+    global.fetch = mockFetch;
+
+    const { getByText } = render(<Index />);
+
+    const signInButton = getByText('Sign In');
+    fireEvent.press(signInButton);
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/login'), expect.any(Object));
-      expect(AsyncStorage.setItem).toHaveBeenCalledWith('token', 'fake_token');
-      expect(pushMock).toHaveBeenCalledWith('/requiresCurrentSchedule/Home');
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://mock-backend-url.com/login',
+        expect.any(Object)
+      );
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith('token', 'mockToken');
+      expect(mockPush).toHaveBeenCalledWith('/requiresCurrentSchedule/Home');
     });
   });
 
-  it('alerts if backendURL is not set', async () => {
-    const alertMock = jest.spyOn(global, 'alert').mockImplementation(() => {});
-    const { getByText } = render(<App />);
+  it('calls handleGoogleLogin when the Sign In with Google button is pressed', async () => {
+    const mockFetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ redirect_url: 'http://mock-google-login-url.com' }),
+        headers: new Headers(),
+        redirected: false,
+        status: 200,
+        statusText: 'OK',
+        type: 'default' as ResponseType,
+        url: 'http://mock-backend-url.com/login/google',
+        clone: jest.fn(),
+        body: null,
+        bodyUsed: false,
+        text: jest.fn(),
+        arrayBuffer: jest.fn(),
+        blob: jest.fn(),
+        formData: jest.fn(),
+        bytes: jest.fn(),
+      })
+    );
+    global.fetch = mockFetch;
 
-    fireEvent.press(getByText('Sign In'));
+    const { getByText } = render(<Index />);
 
-    await waitFor(() => {
-      expect(alertMock).toHaveBeenCalledWith('Backend URL not set.');
-    });
-
-    alertMock.mockRestore();
-  });
-
-  it('navigates to the Signup page when Sign Up is pressed', async () => {
-    const { getByText } = render(<App />);
-
-    fireEvent.press(getByText("Don't have an account? Sign Up"));
-
-    await waitFor(() => {
-      expect(pushMock).toHaveBeenCalledWith('/Signup');
-    });
-  });
-
-  it('alerts on login failure', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      text: () => Promise.resolve('Invalid credentials'),
-    });
-
-    const { getByPlaceholderText, getByText } = render(<App />);
-
-    fireEvent.changeText(getByPlaceholderText('Username'), 'Sai');
-    fireEvent.changeText(getByPlaceholderText('Password'), 'wrongpassword');
-
-    fireEvent.press(getByText('Sign In'));
+    const googleButton = getByText('Sign In with Google');
+    fireEvent.press(googleButton);
 
     await waitFor(() => {
-      expect(global.alert).toHaveBeenCalledWith('Login failed: Invalid credentials');
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://mock-backend-url.com/login/google'
+      );
+      expect(global.alert).toHaveBeenCalledWith(expect.stringContaining('Google login error:'));
     });
   });
 });

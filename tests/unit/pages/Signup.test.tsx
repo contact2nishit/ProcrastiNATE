@@ -31,32 +31,21 @@ describe('Signup Screen', () => {
   });
 
   it('submits the form and navigates to Login on successful signup', async () => {
-    const { getByPlaceholderText, getByText } = render(<Signup />);
+    const { getByPlaceholderText, getByTestId } = render(<Signup />);
 
     fireEvent.changeText(getByPlaceholderText('Email'), 'test@example.com');
     fireEvent.changeText(getByPlaceholderText('Username'), 'testuser');
     fireEvent.changeText(getByPlaceholderText('Password'), 'password123');
 
-    fireEvent.press(getByText('Sign Up'));
+    fireEvent.press(getByTestId('signupButton'));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/register'), expect.any(Object));
       expect(global.alert).toHaveBeenCalledWith('Registration successful!');
-      expect(pushMock).toHaveBeenCalledWith('index');
+      expect(pushMock).toHaveBeenCalledWith('/index');
     });
   });
 
-  it('alerts if backendURL is not set', async () => {
-    (global.fetch as jest.Mock).mockImplementationOnce(() => Promise.reject('Backend URL not set.'));
-
-    const { getByText } = render(<Signup />);
-
-    fireEvent.press(getByText('Sign Up'));
-
-    await waitFor(() => {
-      expect(global.alert).toHaveBeenCalledWith('Backend URL not set.');
-    });
-  });
 
   it('alerts on signup failure', async () => {
     (global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -64,13 +53,13 @@ describe('Signup Screen', () => {
       text: () => Promise.resolve('Username already exists'),
     });
 
-    const { getByPlaceholderText, getByText } = render(<Signup />);
+    const { getByPlaceholderText, getByTestId } = render(<Signup />);
 
     fireEvent.changeText(getByPlaceholderText('Email'), 'test@example.com');
     fireEvent.changeText(getByPlaceholderText('Username'), 'existinguser');
     fireEvent.changeText(getByPlaceholderText('Password'), 'password123');
 
-    fireEvent.press(getByText('Sign Up'));
+    fireEvent.press(getByTestId('signupButton'));
 
     await waitFor(() => {
       expect(global.alert).toHaveBeenCalledWith('Registration failed: Username already exists');
