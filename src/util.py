@@ -12,7 +12,7 @@ from passlib.context import CryptContext
 from data_models import *
 from collections import defaultdict
 
-MAX_LEVEL = 100 # Maximum level a user can achieve
+
 
 dotenv.load_dotenv()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -30,6 +30,7 @@ def get_password_hash(password):
 
 def partition_by_meeting_id(data: List, field: str):
     """
+        Given a list of dict's return a list of list of dicts, where each sub-list contains the same value for the specified string field
         Data: the list of dictionaries to partition
         field: the field to partition by
     """
@@ -144,6 +145,7 @@ def get_xp_for_next_level(level: int):
     '''
     Given a level, return the XP required to reach the next level.
     '''
+    MAX_LEVEL = 100 # Maximum level a user can achieve
     if level < 1:
         return 0
     elif level >= MAX_LEVEL:
