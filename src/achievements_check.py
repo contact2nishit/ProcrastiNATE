@@ -1,17 +1,15 @@
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 
 from data_models import SessionCompletionDataModel
-async def check_achievements(conn, user_id: int, completed: SessionCompletionDataModel):
+async def check_achievements(conn, user_id: int):
     """Check and update achievements for a user"""
     try:
-        # Fetch user achievements
         achievements = await conn.fetchrow("SELECT * FROM achievements WHERE user_id = $1", user_id)
         if not achievements:
             return {"message": "No achievements found for this user."}
-        # Fetch sessions completed in the past month
         sessions_data = await get_sessions_past_month(conn, user_id)
         if not sessions_data:
             return {"message": "No sessions completed in the past month."}
@@ -20,7 +18,25 @@ async def check_achievements(conn, user_id: int, completed: SessionCompletionDat
         chores_completed = sessions_data['chores_completed']
         level = achievements['level']
 
-        return {"message": "Achievements checked and updated successfully."}
+        unlocked = {}
+
+        # Session Based Achievements
+        session_unlocked = await check_session_achievements(conn, user_id, sessions, achievements)
+        unlocked.update(session_unlocked)
+
+        # Level Based Achievements
+        level_unlocked = await check_level_achievements(level, achievements)
+        unlocked.update(level_unlocked)
+
+        # Cumulative Achievements
+        cumulative_unlocked = await check_cumulative_achievements(assignments_completed, chores_completed, achievements)
+        unlocked.update(cumulative_unlocked)
+
+        if unlocked:
+            set_clause = ', '.join([f"{k} = TRUE" for k in unlocked.keys()])
+            await conn.execute(f"UPDATE achievements SET {set_clause} WHERE user_id = $1", user_id)
+
+        return unlocked
     except Exception as e:
         print(f"Error checking achievements: {str(e)}")
         return {"error": "An error occurred while checking achievements."}
@@ -28,7 +44,8 @@ async def check_achievements(conn, user_id: int, completed: SessionCompletionDat
 async def get_sessions_past_month(conn, user_id: int):
     """Fetch assignment and chore occurrences and completed parent tasks for the past month"""
     try:
-        one_month_ago = datetime.now() - timedelta(days=30)
+        now = datetime.now(timezone.utc)
+        one_month_ago = now - timedelta(days=30)
         # Fetch all assignment and chore occurrences in one query using UNION ALL
         sessions = await conn.fetch("""
             SELECT 'assignment' AS type, ao.*, a.completed AS parent_completed, a.deadline
@@ -63,7 +80,7 @@ async def get_sessions_past_month(conn, user_id: int):
             "chores_completed": 0
         }
 
-async def check_session_achievements(conn, user_id, sessions, completed, achievements):
+async def check_session_achievements(sessions, achievements):
     updates = {}
 
     # Helper: group sessions by date
@@ -164,7 +181,48 @@ async def check_session_achievements(conn, user_id, sessions, completed, achieve
         if any(3 <= s['start_time'].hour < 5 for s in sessions):
             updates['sleep_is_for_the_weak'] = True
 
-    # Batch update
-    if updates:
-        set_clause = ', '.join([f"{k} = TRUE" for k in updates.keys()])
-        await conn.execute(f"UPDATE achievements SET {set_clause} WHERE user_id = $1", user_id)
+    return updates
+
+async def check_level_achievements(level, achievements):
+    updates = {}
+    level_achievements = [
+        ('humble_beginner', 5),
+        ('making_progress', 10),
+        ('motivated', 25),
+        ('hard_worker', 50),
+        ('grinder_expert', 75),
+        ('legend_of_grinding', 100),
+    ]
+    for name, threshold in level_achievements:
+        if not achievements.get(name) and level >= threshold:
+            updates[name] = True
+    return updates
+
+async def check_cumulative_achievements(assignments_completed, chores_completed, achievements):
+    updates = {}
+    # Task Slayer (Assignments)
+    task_slayer = [
+        ('task_slayer_i', 10),
+        ('task_slayer_ii', 30),
+        ('task_slayer_iii', 100),
+        ('task_slayer_iv', 250),
+        ('task_slayer_v', 500),
+    ]
+    for name, threshold in task_slayer:
+        if not achievements.get(name) and assignments_completed >= threshold:
+            updates[name] = True
+
+    # Home Hero (Chores)
+    home_hero = [
+        ('home_hero_i', 10),
+        ('home_hero_ii', 50),
+        ('home_hero_iii', 200),
+        ('home_hero_iv', 500),
+        ('home_hero_v', 1000),
+    ]
+    for name, threshold in home_hero:
+        if not achievements.get(name) and chores_completed >= threshold:
+            updates[name] = True
+
+    return updates
+
