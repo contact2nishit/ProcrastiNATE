@@ -77,7 +77,7 @@ async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREA
         print(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Something went wrong on the backend, please check the logs"
+            detail=f"Internal Server Error"
         )
 
 
@@ -103,7 +103,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], stat
         print(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Something went wrong on the backend, please check the logs"
+            detail=f"Internal Server Error"
         )
 
 # TODO: GOOGLE TOKEN MAY EXPIRE, USE REFRESH TOKEN
@@ -594,8 +594,8 @@ async def update(changes: UpdateRequestDataModel, token: Annotated[str, Depends(
         raise e
     except Exception as e:
         print(e)
-        return UpdateResponseDataModel(clashed=True, message="Internal server error")
-
+        raise HTTPException(status_code=500)
+    
 @app.post("/delete")
 async def delete(deletion: DeleteRequestDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> MessageResponseDataModel:
     """
@@ -679,7 +679,7 @@ async def delete(deletion: DeleteRequestDataModel, token: Annotated[str, Depends
         raise e
     except Exception as e:
         print(e)
-        return MessageResponseDataModel(message="Internal server error")
+        raise HTTPException(status_code=500, detail="Internal server error")
     
 @app.post("/reschedule")
 async def reschedule(re: RescheduleRequestDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> ScheduleResponseFormat:
