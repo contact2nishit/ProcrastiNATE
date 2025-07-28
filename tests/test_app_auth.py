@@ -4,11 +4,7 @@ import os
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 from fastapi import status
-import asyncio
-
-# Add src to path for imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
-
 from app import app
 from data_models import RegistrationDataModel, UserInDB
 
