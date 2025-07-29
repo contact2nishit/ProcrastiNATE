@@ -46,3 +46,6 @@ yarn-error.*
 
 app-example
 *app.config.json
+
+# web-frontend
+web-frontend/no

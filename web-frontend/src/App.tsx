@@ -1,26 +1,75 @@
 import React from 'react';
 import logo from './logo.svg';
 import './App.css';
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import { CurrentScheduleProvider } from './context/CurrentScheduleContext';
+import { PotentialScheduleProvider } from './context/PotentialScheduleContext';
+import Home from './pages/Home';
+import CalendarView from './pages/CalendarView';
+import SchedulePicker from './pages/SchedulePicker';
+import EventSelection from './pages/EventSelection';
+import CalendarViewPotential from './pages/CalendarViewPotential';
+import RescheduleScreen from './pages/RescheduleScreen';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
-}
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+	const token = localStorage.getItem("token");
+	return token ? <>{children}</> : <Navigate to="/" replace />;
+};
+
+const App: React.FC = () => {
+	return (
+		<Router>
+			<Routes>
+				<Route path="/" element={<Login />} />
+				<Route path="/signup" element={<Signup />} />
+        		<Route path='/requiresCurrentSchedule/Home' element={
+					<ProtectedRoute>
+						<CurrentScheduleProvider>
+							<Home />
+						</CurrentScheduleProvider>
+					</ProtectedRoute>
+					}
+				/>
+        <Route path='/requiresCurrentSchedule/CalendarView' element={
+          <ProtectedRoute>
+            <CurrentScheduleProvider>
+              <CalendarView />
+            </CurrentScheduleProvider>
+          </ProtectedRoute>
+        } />
+        <Route path='/requiresPotentialSchedule/SchedulePicker' element={
+          <ProtectedRoute>
+            <PotentialScheduleProvider>
+              <SchedulePicker />
+            </PotentialScheduleProvider>
+          </ProtectedRoute>
+        } />
+        <Route path='/requiresPotentialSchedule/EventSelection' element={
+          <ProtectedRoute>
+            <PotentialScheduleProvider>
+              <EventSelection />
+            </PotentialScheduleProvider>
+          </ProtectedRoute>
+        } />
+        <Route path='/requiresPotentialSchedule/CalendarViewPotential' element={
+          <ProtectedRoute>
+            <PotentialScheduleProvider>
+              <CalendarViewPotential />
+            </PotentialScheduleProvider>
+          </ProtectedRoute>
+        } />
+        <Route path='/requiresPotentialSchedule/RescheduleScreen' element={
+          <ProtectedRoute>
+            <PotentialScheduleProvider>
+              <RescheduleScreen />
+            </PotentialScheduleProvider>
+          </ProtectedRoute>
+        } />
+			</Routes>
+		</Router>
+	);
+};
 
 export default App;
