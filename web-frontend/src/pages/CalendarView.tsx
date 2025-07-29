@@ -157,7 +157,7 @@ const CalendarView = () => {
         }}
       />
 
-      {/* Meeting Update/Delete Modal */}
+      {/* Meeting Update/Delete Modal}
       <Modal
         visible={modalVisible}
         animationType="slide"

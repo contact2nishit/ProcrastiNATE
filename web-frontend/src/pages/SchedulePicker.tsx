@@ -212,7 +212,7 @@ const SchedulePicker = () => {
           </View>
         </View>
       </Modal>
-      {/* Button to navigate back to the All Events Page */}
+      {/* Button to navigate back to the All Events Page}
       <TouchableOpacity
         onPress={() => navigation.goBack()}
         style={styles.goBack}

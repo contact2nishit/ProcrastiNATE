@@ -1,21 +1,35 @@
-/*import React, {useState} from 'react';
-import { TextInput, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import config from './config';
-import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import config from '../config';
 
 const Signup = () => {
-
-    const router = useRouter();
+    const navigate = useNavigate();
 
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        // Validate all fields are filled
+        if (!email || !username || !password || !confirmPassword) {
+            alert('Please fill in all fields.');
+            return;
+        }
 
-    const handleSubmit = async () => {
+        if(password.length < 8) {
+            alert('Password should be at least 8 characters');
+        }
+        // Validate passwords match
+        if (password !== confirmPassword) {
+            alert('Passwords do not match.');
+            return;
+        }
+
         try {
             const url = config.backendURL;
             if (!url) {
@@ -39,124 +53,104 @@ const Signup = () => {
                 return;
             }
             alert('Registration successful!');
-            router.push('/index');
+            navigate('/');
         } catch (e) {
             alert('Registration error: ' + e);
         }
-    }
+    };
 
     return (
-        <SafeAreaView style = {styles.background}>
-            <Text style = {styles.signup} testID="signupTitle">
+        <div className="min-h-screen bg-black flex flex-col">
+            <h1 
+                className="text-4xl text-white font-light text-center mt-8" 
+                data-testid="signupTitle"
+            >
                 Sign Up
-            </Text>
+            </h1>
 
-            <View style = {styles.signupBox}>
-
-                <View style = {styles.inputContainer}>
-                    <Text style={styles.label}>Email</Text>
-                        <TextInput
-                        style={styles.input}
-                        placeholder="Email"
-                        placeholderTextColor="#aaa"
-                        value={email}
-                        onChangeText={setEmail}
+            <div className="bg-white mx-auto w-[90%] max-w-md p-5 mt-12 rounded-3xl flex flex-col items-center">
+                <form onSubmit={handleSubmit} className="w-full">
+                    <div className="w-[90%] mx-auto mb-6">
+                        <label className="block text-base font-extralight text-gray-800 mb-1 -ml-2">
+                            Email
+                        </label>
+                        <input
+                            type="email"
+                            className="w-full border border-gray-300 rounded-md p-2.5 text-base text-gray-800 -ml-2.5 placeholder-gray-400"
+                            placeholder="Email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                         />
-                </View>
+                    </div>
 
-                <View style = {styles.inputContainer}>
-                    <Text style={styles.label}>Username</Text>
-                        <TextInput
-                        style={styles.input}
-                        placeholder="Username"
-                        placeholderTextColor="#aaa"
-                        value={username}
-                        onChangeText={setUsername}
+                    <div className="w-[90%] mx-auto mb-6">
+                        <label className="block text-base font-extralight text-gray-800 mb-1 -ml-2">
+                            Username
+                        </label>
+                        <input
+                            type="text"
+                            className="w-full border border-gray-300 rounded-md p-2.5 text-base text-gray-800 -ml-2.5 placeholder-gray-400"
+                            placeholder="Username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
                         />
-                </View>
+                    </div>
 
+                    <div className="w-[90%] mx-auto mb-6">
+                        <label className="block text-base font-extralight text-gray-800 mb-1 -ml-2">
+                            Password
+                        </label>
+                        <div className="relative">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                className="w-full border border-gray-300 rounded-md p-2.5 text-base text-gray-800 -ml-2.5 placeholder-gray-400 pr-16"
+                                placeholder="Password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm"
+                                onClick={() => setShowPassword(!showPassword)}
+                            >
+                                {showPassword ? 'Hide' : 'Show'}
+                            </button>
+                        </div>
+                    </div>
 
-                <View style = {styles.inputContainer}>
-                    <Text style={styles.label}>Password</Text>
-                        <TextInput
-                        style={styles.input}
-                        placeholder="Password"
-                        placeholderTextColor="#aaa"
-                        value={password}
-                        onChangeText={setPassword}
-                        />
-                </View>
+                    <div className="w-[90%] mx-auto mb-6">
+                        <label className="block text-base font-extralight text-gray-800 mb-1 -ml-2">
+                            Confirm Password
+                        </label>
+                        <div className="relative">
+                            <input
+                                type={showConfirmPassword ? "text" : "password"}
+                                className="w-full border border-gray-300 rounded-md p-2.5 text-base text-gray-800 -ml-2.5 placeholder-gray-400 pr-16"
+                                placeholder="Confirm Password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            >
+                                {showConfirmPassword ? 'Hide' : 'Show'}
+                            </button>
+                        </div>
+                    </div>
 
-
-                <TouchableOpacity style = {styles.signupButton} onPress = {handleSubmit} testID="signupButton">
-                    <Text style = {styles.signupButtonText}>
+                    <button
+                        type="submit"
+                        className="bg-black text-white py-3 px-8 rounded-lg shadow-lg text-base font-light"
+                        data-testid="signupButton"
+                    >
                         Register
-                    </Text>
-                </TouchableOpacity>
-
-
-            </View>
-        </SafeAreaView>
+                    </button>
+                </form>
+            </div>
+        </div>
     );
-}
+};
 
-const styles = StyleSheet.create({
-    background:{
-        flex:1,
-        backgroundColor: 'black',
-    },
-    signup:{
-        fontSize: 38,
-        alignSelf: 'center',
-        color: 'white',
-        fontWeight: 300,
-        marginTop: 30,
-    },
-
-    signupBox:{
-        backgroundColor: 'white',
-        alignSelf: 'center',
-        alignItems: 'center',
-        width: '90%',
-        padding: 20,
-        marginTop: 50,
-        borderRadius: 20,
-    },
-
-    inputContainer:{
-        width: '90%',
-        marginBottom: 25,
-    },
-    label: {
-    fontSize: 16,
-    fontWeight: 200,
-    color: '#333',
-    marginBottom: 5,
-    marginLeft: -8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 5,
-    padding: 10,
-    fontSize: 16,
-    color: '#333',
-    marginLeft: -10,
-  },
-  signupButton: {
-    backgroundColor: 'black',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 8,
-    elevation: 3,
-  },
-  signupButtonText: {
-    fontSize: 16,
-    textAlign: 'center',
-    fontWeight: '300',
-    color: 'white',
-  },
-
-})
-
-export default Signup;*/
+export default Signup;

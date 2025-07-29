@@ -3,7 +3,7 @@ import logo from './logo.svg';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from './pages/Login';
-// import Signup from './pages/Signup';
+import Signup from './pages/Signup';
 // import { CurrentScheduleProvider } from './context/CurrentScheduleContext';
 // import { PotentialScheduleProvider } from './context/PotentialScheduleContext';
 // import Home from './pages/Home';
@@ -18,13 +18,24 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 	return token ? <>{children}</> : <Navigate to="/" replace />;
 };
 
+const Comp: React.FC = () => {
+  return (
+    <p>{localStorage.getItem("token")}</p>
+  )
+}
+
 const App: React.FC = () => {
 	return (
 		<Router>
 			<Routes>
 				<Route path="/" element={<Login />} />
-				{/* <Route path="/signup" element={<Signup />} />
-        		<Route path='/requiresCurrentSchedule/Home' element={
+				<Route path="/signup" element={<Signup />} />
+        <Route path="/requiresCurrentSchedule/Home" element={
+          <ProtectedRoute>
+            <Comp />
+          </ProtectedRoute>
+        }/>
+        	{/*	<Route path='/requiresCurrentSchedule/Home' element={
 					<ProtectedRoute>
 						<CurrentScheduleProvider>
 							<Home />
