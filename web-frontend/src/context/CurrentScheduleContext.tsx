@@ -28,9 +28,8 @@ export const CurrentScheduleProvider = ({ children }: { children: ReactNode }) =
   const fetchScheduleForRange = async (start: string, end: string): Promise<Slot[]> => {
 	// Use dynamic import to avoid circular dependency
 	const config = (await import('../config')).default;
-	const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
 	const url = config.backendURL;
-	const token = await AsyncStorage.getItem('token');
+	const token = localStorage.getItem('token');
 	if (!url || !token) throw new Error('Missing backend URL or token');
 	const params = `start_time=${encodeURIComponent(start)}&end_time=${encodeURIComponent(end)}&meetings=true&assignments=true&chores=true`;
 	const response = await fetch(`${url}/fetch?${params}`, {

@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+/* import React, {useState, useEffect} from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import {
   View,
@@ -121,4 +121,4 @@ const styles = StyleSheet.create({
   }
 })
 
-export default CalendarViewPotential;
+export default CalendarViewPotential; */

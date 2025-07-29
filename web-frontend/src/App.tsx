@@ -3,15 +3,15 @@ import logo from './logo.svg';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from './pages/Login';
-import Signup from './pages/Signup';
-import { CurrentScheduleProvider } from './context/CurrentScheduleContext';
-import { PotentialScheduleProvider } from './context/PotentialScheduleContext';
-import Home from './pages/Home';
-import CalendarView from './pages/CalendarView';
-import SchedulePicker from './pages/SchedulePicker';
-import EventSelection from './pages/EventSelection';
-import CalendarViewPotential from './pages/CalendarViewPotential';
-import RescheduleScreen from './pages/RescheduleScreen';
+// import Signup from './pages/Signup';
+// import { CurrentScheduleProvider } from './context/CurrentScheduleContext';
+// import { PotentialScheduleProvider } from './context/PotentialScheduleContext';
+// import Home from './pages/Home';
+// import CalendarView from './pages/CalendarView';
+// import SchedulePicker from './pages/SchedulePicker';
+// import EventSelection from './pages/EventSelection';
+// import CalendarViewPotential from './pages/CalendarViewPotential';
+// import RescheduleScreen from './pages/RescheduleScreen';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 	const token = localStorage.getItem("token");
@@ -23,7 +23,7 @@ const App: React.FC = () => {
 		<Router>
 			<Routes>
 				<Route path="/" element={<Login />} />
-				<Route path="/signup" element={<Signup />} />
+				{/* <Route path="/signup" element={<Signup />} />
         		<Route path='/requiresCurrentSchedule/Home' element={
 					<ProtectedRoute>
 						<CurrentScheduleProvider>
@@ -74,7 +74,7 @@ const App: React.FC = () => {
               </PotentialScheduleProvider>
             </CurrentScheduleProvider>
           </ProtectedRoute>
-        } />
+        } /> */}
 			</Routes>
 		</Router>
 	);

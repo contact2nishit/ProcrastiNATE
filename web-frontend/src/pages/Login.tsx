@@ -8,7 +8,7 @@ const Login = () => {
   const backendURL = config.backendURL;
   const navigate = useNavigate();
 
-  const handleSubmit = async (e : React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       if (!backendURL) {
@@ -42,7 +42,6 @@ const Login = () => {
     navigate('/Signup');
   };
 
-  // Google login handler (simplified for web)
   const handleGoogleLogin = async () => {
     try {
       if (!backendURL) {
@@ -63,128 +62,40 @@ const Login = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.welcomeText}>Welcome to ProcrastiNATE!</h1>
-      <form style={styles.loginBox} onSubmit={handleSubmit}>
-        <div style={styles.inputContainer}>
-          <label style={styles.label}>Username</label>
+    <div className="min-h-screen bg-black flex flex-col justify-center items-center p-5">
+      <h1 className="text-3xl text-center font-extrabold text-white mb-10">Welcome to ProcrastiNATE!</h1>
+      <form className="bg-white p-6 rounded-lg w-full max-w-md flex flex-col items-center mb-4 shadow-lg" onSubmit={handleSubmit}>
+        <div className="w-full mb-6 flex flex-col">
+          <label className="text-base font-medium text-gray-700 mb-2">Username</label>
           <input
-            style={styles.input}
+            className="border border-gray-300 rounded px-3 py-2 text-base text-gray-800 focus:outline-none"
             type="text"
             placeholder="Username"
             value={username}
             onChange={e => setUsername(e.target.value)}
           />
         </div>
-        <div style={styles.inputContainer}>
-          <label style={styles.label}>Password</label>
+        <div className="w-full mb-6 flex flex-col">
+          <label className="text-base font-medium text-gray-700 mb-2">Password</label>
           <input
-            style={styles.input}
+            className="border border-gray-300 rounded px-3 py-2 text-base text-gray-800 focus:outline-none"
             type="password"
             placeholder="Password"
             value={password}
             onChange={e => setPassword(e.target.value)}
           />
         </div>
-        <button type="submit" style={styles.loginButton}>Sign In</button>
-        <button type="button" onClick={handleGoogleLogin} style={styles.googleButton}>
+        <button type="submit" className="bg-gray-800 text-white py-3 px-8 rounded-lg text-lg font-medium mb-3 hover:bg-gray-900 transition">Sign In</button>
+        <button type="button" onClick={handleGoogleLogin} className="bg-blue-600 text-white py-3 px-8 rounded-lg text-base font-medium mb-3 hover:bg-blue-700 transition">
           Sign In with Google
         </button>
-        <div style={styles.noAccount}>
+        <div className="mt-2 text-base text-black text-center font-medium">
           Don't have an account?{' '}
-          <span style={styles.signupButtonText} onClick={handleSignup}>Sign Up</span>
+          <span className="text-black font-medium underline cursor-pointer" onClick={handleSignup}>Sign Up</span>
         </div>
       </form>
     </div>
   );
-};
-
-const styles = { [key: string]: React.CSSProperties } = {
-  container: {
-    minHeight: '100vh',
-    backgroundColor: 'black',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  welcomeText: {
-    fontSize: 30,
-    textAlign: 'center',
-    fontWeight: '900', // Use string for fontWeight
-    color: 'white',
-    marginBottom: 40,
-  },
-  loginBox: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    width: '90%',
-    maxWidth: 400,
-    alignItems: 'center', // This is fine with flex
-    marginBottom: 10,
-    boxShadow: '0 0px 16px #ccc', // Use a subtle shadow color
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  inputContainer: {
-    width: '100%',
-    marginBottom: 25,
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '400', // Use string for fontWeight
-    color: '#333',
-    marginBottom: 5,
-  },
-  input: {
-    border: '1px solid #ccc', // Use border instead of borderWidth/borderColor
-    borderRadius: 5,
-    padding: 10,
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 5,
-    outline: 'none',
-  },
-  loginButton: {
-    backgroundColor: '#353738',
-    padding: '12px 30px',
-    borderRadius: 8,
-    fontSize: 20,
-    fontWeight: '400', // Use string for fontWeight
-    color: '#fff',
-    border: 'none',
-    cursor: 'pointer',
-    marginBottom: 10,
-  },
-  googleButton: {
-    backgroundColor: '#4285F4',
-    padding: '12px 30px',
-    borderRadius: 8,
-    fontSize: 18,
-    fontWeight: '400', // Use string for fontWeight
-    color: '#fff',
-    border: 'none',
-    cursor: 'pointer',
-    marginBottom: 10,
-  },
-  signupButtonText: {
-    fontSize: 16,
-    color: 'black',
-    fontWeight: '400', // Use string for fontWeight
-    cursor: 'pointer',
-    textDecoration: 'underline',
-  },
-  noAccount: {
-    marginTop: 10,
-    fontSize: 16,
-    color: 'black',
-    textAlign: 'center',
-    fontWeight: '400', // Use string for fontWeight
-  },
 };
 
 export default Login;

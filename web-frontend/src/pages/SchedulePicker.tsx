@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+/* import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, SafeAreaView } from 'react-native';
 import { useNavigation, useRouter } from 'expo-router';
 import config from '../../config';
@@ -260,4 +260,4 @@ const styles = StyleSheet.create({
 });
 
 
-export default SchedulePicker;
+export default SchedulePicker;    */

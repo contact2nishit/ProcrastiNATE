@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+/* import React, {useState, useEffect} from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import {formatTime, getWeekDaysFromDate, groupSlotsByDay, Slot, screenWidth} from '../app/calendarUtils';
 
@@ -43,7 +43,7 @@ export default function CalendarWeekView({
     };
     return (
         <View>
-            {/*Week Navigation*/}
+            {/*Week Navigation}
             <View style = {styles.weekNavContainer}>
                 <TouchableOpacity onPress = {goToPrevWeek} style = {styles.navButton}>
                     <Text style = {styles.navButtonText}>Prev</Text>
@@ -170,4 +170,4 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         paddingHorizontal: 10,
     }
-});
+}); */

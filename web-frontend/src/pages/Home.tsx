@@ -1,4 +1,4 @@
-"use client";
+/*"use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Alert, ScrollView, TextInput } from 'react-native';
@@ -781,4 +781,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
-});
+}); */

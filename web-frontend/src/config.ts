@@ -1,2 +1,2 @@
-import config from '../app.config.json';
+import config from './app.config.json';
 export default config;

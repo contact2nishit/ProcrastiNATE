@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+/*import React, {useState} from 'react';
 import { TextInput, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from 'expo-router';
@@ -159,4 +159,4 @@ const styles = StyleSheet.create({
 
 })
 
-export default Signup;
+export default Signup;*/

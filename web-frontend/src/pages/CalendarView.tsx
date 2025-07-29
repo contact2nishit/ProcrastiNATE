@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+/* import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -361,4 +361,4 @@ const styles = StyleSheet.create({
     color: '#111',
     fontWeight: 'bold',
   },
-});
+}); */

@@ -1,4 +1,4 @@
-import { Dimensions } from 'react-native';
+
 
 export type Slot = {
   name: string;
@@ -116,4 +116,4 @@ export const getStartOfWeek = (date = new Date()) => {
  *
  * @returns The width of the device screen in pixels.
  */
-export const screenWidth = Dimensions.get('window').width;
+// export const screenWidth = Dimensions.get('window').width;
