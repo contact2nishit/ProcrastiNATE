@@ -41,30 +41,38 @@ const App: React.FC = () => {
         } />
         <Route path='/requiresPotentialSchedule/SchedulePicker' element={
           <ProtectedRoute>
+            <CurrentScheduleProvider>
             <PotentialScheduleProvider>
               <SchedulePicker />
             </PotentialScheduleProvider>
+            </CurrentScheduleProvider>
           </ProtectedRoute>
         } />
         <Route path='/requiresPotentialSchedule/EventSelection' element={
           <ProtectedRoute>
+            <CurrentScheduleProvider>
             <PotentialScheduleProvider>
               <EventSelection />
             </PotentialScheduleProvider>
+            </CurrentScheduleProvider>
           </ProtectedRoute>
         } />
         <Route path='/requiresPotentialSchedule/CalendarViewPotential' element={
           <ProtectedRoute>
-            <PotentialScheduleProvider>
-              <CalendarViewPotential />
-            </PotentialScheduleProvider>
+            <CurrentScheduleProvider>
+              <PotentialScheduleProvider>
+                <CalendarViewPotential />
+              </PotentialScheduleProvider>
+            </CurrentScheduleProvider>
           </ProtectedRoute>
         } />
         <Route path='/requiresPotentialSchedule/RescheduleScreen' element={
           <ProtectedRoute>
-            <PotentialScheduleProvider>
-              <RescheduleScreen />
-            </PotentialScheduleProvider>
+            <CurrentScheduleProvider>
+              <PotentialScheduleProvider>
+                <RescheduleScreen />
+              </PotentialScheduleProvider>
+            </CurrentScheduleProvider>
           </ProtectedRoute>
         } />
 			</Routes>
