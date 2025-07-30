@@ -730,7 +730,7 @@ const EventSelection: React.FC = () => {
               />
             </View>
 
-            {/* Add End Repeat Date Picker for recurring meetings */}
+            {/* Add End Repeat Date Picker for recurring meetings }
             {(recurrence === "daily" || recurrence === "mon" || recurrence === "tue" 
               || recurrence === "wed" || recurrence === "thu" || recurrence === "fri" ||
               recurrence === "sat" || recurrence === "sun" 
@@ -773,7 +773,7 @@ const EventSelection: React.FC = () => {
               onChangeText={setLocation}
             />
 
-            {/* Place to add the dropdown for meeting recurrence: */}
+            {/* Place to add the dropdown for meeting recurrence: }
             <Text style={styles.meetingRecurrence}>Recurrence:</Text>
               <View style={styles.pickerWrapperMeeting}>
                 <Picker
@@ -974,12 +974,12 @@ const EventSelection: React.FC = () => {
             </Text>
 
             {/* This section shows all of the meetings that the user has added to their
-            schedule */}
+            schedule }
             <Text style = {styles.meetingsSection}>
               Meetings:
             </Text>
             {/* We need to map over all of the meetings and render each of them in 
-            a horizantal list fashion */}
+            a horizantal list fashion }
             <ScrollView horizontal showsHorizontalScrollIndicator={true}>
               {meetings.map((meeting, index) => (
                 <TouchableOpacity key={index} style={styles.individualMeeting} onPress={() => editDeleteMeeting(index)}>
@@ -997,12 +997,12 @@ const EventSelection: React.FC = () => {
             </ScrollView>
 
             {/* This section shows all of the assignments that the user has added to their
-            schedule */}
+            schedule }
             <Text style = {styles.assignmentsSection}>
               Assignments:
             </Text>
             {/* We need to map over all of the assignments and render each of them in
-            a horizantal list fashion */}
+            a horizantal list fashion /}
             <ScrollView horizontal showsHorizontalScrollIndicator={true}>
               {assignments.map((assignment, index) => (
                 <TouchableOpacity key={index} style={styles.individualAssignment} onPress={() => editDeleteAssignment(index)}>
@@ -1018,13 +1018,13 @@ const EventSelection: React.FC = () => {
             </ScrollView>
 
             {/* This section shows all of the chores that the user has added to their
-            schedule */}
+            schedule /}
             <Text style = {styles.choresSection}>
               Chores/Studies:
             </Text>
 
             {/* We need to map over all of the chores and render each of them in
-            a horizantal list fashion */}
+            a horizantal list fashion /}
             <ScrollView horizontal showsHorizontalScrollIndicator={true}>
               {chores.map((chore, index) => (
                 <TouchableOpacity key={index} style={styles.individualChore} onPress={() => editDeleteChore(index)}>
@@ -1598,3 +1598,5 @@ meetingRecurrenceText: {
 });
 
 export default EventSelection; */
+
+export {};

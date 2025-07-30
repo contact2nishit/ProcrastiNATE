@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
-import { Slot } from '../../calendarUtils';
+import { Slot } from '../calendarUtils';
 
 
 export type AssignmentPotential = {

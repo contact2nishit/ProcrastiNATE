@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Slider, LinearProgress, Box, Typography } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import config from '../config';
-import { useCurrentScheduleContext } from './CurrentScheduleContext';
+import { useCurrentScheduleContext } from '../context/CurrentScheduleContext';
 
 // Create a custom theme for MUI components
 const theme = createTheme({
@@ -74,12 +74,9 @@ const theme = createTheme({
 });
 
 const Home = () => {
-    // Loading state
     const [loading, setLoading] = useState(false);
     const { currSchedule, setCurrSchedule, ensureScheduleRange, refetchSchedule } = useCurrentScheduleContext();
     const navigate = useNavigate();
-    
-    // Google Calendar sync handler
     const handleSyncGoogleCalendar = async () => {
         try {
             setLoading(true);
@@ -104,20 +101,18 @@ const Home = () => {
             }
             const data = await response.json();
             alert(data.message || 'Google Calendar synced!');
-            await fetchTodoList();
+            // Refetch the schedule after sync
+            await refetchSchedule();
         } catch (e) {
             alert('Failed to sync Google Calendar: ' + e);
         } finally {
             setLoading(false);
         }
     };
-    
     type SessionToMaybeComplete = {
         occurence_id: string;
         is_assignment: boolean;
     };
-    
-    const [todoList, setTodoList] = useState<any[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [modalType, setModalType] = useState<'update' | 'delete' | 'markSession' | null>(null);
     const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
@@ -126,13 +121,18 @@ const Home = () => {
     const [updateTime, setUpdateTime] = useState('');
     const [selectedSessionToComplete, setSelectedSessionToComplete] = useState<SessionToMaybeComplete>({occurence_id: "A", is_assignment: false});
     const [lockedInValue, setLockedInValue] = useState(5);
-    const [rescheduleTarget, setRescheduleTarget] = useState<{ type: 'assignment' | 'chore'; id: string; effort: number; start: string; end: string } | null>(null);
-    const [rescheduleModalVisible, setRescheduleModalVisible] = useState(false);
 
     const [levelInfo, setLevelInfo] = useState<{xp: number; level: number; user_name: string } | null>(null);
-    const [xpForNextLevel, setXpForNextLevel] = useState<number>(100);
-
-    // Fetch user level info
+    const [xpForNextLevel, setXpForNextLevel] = useState<number>(100); 
+    const todoList = useMemo(() => {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+        const startISO = start.toISOString().replace('Z', '+00:00');
+        const endISO = end.toISOString().replace('Z', '+00:00');
+        
+        return currSchedule.slots.filter((slot: any) => slot.start >= startISO && slot.end <= endISO);
+    }, [currSchedule.slots]);
     const fetchLevelInfo = async () => {
         try {
             const url = config.backendURL;
@@ -145,54 +145,53 @@ const Home = () => {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
                 },
             });
-            if (!response.ok) return;
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                alert(`Server error: ${response.status} - ${errorText.substring(0, 100)}`);
+                return;
+            }
+        
+            const contentType = response.headers.get('content-type');
+            console.log('Content-Type:', contentType);
+            
+            if (!contentType || !contentType.includes('application/json')) {
+                const responseText = await response.text();
+                console.error('Response is not JSON. Content-Type:', contentType);
+                console.error('Response body:', responseText.substring(0, 500));
+                alert('Server returned non-JSON response. Check console for details.');
+                return;
+            }
             const data = await response.json();
             setLevelInfo({
                 xp: data.xp,
                 level: data.level,
                 user_name: data.user_name
             })
-            // Set XP for next level based on level
             setXpForNextLevel(Math.floor(100 * Math.pow(1.5, data.level)));
         } catch (e) {
-            alert('Failed to fetch level info: ' + e);
+            alert('Failed to fetch level info: ' + ((e as Error)?.message || e));
         }
     }
 
     useEffect(() => {
         fetchLevelInfo();
     }, []);
-    
-    // Refetch todo list (single definition, with loading)
-    const fetchTodoList = useCallback(async () => {
-        try {
-            setLoading(true);
-            // Use context to ensure we have today's schedule
+    useEffect(() => {
+        const ensureSchedule = async () => {
             const now = new Date();
             const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
             const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
             const startISO = start.toISOString().replace('Z', '+00:00');
             const endISO = end.toISOString().replace('Z', '+00:00');
             await ensureScheduleRange(startISO, endISO);
-            // Filter slots for today
-            const items = currSchedule.slots.filter((slot: any) => slot.start >= startISO && slot.end <= endISO);
-            setTodoList(items);
-        } catch (e) {
-            // handle error
-        } finally {
-            setLoading(false);
-        }
-    }, [currSchedule, ensureScheduleRange]);
-
-    // Always refetch schedule and todo list when Home comes into focus
-    useEffect(() => {
-        (async () => {
-            await refetchSchedule();
-            await fetchTodoList();
-        })();
-    }, [refetchSchedule, fetchTodoList]);
+        };
+        ensureSchedule();
+    }, [ensureScheduleRange]);
 
     const handleBack = () => {
         localStorage.removeItem("token");
@@ -219,20 +218,16 @@ const Home = () => {
         if (type === 'chore') return 'bg-green-100 border-l-6 border-green-500';
         return '';
     };
-
-    // Add a local state to track completed status for assignment/chore occurrences
     const [completedMap, setCompletedMap] = useState<{ [key: string]: boolean }>({});
-
-    // Update completedMap when todoList changes (initialize from backend)
     useEffect(() => {
         const map: { [key: string]: boolean } = {};
-        todoList.forEach(item => {
+        todoList.forEach((item: any) => {
             if ((item.type === 'assignment' || item.type === 'chore') && item.id !== undefined) {
                 map[item.id] = !!item.completed;
             }
         });
         setCompletedMap(map);
-    }, [todoList.length]);
+    }, [todoList]);
 
     const markSessionCompleted = async (occurence_id: string, is_assignment: boolean, locked_in: number = 5) => {
         try {
@@ -279,7 +274,6 @@ const Home = () => {
             alert('Session marked as completed!');
             setModalVisible(false);
             await refetchSchedule();
-            await fetchTodoList();
             await fetchLevelInfo();
         } catch (e) {
             alert('Failed to mark session as completed: ' + e);
@@ -320,7 +314,6 @@ const Home = () => {
             setUpdateTime('');
             setSelectedMeeting(null);
             await refetchSchedule();
-            await fetchTodoList();
         } catch (e) {
             alert('Failed to update meeting: ' + e);
         }
@@ -353,7 +346,6 @@ const Home = () => {
             setModalVisible(false);
             setSelectedMeeting(null);
             await refetchSchedule();
-            await fetchTodoList();
         } catch (e) {
             alert('Failed to delete meeting: ' + e);
         }
@@ -387,7 +379,6 @@ const Home = () => {
             alert(`${event_type.charAt(0).toUpperCase() + event_type.slice(1)} deleted!`);
             setModalVisible(false);
             await refetchSchedule();
-            await fetchTodoList();
         } catch (e) {
             alert('Failed to delete: ' + e);
         }
@@ -474,7 +465,7 @@ const Home = () => {
                             </p>
                             
                             {/* Mark session completed for assignments and chores */}
-                            {(item.type === 'assignment' || item.type === 'chore') && (
+                            {(item.type === 'assignment' || item.type === 'chore') && item.id && (
                                 <>
                                     {completedMap[item.id] ? (
                                         <p className="text-green-600 font-bold mt-2 text-lg">✓ Completed</p>
@@ -492,7 +483,7 @@ const Home = () => {
                                                 }
                                                 setModalType('markSession');
                                                 setModalVisible(true);
-                                                setSelectedSessionToComplete({occurence_id: item.id, is_assignment: item.type === 'assignment'});
+                                                setSelectedSessionToComplete({occurence_id: item.id as string, is_assignment: item.type === 'assignment'});
                                             }}
                                         >
                                             Mark Session Completed
@@ -501,7 +492,7 @@ const Home = () => {
                                     {/* Delete button for assignments/chores */}
                                     <button
                                         className="mt-2 bg-red-600 rounded-md py-2 px-4 text-white font-bold hover:bg-red-700 transition-colors"
-                                        onClick={() => handleDeleteEvent(item.id, item.type)}
+                                        onClick={() => handleDeleteEvent(item.id as string, item.type as "assignment" | "chore")}
                                     >
                                         Delete
                                     </button>

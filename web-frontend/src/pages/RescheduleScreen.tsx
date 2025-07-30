@@ -264,3 +264,5 @@ const styles = StyleSheet.create({
 });
 
 export default RescheduleScreen; */
+
+export {};

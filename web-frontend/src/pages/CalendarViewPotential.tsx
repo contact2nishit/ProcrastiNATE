@@ -122,3 +122,5 @@ const styles = StyleSheet.create({
 })
 
 export default CalendarViewPotential; */
+
+export {};
