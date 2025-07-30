@@ -117,3 +117,33 @@ export const getStartOfWeek = (date = new Date()) => {
  * @returns The width of the device screen in pixels.
  */
 // export const screenWidth = Dimensions.get('window').width;
+
+/**
+ * Formats a Date object for datetime-local HTML input fields while preserving the local timezone.
+ * This prevents timezone conversion issues that occur when using toISOString().
+ *
+ * @param date - The Date object to format.
+ * @returns A string in the format 'YYYY-MM-DDTHH:MM' suitable for datetime-local inputs.
+ */
+export const formatDateTimeLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+/**
+ * Formats a Date object for date HTML input fields while preserving the local timezone.
+ * This prevents timezone conversion issues that occur when using toISOString().
+ *
+ * @param date - The Date object to format.
+ * @returns A string in the format 'YYYY-MM-DD' suitable for date inputs.
+ */
+export const formatDateLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};

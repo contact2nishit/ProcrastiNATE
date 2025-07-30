@@ -5,11 +5,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import { CurrentScheduleProvider } from './context/CurrentScheduleContext';
-// import { PotentialScheduleProvider } from './context/PotentialScheduleContext';
+import { PotentialScheduleProvider } from './context/PotentialScheduleContext';
 import Home from './pages/Home';
 // import CalendarView from './pages/CalendarView';
-// import SchedulePicker from './pages/SchedulePicker';
-// import EventSelection from './pages/EventSelection';
+import SchedulePicker from './pages/SchedulePicker';
+import EventSelection from './pages/EventSelection';
 // import CalendarViewPotential from './pages/CalendarViewPotential';
 // import RescheduleScreen from './pages/RescheduleScreen';
 
@@ -33,6 +33,24 @@ const App: React.FC = () => {
 					</ProtectedRoute>
 					}
 				/>
+				<Route path='requiresCurrentSchedule/requiresPotentialSchedule/EventSelection' element={
+					<ProtectedRoute>
+						<CurrentScheduleProvider>
+						<PotentialScheduleProvider>
+							<EventSelection />
+						</PotentialScheduleProvider>
+						</CurrentScheduleProvider>
+					</ProtectedRoute>
+				} />
+				<Route path='requiresCurrentSchedule/requiresPotentialSchedule/SchedulePicker' element={
+					<ProtectedRoute>
+						<CurrentScheduleProvider>
+							<PotentialScheduleProvider>
+								<SchedulePicker />
+							</PotentialScheduleProvider>
+						</CurrentScheduleProvider>
+					</ProtectedRoute>
+				} />
         {/* <Route path='/requiresCurrentSchedule/CalendarView' element={
           <ProtectedRoute>
             <CurrentScheduleProvider>
@@ -40,25 +58,10 @@ const App: React.FC = () => {
             </CurrentScheduleProvider>
           </ProtectedRoute>
         } />
-        <Route path='/requiresPotentialSchedule/SchedulePicker' element={
-          <ProtectedRoute>
-            <CurrentScheduleProvider>
-            <PotentialScheduleProvider>
-              <SchedulePicker />
-            </PotentialScheduleProvider>
-            </CurrentScheduleProvider>
-          </ProtectedRoute>
+        
         } />
-        <Route path='/requiresPotentialSchedule/EventSelection' element={
-          <ProtectedRoute>
-            <CurrentScheduleProvider>
-            <PotentialScheduleProvider>
-              <EventSelection />
-            </PotentialScheduleProvider>
-            </CurrentScheduleProvider>
-          </ProtectedRoute>
-        } />
-        <Route path='/requiresPotentialSchedule/CalendarViewPotential' element={
+        
+        <Route path='requiresCurrentSchedule/requiresPotentialSchedule/CalendarViewPotential' element={
           <ProtectedRoute>
             <CurrentScheduleProvider>
               <PotentialScheduleProvider>
@@ -67,7 +70,7 @@ const App: React.FC = () => {
             </CurrentScheduleProvider>
           </ProtectedRoute>
         } />
-        <Route path='/requiresPotentialSchedule/RescheduleScreen' element={
+        <Route path='requiresCurrentSchedule/requiresPotentialSchedule/RescheduleScreen' element={
           <ProtectedRoute>
             <CurrentScheduleProvider>
               <PotentialScheduleProvider>
