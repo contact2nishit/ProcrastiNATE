@@ -165,6 +165,7 @@ const EventSelection: React.FC = () => {
             // Get device timezone offset in minutes (JavaScript: getTimezoneOffset returns minutes behind UTC, so invert sign)
             const tz_offset_minutes = -new Date().getTimezoneOffset();
             const reqBody = { ...backendJSON, tz_offset_minutes };
+            console.log('Submitting schedule:', reqBody);
             const response = await fetch(`${url}/schedule`, {
                 method: 'POST',
                 headers: {
@@ -179,6 +180,7 @@ const EventSelection: React.FC = () => {
                 return;
             }
             const data = await response.json();
+            console.log(data);
             setPotentialSchedules(data);
             // Clear the scheduling cart after successful scheduling
             setMeetings([]);

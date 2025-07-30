@@ -1,6 +1,5 @@
-/* import React, {useState, useEffect} from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
-import {formatTime, getWeekDaysFromDate, groupSlotsByDay, Slot, screenWidth} from '../app/calendarUtils';
+import React from 'react';
+import { formatTime, getWeekDaysFromDate, groupSlotsByDay, Slot } from '../calendarUtils';
 
 
 type CalendarWeekViewProps = {
@@ -12,8 +11,6 @@ type CalendarWeekViewProps = {
     onUpdateMeeting?: (meetingSlot: Slot) => void;
     onDeleteMeeting?: (meetingSlot: Slot) => void;
 }
-
-const screenwidth = Dimensions.get('window').width;
 
 export default function CalendarWeekView({
     slots,
@@ -36,140 +33,82 @@ export default function CalendarWeekView({
         const newDate = new Date(initialReferenceDate);
         newDate.setDate(newDate.getDate() + 7);
         onReferenceDateChange?.(newDate);
-    }
-    const goToCurrentWeek = () => {
-        const newDate = new Date(initialReferenceDate);
-        onReferenceDateChange?.(newDate);
     };
+    const goToCurrentWeek = () => {
+        onReferenceDateChange?.(new Date());
+    };
+
     return (
-        <View>
-            {/*Week Navigation}
-            <View style = {styles.weekNavContainer}>
-                <TouchableOpacity onPress = {goToPrevWeek} style = {styles.navButton}>
-                    <Text style = {styles.navButtonText}>Prev</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress = {goToCurrentWeek} style = {styles.currentWeekButton}>
-                    <Text style = {styles.currentWeekText}>Current Week</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress = {goToNextWeek} style = {styles.navButton}>
-                    <Text style = {styles.navButtonText}>Next</Text>
-                </TouchableOpacity>
-            </View>
+        <div>
+            {/* Week Navigation */}
+            <div className="flex justify-between px-5 mb-4 items-center">
+                <button
+                    onClick={goToPrevWeek}
+                    className="bg-green-500 py-2 px-5 rounded font-bold text-gray-900 hover:bg-green-600 transition"
+                >
+                    Prev
+                </button>
+                <button
+                    onClick={goToCurrentWeek}
+                    className="bg-transparent px-5 text-green-500 font-bold"
+                >
+                    Current Week
+                </button>
+                <button
+                    onClick={goToNextWeek}
+                    className="bg-green-500 py-2 px-5 rounded font-bold text-gray-900 hover:bg-green-600 transition"
+                >
+                    Next
+                </button>
+            </div>
             {loading ? (
-                <ActivityIndicator size = "large" color = "#0f0" style = {{ marginTop: 40 }} />
+                <div className="flex justify-center items-center mt-10">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+                </div>
             ) : (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <div className="flex overflow-x-auto">
                     {weekDays.map((day, index) => (
-                        <View key={index} style={styles.dayColumn}>
-                            <Text style={styles.dayLabel}>{day.label}</Text>
-                            <ScrollView style={styles.dayContentS} nestedScrollEnabled = {true}>
+                        <div
+                            key={index}
+                            className="w-96 min-w-[22rem] p-3 border-r border-gray-700"
+                        >
+                            <div className="text-lg font-semibold text-green-500 mb-3">{day.label}</div>
+                            <div className="max-h-[400px] overflow-y-auto mb-2">
                                 {(groupedSlots[day.iso] || []).map((slot, idx) => (
-                                    <View key = {idx} style={styles.slotBox}>
-                                        <Text style={styles.slotTitle}>{slot.name}</Text>
-                                        <Text style={styles.slotSub}>
+                                    <div key={idx} className="bg-gray-800 p-3 rounded-lg mt-3">
+                                        <div className="text-base font-bold text-white">{slot.name}</div>
+                                        <div className="text-sm text-gray-300 mt-1">
                                             {slot.type.toUpperCase()} • {formatTime(slot.start)} - {formatTime(slot.end)}
-                                        </Text>
+                                        </div>
                                         {slot.type === 'meeting' && showMeetingActions && (
-                                            <View style = {{flexDirection: 'row', marginTop: 5}}>
-                                                <TouchableOpacity onPress={() => onUpdateMeeting?.(slot)} style = {styles.editButton}>
-                                                    <Text style={{ color: 'white', fontWeight: 'bold' }}>Edit</Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity onPress={() => onDeleteMeeting?.(slot)} style = {styles.deleteButton}>
-                                                    <Text style={{ color: 'white', fontWeight: 'bold' }}>Delete</Text>
-                                                </TouchableOpacity>
-                                            </View>
+                                            <div className="flex flex-row mt-2 gap-2">
+                                                <button
+                                                    onClick={() => onUpdateMeeting?.(slot)}
+                                                    className="bg-blue-600 rounded px-3 py-2 text-white font-bold mr-2 hover:bg-blue-700 transition"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => onDeleteMeeting?.(slot)}
+                                                    className="bg-red-600 rounded px-3 py-2 text-white font-bold hover:bg-red-700 transition"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
                                         )}
-                                    </View>
+                                    </div>
                                 ))}
-                            </ScrollView>
-                        </View>
+                            </div>
+                        </div>
                     ))}
-                </ScrollView>
+                </div>
             )}
-        </View>
-    )
+        </div>
+    );
 }
 
 
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        paddingTop: 30,
-        backgroundColor: '#111',
-    },
-    weekNavContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        marginBottom: 15,
-        alignItems: 'center',
-    },
-    navButton: {
-        backgroundColor: '#0f0',
-        paddingVertical: 8,
-        paddingHorizontal: 20,
-        borderRadius: 8,
-    },
-    navButtonText: {
-        fontWeight: 'bold',
-        color: '#111',
-        fontSize: 16,
-    },
-    currentWeekButton: {
-        backgroundColor: 'transparent',
-        paddingHorizontal: 20,
-    },
-    currentWeekText: {
-        color: '#0f0',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    dayColumn: {
-        width: screenWidth * 0.85,
-        padding: 10,
-        borderRightWidth: 1,
-        borderColor: '#333',
-    },
-    dayLabel: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#0f0',
-        marginBottom: 10,
-    },
-    dayContentS: {
-        maxHeight: 400,
-        marginBottom: 10,
-    },
-    slotBox: {
-        backgroundColor: '#222',
-        padding: 10,
-        borderRadius: 8,
-        marginTop: 10,
-    },
-    slotTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
-    slotSub: {
-        fontSize: 13,
-        color: '#ccc',
-        marginTop: 2,
-    },
-    editButton: {
-        backgroundColor: '#2563eb',
-        borderRadius: 6,
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        marginRight: 8,
-    },
-    deleteButton: {
-        backgroundColor: '#dc2626',
-        borderRadius: 6,
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-    }
-}); */
+// Stylesheet removed; all styling is now done via Tailwind CSS classes
 
 export {};

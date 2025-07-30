@@ -1,31 +1,14 @@
-/* import React, {useState, useEffect} from 'react';
-import { useLocalSearchParams } from 'expo-router';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  Modal,
-  TextInput,
-} from 'react-native';
-import { useNavigation } from 'expo-router';
-//import AsyncStorage from '@react-native-async-storage/async-storage';
-import {Slot, formatTime, screenWidth, getStartOfWeek} from '../../calendarUtils'
-import CalendarWeekView from '../../../components/CalendarWeekView';
-import { useRouter } from 'expo-router';
-import { usePotentialScheduleContext } from './PotentialScheduleContext';
+import React, { useState } from 'react';
+import { Slot, getStartOfWeek } from '../calendarUtils';
+import CalendarWeekView from '../components/CalendarWeekView';
+import { usePotentialScheduleContext } from '../context/PotentialScheduleContext';
+import { useSearchParams } from 'react-router-dom';
 
 const CalendarViewPotential = () => {
-  const { scheduleIdx } = useLocalSearchParams();
-  const navigation = useNavigation();
-  const { potentialSchedules, setPotentialSchedules } = usePotentialScheduleContext();
+  const [searchParams] = useSearchParams();
+  const scheduleIdx = searchParams.get('scheduleIdx') ?? '0';
+  const { potentialSchedules } = usePotentialScheduleContext();
   const [referenceDate, setReferenceDate] = useState(new Date());
-  const router = useRouter();
-
 
   const extractSlots = (scheduleIdx: number): Slot[] => {
     const allSlots: Slot[] = [];
@@ -33,7 +16,6 @@ const CalendarViewPotential = () => {
     if (!schedule) {
       return allSlots;
     }
-
     // Assignments
     if (Array.isArray(schedule.assignments)) {
       for (const assignment of schedule.assignments) {
@@ -49,7 +31,6 @@ const CalendarViewPotential = () => {
         }
       }
     }
-
     // Chores
     if (Array.isArray(schedule.chores)) {
       for (const chore of schedule.chores) {
@@ -65,62 +46,30 @@ const CalendarViewPotential = () => {
         }
       }
     }
-
     // No meetings in potential schedules
-
     return allSlots;
-  }
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Schedule #{scheduleIdx}</Text>
+    <div className="min-h-screen bg-gray-900 pt-8">
+      <h1 className="text-3xl font-bold text-white text-center mb-6 mt-5">Schedule #{scheduleIdx}</h1>
       <CalendarWeekView
         slots={extractSlots(Number(scheduleIdx))}
         showMeetingActions={false}
         initialReferenceDate={getStartOfWeek(referenceDate)}
         onReferenceDateChange={setReferenceDate}
       />
-    <View style={{flex:1}}></View>
-    <TouchableOpacity
-      style={styles.backButton}
-      onPress = {() => navigation.goBack()}
+      <div className="flex-1" />
+      <button
+        className="bg-white w-44 h-10 flex items-center justify-center rounded-lg mt-8 mb-12 mx-auto font-semibold text-lg"
+        onClick={() => window.history.back()}
       >
-        <Text style={styles.backButtonText}>Back</Text>
-      </TouchableOpacity>
-    </View>
+        Back
+      </button>
+    </div>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#111',
-    paddingTop: 30,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
-    marginBottom: 16,
-    marginTop:20,
-  },
-  backButton: {
-    backgroundColor: 'white',
-    width: 180,
-    height: 40,
-    alignItems: 'center',
-    alignSelf: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    marginTop: 20,
-    marginBottom:45,
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  }
-})
+// Stylesheet removed; all styling is now done via Tailwind CSS classes
 
-export default CalendarViewPotential; */
-
-export {};
+export default CalendarViewPotential;

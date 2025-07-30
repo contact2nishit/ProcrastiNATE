@@ -1,27 +1,14 @@
-/* import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  Modal,
-  TextInput,
-} from 'react-native';
-import { router, useNavigation } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Slot, screenWidth, getStartOfWeek } from '../calendarUtils'
-import  CalendarWeekView from '../../components/CalendarWeekView'
+import React, { useEffect, useState } from 'react';
+import { Slot, getStartOfWeek } from '../calendarUtils';
+import CalendarWeekView from '../components/CalendarWeekView';
 import config from '../config';
-import { useRouter } from 'expo-router';
-import { useCurrentScheduleContext } from './CurrentScheduleContext';
+import { useCurrentScheduleContext } from '../context/CurrentScheduleContext';
+import { useNavigate } from 'react-router-dom';
 
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const CalendarView = () => {
   const { currSchedule, setCurrSchedule, ensureScheduleRange, refetchSchedule } = useCurrentScheduleContext();
-  const navigation = useNavigation();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [referenceDate, setReferenceDate] = useState(new Date()); // controls the week shown
   // Modal state for meeting update/delete
@@ -56,7 +43,7 @@ const CalendarView = () => {
   const handleUpdateMeeting = async () => {
     try {
       const url = config.backendURL;
-      const token = await AsyncStorage.getItem('token');
+      const token = localStorage.getItem('token');
       if (!url || !token || !selectedMeeting) return;
       const body: any = {
         future_occurences: false,
@@ -76,10 +63,10 @@ const CalendarView = () => {
       });
       if (!response.ok) {
         const err = await response.text();
-        Alert.alert('Error', 'Failed to update meeting: ' + err);
+        window.alert('Failed to update meeting: ' + err);
         return;
       }
-      Alert.alert('Success', 'Meeting updated!');
+      window.alert('Meeting updated!');
       setModalVisible(false);
       setUpdateName('');
       setUpdateLoc('');
@@ -88,14 +75,14 @@ const CalendarView = () => {
       await refetchSchedule();
       await fetchSchedule();
     } catch (e) {
-      Alert.alert('Error', 'Failed to update meeting: ' + e);
+      window.alert('Failed to update meeting: ' + e);
     }
   };
 
   const handleDeleteMeeting = async (removeAllFuture = false) => {
     try {
       const url = config.backendURL;
-      const token = await AsyncStorage.getItem('token');
+      const token = localStorage.getItem('token');
       if (!url || !token || !selectedMeeting) return;
       const body = {
         occurence_id: selectedMeeting.occurence_id,
@@ -112,16 +99,16 @@ const CalendarView = () => {
       });
       if (!response.ok) {
         const err = await response.text();
-        Alert.alert('Error', 'Failed to delete meeting: ' + err);
+        window.alert('Failed to delete meeting: ' + err);
         return;
       }
-      Alert.alert('Success', removeAllFuture ? 'All future occurrences deleted!' : 'Meeting deleted!');
+      window.alert(removeAllFuture ? 'All future occurrences deleted!' : 'Meeting deleted!');
       setModalVisible(false);
       setSelectedMeeting(null);
       await refetchSchedule();
       await fetchSchedule();
     } catch (e) {
-      Alert.alert('Error', 'Failed to delete meeting: ' + e);
+      window.alert('Failed to delete meeting: ' + e);
     }
   };
 
@@ -130,11 +117,11 @@ const CalendarView = () => {
   const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
   const startISO = weekStart.toISOString().replace('Z', '+00:00');
   const endISO = weekEnd.toISOString().replace('Z', '+00:00');
-  const slots = currSchedule.slots.filter(slot => slot.start >= startISO && slot.end <= endISO);
+  const slots = currSchedule.slots.filter((slot: Slot) => slot.start >= startISO && slot.end <= endISO);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Weekly Calendar</Text>
+    <div className="min-h-screen bg-gray-900 pt-8">
+      <h1 className="text-3xl font-bold text-white text-center mb-6 mt-5">Weekly Calendar</h1>
 
       <CalendarWeekView
         slots={slots}
@@ -157,210 +144,79 @@ const CalendarView = () => {
         }}
       />
 
-      {/* Meeting Update/Delete Modal}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+      {/* Meeting Update/Delete Modal*/}
+      {modalVisible && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-8 w-full max-w-md shadow-lg">
             {modalType === 'update' && (
               <>
-                <Text style={styles.modalHeader}>Update Meeting</Text>
-                <TextInput
-                  style={styles.modalInput}
+                <h2 className="text-xl font-bold text-white mb-4">Update Meeting</h2>
+                <input
+                  className="bg-gray-700 text-white p-3 rounded mb-3 w-full"
                   placeholder="New Name"
-                  placeholderTextColor="#888"
                   value={updateName}
-                  onChangeText={setUpdateName}
+                  onChange={e => setUpdateName(e.target.value)}
                 />
-                <TextInput
-                  style={styles.modalInput}
+                <input
+                  className="bg-gray-700 text-white p-3 rounded mb-3 w-full"
                   placeholder="New Location/Link"
-                  placeholderTextColor="#888"
                   value={updateLoc}
-                  onChangeText={setUpdateLoc}
+                  onChange={e => setUpdateLoc(e.target.value)}
                 />
-                <TextInput
-                  style={styles.modalInput}
+                <input
+                  className="bg-gray-700 text-white p-3 rounded mb-3 w-full"
                   placeholder="New Start Time (YYYY-MM-DDTHH:MM:SS+00:00)"
-                  placeholderTextColor="#888"
                   value={updateTime}
-                  onChangeText={setUpdateTime}
+                  onChange={e => setUpdateTime(e.target.value)}
                 />
-                <TouchableOpacity
-                  style={styles.modalButton}
-                  onPress={handleUpdateMeeting}
+                <button
+                  className="bg-green-500 text-gray-900 font-bold py-2 px-4 rounded w-full mt-2 hover:bg-green-600 transition"
+                  onClick={handleUpdateMeeting}
                 >
-                  <Text style={styles.modalButtonText}>Submit Update</Text>
-                </TouchableOpacity>
+                  Submit Update
+                </button>
               </>
             )}
             {modalType === 'delete' && (
               <>
-                <Text style={styles.modalHeader}>Delete Meeting</Text>
-                <Text style={{ color: '#222', marginBottom: 16 }}>
-                  Are you sure you want to delete this meeting occurrence?
-                </Text>
-                <TouchableOpacity
-                  style={[styles.modalButton, { backgroundColor: '#dc2626' }]}
-                  onPress={() => handleDeleteMeeting(false)}
+                <h2 className="text-xl font-bold text-white mb-4">Delete Meeting</h2>
+                <p className="text-gray-200 mb-4">Are you sure you want to delete this meeting occurrence?</p>
+                <button
+                  className="bg-red-600 text-white font-bold py-2 px-4 rounded w-full mb-2 hover:bg-red-700 transition"
+                  onClick={() => handleDeleteMeeting(false)}
                 >
-                  <Text style={styles.modalButtonText}>Delete This Occurrence</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, { backgroundColor: '#dc2626', marginTop: 8 }]}
-                  onPress={() => handleDeleteMeeting(true)}
+                  Delete This Occurrence
+                </button>
+                <button
+                  className="bg-red-600 text-white font-bold py-2 px-4 rounded w-full mb-2 hover:bg-red-700 transition"
+                  onClick={() => handleDeleteMeeting(true)}
                 >
-                  <Text style={styles.modalButtonText}>Delete All Future Occurrences</Text>
-                </TouchableOpacity>
+                  Delete All Future Occurrences
+                </button>
               </>
             )}
-            <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: '#888', marginTop: 10 }]}
-              onPress={() => setModalVisible(false)}
+            <button
+              className="bg-gray-500 text-white font-bold py-2 px-4 rounded w-full mt-2 hover:bg-gray-600 transition"
+              onClick={() => setModalVisible(false)}
             >
-              <Text style={styles.modalButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-      <View style = {{flex:1}}></View>
-      <TouchableOpacity onPress={() => router.push('/requiresCurrentSchedule/Home')} style={styles.but}>
-        <Text style={styles.butText}>Back to Home</Text>
-      </TouchableOpacity>
-    </View>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="flex-1" />
+      <button
+        onClick={() => window.location.href = '/requiresCurrentSchedule/Home'}
+        className="bg-white w-44 h-10 flex items-center justify-center rounded-lg mt-8 mb-12 mx-auto font-semibold text-lg"
+      >
+        Back to Home
+      </button>
+    </div>
   );
 };
 
 export default CalendarView;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#111',
-    paddingTop: 30,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
-    marginBottom: 16,
-    marginTop:20,
-  },
-  weekNavContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 15,
-    alignItems: 'center',
-  },
-  navButton: {
-    backgroundColor: '#0f0',
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  navButtonText: {
-    fontWeight: 'bold',
-    color: '#111',
-    fontSize: 16,
-  },
-  currentWeekButton: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: 20,
-  },
-  currentWeekText: {
-    color: '#0f0',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  dayColumn: {
-    width: screenWidth * 0.85,
-    padding: 10,
-    borderRightWidth: 1,
-    borderColor: '#333',
-  },
-  dayLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0f0',
-    marginBottom: 10,
-  },
-  dayContentS: {
-    maxHeight: 400,
-    marginBottom: 10,
-  },
-  slotBox: {
-    backgroundColor: '#222',
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 10,
-  },
-  slotTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  slotSub: {
-    fontSize: 13,
-    color: '#ccc',
-    marginTop: 2,
-  },
-  but: {
-    backgroundColor: 'white',
-    width: 180,
-    height: 40,
-    alignItems: 'center',
-    alignSelf: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    marginTop: 20,
-    marginBottom:45,
-  },
-  butText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '80%',
-    backgroundColor: '#222',
-    borderRadius: 8,
-    padding: 20,
-    elevation: 5,
-  },
-  modalHeader: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 16,
-  },
-  modalInput: {
-    backgroundColor: '#333',
-    color: '#fff',
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 12,
-  },
-  modalButton: {
-    backgroundColor: '#0f0',
-    paddingVertical: 10,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  modalButtonText: {
-    color: '#111',
-    fontWeight: 'bold',
-  },
-}); */
+// Stylesheet removed; all styling is now done via Tailwind CSS classes
 
 export {};

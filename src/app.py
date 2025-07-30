@@ -318,6 +318,15 @@ async def sync(token: Annotated[str, Depends(oauth2_scheme)], status_code=status
         print(e)
         raise HTTPException(status_code=500, detail="Internal server error")
 
+@app.options("/schedule")
+def opt():
+    return {
+        "Allow": "GET, POST, PUT, DELETE",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE"
+    }
+
 @app.post("/schedule")
 async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleResponseFormat:
     """
@@ -428,6 +437,14 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
             detail=f"Something went wrong on the backend, please check the logs"
         )
     
+@app.options("/setSchedule")
+def opt2():
+    return {
+        "Allow": "GET, POST, PUT, DELETE",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE"
+    }
 
 @app.post("/setSchedule")
 async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleSetInStone:

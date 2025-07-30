@@ -1,42 +1,32 @@
-/* import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,
-  Switch,
-  Alert,
-  Platform,
-  KeyboardAvoidingView,
-} from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { usePotentialScheduleContext } from './PotentialScheduleContext';
-import config from '../../config';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { usePotentialScheduleContext } from '../context/PotentialScheduleContext';
+import config from '../config';
 
 const RescheduleScreen = () => {
-  const router = useRouter();
-  const params = useLocalSearchParams();
-  const { id, type, effort, start, end } = params;
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const id = searchParams.get('id');
+  const type = searchParams.get('type');
+  const effortParam = searchParams.get('effort');
+  const startParam = searchParams.get('start');
+  const endParam = searchParams.get('end');
   const { setPotentialSchedules } = usePotentialScheduleContext();
 
-  const [newEffort, setNewEffort] = useState<number>(typeof effort === 'number' ? effort : 0);
-  const [windowStart, setWindowStart] = useState<Date>(type === 'chore' && typeof start === 'string' ? new Date(start) : new Date());
-  const [windowEnd, setWindowEnd] = useState<Date>(typeof end === 'string' ? new Date(end) : new Date());
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
+  const [newEffort, setNewEffort] = useState<number>(effortParam ? Number(effortParam) : 0);
+  const [windowStart, setWindowStart] = useState<string>(startParam || new Date().toISOString().slice(0, 16));
+  const [windowEnd, setWindowEnd] = useState<string>(endParam || new Date().toISOString().slice(0, 16));
   const [allowOverlaps, setAllowOverlaps] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
       setLoading(true);
       const url = config.backendURL;
-      const token = await AsyncStorage.getItem('token');
+      const token = localStorage.getItem('token');
       if (!url || !token) {
-        Alert.alert('Error', 'Missing backend URL or token.');
+        alert('Missing backend URL or token.');
         return;
       }
 
@@ -49,11 +39,11 @@ const RescheduleScreen = () => {
       };
 
       if (type === 'assignment') {
-        body.new_window_end = windowEnd.toISOString();
+        body.new_window_end = new Date(windowEnd).toISOString();
       } else if (type === 'chore') {
         body.new_effort = newEffort;
-        body.new_window_start = windowStart.toISOString();
-        body.new_window_end = windowEnd.toISOString();
+        body.new_window_start = new Date(windowStart).toISOString();
+        body.new_window_end = new Date(windowEnd).toISOString();
       }
 
       const response = await fetch(`${url}/reschedule`, {
@@ -67,202 +57,91 @@ const RescheduleScreen = () => {
 
       if (!response.ok) {
         const err = await response.text();
-        Alert.alert('Error', 'Failed to reschedule: ' + err);
+        alert('Failed to reschedule: ' + err);
         return;
       }
 
       const data = await response.json();
       setPotentialSchedules(data);
-      Alert.alert('Success', 'Rescheduled successfully!');
-      router.push('/requiresCurrentSchedule/requiresPotentialSchedule/schedulePicker');
+      alert('Rescheduled successfully!');
+      navigate('/requiresCurrentSchedule/requiresPotentialSchedule/schedulePicker');
     } catch (e) {
-      Alert.alert('Error', 'Failed to reschedule: ' + e);
+      alert('Failed to reschedule: ' + e);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
-      <View style={styles.container}>
-        <Text style={styles.header}>Reschedule {type === 'assignment' ? 'Assignment' : 'Chore'}</Text>
+    <div className="min-h-screen flex flex-col justify-center items-center bg-white p-6">
+      <form className="w-full max-w-md bg-white rounded-lg shadow-lg p-6 flex flex-col gap-4" onSubmit={handleSubmit}>
+        <h2 className="text-2xl font-bold text-center text-gray-800 mb-2">
+          Reschedule {type === 'assignment' ? 'Assignment' : 'Chore'}
+        </h2>
 
-        {type === 'assignment' && (
+        {(type === 'assignment' || type === 'chore') && (
           <>
-            <Text style={styles.label}>Remaining Effort (minutes):</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={String(newEffort)}
-              onChangeText={(txt) => {
-                const num = parseInt(txt, 10);
-                if (!isNaN(num) && num > 0) setNewEffort(num);
-                else if (txt === '') setNewEffort(0);
-              }}
+            <label className="text-base text-gray-700 font-medium">Remaining Effort (minutes):</label>
+            <input
+              className="border border-gray-300 rounded px-3 py-2 text-base text-gray-800 focus:outline-none"
+              type="number"
+              min={0}
+              value={newEffort}
+              onChange={e => setNewEffort(Number(e.target.value))}
               placeholder="Enter remaining effort in minutes"
-              placeholderTextColor="#888"
-              returnKeyType="done"
             />
           </>
         )}
 
         {type === 'chore' && (
           <>
-            <Text style={styles.label}>Remaining Effort (minutes):</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="numeric"
-              value={String(newEffort)}
-              onChangeText={(txt) => {
-                const num = parseInt(txt, 10);
-                if (!isNaN(num) && num > 0) setNewEffort(num);
-                else if (txt === '') setNewEffort(0);
-              }}
-              placeholder="Enter remaining effort in minutes"
-              placeholderTextColor="#888"
-              returnKeyType="done"
+            <label className="text-base text-gray-700 font-medium">Window Start:</label>
+            <input
+              className="border border-gray-300 rounded px-3 py-2 text-base text-gray-800 focus:outline-none"
+              type="datetime-local"
+              value={windowStart}
+              onChange={e => setWindowStart(e.target.value)}
             />
-            <Text style={styles.label}>Window Start:</Text>
-            <TouchableOpacity
-              style={styles.dateButton}
-              onPress={() => setShowStartPicker(true)}
-            >
-              <Text style={styles.dateButtonText}>{windowStart.toLocaleString()}</Text>
-            </TouchableOpacity>
-            {showStartPicker && (
-              <DateTimePicker
-                value={windowStart}
-                mode="datetime"
-                display="default"
-                onChange={(_, date) => {
-                  setShowStartPicker(false);
-                  if (date) setWindowStart(date);
-                }}
-              />
-            )}
           </>
         )}
 
-        <Text style={styles.label}>{type === 'assignment' ? 'Due Date:' : 'Window End:'}</Text>
-        <TouchableOpacity
-          style={styles.dateButton}
-          onPress={() => setShowEndPicker(true)}
-        >
-          <Text style={styles.dateButtonText}>{windowEnd.toLocaleString()}</Text>
-        </TouchableOpacity>
-        {showEndPicker && (
-          <DateTimePicker
-            value={windowEnd}
-            mode="datetime"
-            display="default"
-            onChange={(_, date) => {
-              setShowEndPicker(false);
-              if (date) setWindowEnd(date);
-            }}
+        <label className="text-base text-gray-700 font-medium">
+          {type === 'assignment' ? 'Due Date:' : 'Window End:'}
+        </label>
+        <input
+          className="border border-gray-300 rounded px-3 py-2 text-base text-gray-800 focus:outline-none"
+          type="datetime-local"
+          value={windowEnd}
+          onChange={e => setWindowEnd(e.target.value)}
+        />
+
+        <div className="flex items-center gap-2 mt-2">
+          <label className="text-base text-gray-700 font-medium">Allow overlaps with current occurrences?</label>
+          <input
+            type="checkbox"
+            checked={allowOverlaps}
+            onChange={e => setAllowOverlaps(e.target.checked)}
+            className="w-5 h-5"
           />
-        )}
+        </div>
 
-        <View style={styles.switchRow}>
-          <Text style={styles.label}>Allow overlaps with current occurrences?</Text>
-          <Switch value={allowOverlaps} onValueChange={setAllowOverlaps} />
-        </View>
-
-        <TouchableOpacity
-          style={styles.submitButton}
-          onPress={handleSubmit}
+        <button
+          type="submit"
+          className={`bg-blue-600 text-white py-3 px-8 rounded-lg text-lg font-medium mt-4 hover:bg-blue-700 transition ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
           disabled={loading}
         >
-          <Text style={styles.submitButtonText}>{loading ? 'Submitting...' : 'Submit'}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={() => router.back()}
+          {loading ? 'Submitting...' : 'Submit'}
+        </button>
+        <button
+          type="button"
+          className="bg-gray-400 text-white py-3 px-8 rounded-lg text-lg font-medium mt-2 hover:bg-gray-500 transition"
+          onClick={() => navigate(-1)}
         >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+          Cancel
+        </button>
+      </form>
+    </div>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'white',
-    padding: 24,
-    justifyContent: 'center',
-  },
-  header: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#222',
-    textAlign: 'center',
-  },
-  label: {
-    fontSize: 16,
-    color: '#222',
-    marginTop: 10,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#888',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
-    color: '#222',
-    backgroundColor: '#f5f5f5',
-    marginBottom: 8,
-    width: '100%',
-    textAlign: 'center',
-  },
-  dateButton: {
-    backgroundColor: '#eee',
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 8,
-  },
-  dateButtonText: {
-    color: '#222',
-    fontSize: 16,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  submitButton: {
-    backgroundColor: '#2563eb',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 20,
-    width: '100%',
-    alignItems: 'center',
-  },
-  submitButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  cancelButton: {
-    backgroundColor: '#888',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 10,
-    width: '100%',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-});
-
-export default RescheduleScreen; */
-
-export {};
+export default RescheduleScreen;
