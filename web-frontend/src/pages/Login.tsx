@@ -48,7 +48,9 @@ const Login = () => {
                 alert('Backend URL not set.');
                 return;
             }
-            const resp = await fetch(`${backendURL}/login/google`);
+            const url = new URL(`${backendURL}/login/google`);
+            url.searchParams.set("platform", "web");
+            const resp = await fetch(url.toString());
             if (!resp.ok) {
                 alert('Failed to get Google login URL');
                 return;

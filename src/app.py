@@ -25,6 +25,8 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import base64
+from urllib.parse import urlencode, parse_qs
 
 
 dotenv.load_dotenv()
@@ -109,7 +111,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], stat
 # TODO: GOOGLE TOKEN MAY EXPIRE, USE REFRESH TOKEN
 
 @app.get("/login/google")
-async def login_google():
+async def login_google(platform: str):
     # Redirect user to Google's OAuth consent screen
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         'client_secret.json',
@@ -128,13 +130,14 @@ async def login_google():
         # Optional, enable incremental authorization. Recommended as a best practice.
         include_granted_scopes='true',
         # Optional, set prompt to 'consent' will prompt the user for consent
-        prompt='consent'
+        prompt='consent',
+        # platform, will be used to generate state
+        state={"platform": platform},
     )
     return GoogleRedirectURL(redirect_url=authorization_url)
 
 @app.get("/auth/google/callback")
 async def google_callback(request: Request):
-
     code = request.query_params.get("code")
     if not code:
         raise HTTPException(status_code=400, detail="Missing code from Google")
