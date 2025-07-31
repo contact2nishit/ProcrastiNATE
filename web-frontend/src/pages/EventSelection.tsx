@@ -98,49 +98,6 @@ const EventSelection: React.FC = () => {
         item: any;
     } | null>(null);
 
-    // Maintain a JSON object matching the backend schemas
-    type BackendJSON = {
-        meetings: Array<{ name: string; start_end_times: [string, string][]; link_or_loc: string | null }>;
-        assignments: Array<{ name: string; effort: number; due: string }>;
-        chores: Array<{ name: string; window: [string, string]; effort: number }>;
-    };
-    const [backendJSON, setBackendJSON] = useState<BackendJSON>({
-        meetings: [],
-        assignments: [],
-        chores: [],
-    });
-
-    // Helper to update backendJSON after adding an item
-    const updateBackendJSON = (
-        type: 'meetings' | 'assignments' | 'chores',
-        item: any,
-        recurrence: string | null = null
-    ) => {
-        setBackendJSON(prev => {
-            const updated = { ...prev };
-            // For meetings, handle recurrence: add a new occurrence if meeting with same name exists
-            if (type === 'meetings' && recurrence) {
-                // Find if meeting with same name exists
-            const idx = updated.meetings.findIndex((m: any) => m.name === item.name);
-                if (idx !== -1) {
-                    // Append occurrence to start_end_times
-                    updated.meetings[idx] = {
-                        ...updated.meetings[idx],
-                        start_end_times: [
-                            ...(updated.meetings[idx].start_end_times || []),
-                            ...item.start_end_times
-                        ]
-                    };
-                } else {
-                    updated.meetings = [...updated.meetings, item];
-                }
-            } else {
-                (updated[type] as any[]).push(item);
-            }
-            return updated;
-        });
-    };
-
     const onDateChange = (_event: any, selectedDate: Date | undefined) => {
         const currDate = selectedDate || date;
         setDate(currDate);
@@ -164,7 +121,29 @@ const EventSelection: React.FC = () => {
             }
             // Get device timezone offset in minutes (JavaScript: getTimezoneOffset returns minutes behind UTC, so invert sign)
             const tz_offset_minutes = -new Date().getTimezoneOffset();
-            const reqBody = { ...backendJSON, tz_offset_minutes };
+            const reqBody = {
+                meetings: meetings.map(m => ({
+                    name: m.name,
+                    start_end_times: generateMeetingOccurrences(
+                        new Date(m.startTime),
+                        new Date(m.endTime),
+                        m.recurrence && typeof m.recurrence === 'string' ? m.recurrence.toLowerCase() : null,
+                        m.meetingRepeatEnd ? new Date(m.meetingRepeatEnd) : new Date(m.endTime)
+                    ),
+                    link_or_loc: m.link_or_loc
+                })),
+                assignments: assignments.map(a => ({
+                    name: a.name,
+                    effort: a.effort,
+                    due: a.deadline
+                })),
+                chores: chores.map(c => ({
+                    name: c.name,
+                    window: [c.windowStart, c.windowEnd],
+                    effort: c.effort
+                })),
+                tz_offset_minutes,
+            };
             console.log('Submitting schedule:', reqBody);
             const response = await fetch(`${url}/schedule`, {
                 method: 'POST',
@@ -186,7 +165,6 @@ const EventSelection: React.FC = () => {
             setMeetings([]);
             setAssignments([]);
             setChores([]);
-            setBackendJSON({ meetings: [], assignments: [], chores: [] });
             navigate('/requiresCurrentSchedule/requiresPotentialSchedule/schedulePicker');
         } catch (e) {
             alert('Error submitting schedule: ' + e);
@@ -226,23 +204,6 @@ const EventSelection: React.FC = () => {
         };
 
         setMeetings([...meetings, newMeeting]);
-
-        // Generate all occurrences for MeetingInRequest
-        const start_end_times = generateMeetingOccurrences(
-            startDateTime,
-            endDateTime,
-            recurrence && typeof recurrence === "string" ? recurrence.toLowerCase() : null,
-            meetingRepeatEnd
-        );
-
-        updateBackendJSON(
-            'meetings',
-            {
-                name,
-                start_end_times,
-                link_or_loc: null,
-            }
-        );
 
         setStartDateTime(new Date());
         setEndDateTime(new Date());
@@ -309,18 +270,9 @@ const EventSelection: React.FC = () => {
             effort: Number(assignmentEffort),
         };
         setAssignments([...assignments, newAssignment]);
-
-        // Backend schema: AssignmentInRequest
-        updateBackendJSON('assignments', {
-            name: assignment,
-            effort: Number(assignmentEffort),
-            due: date.toISOString(),
-        });
-
         setAssignment('');
         setAssignmentEffort('');
         setDate(new Date());
-        console.log(backendJSON);
     }
 
     const handleChore = () => {
@@ -344,14 +296,6 @@ const EventSelection: React.FC = () => {
             effort: Number(choreEffort),
         };
         setChores([...chores, newChore]);
-
-        // Backend schema: ChoreInRequest
-        updateBackendJSON('chores', {
-            name: chore,
-            window: [choreWindowStart.toISOString(), choreWindowEnd.toISOString()],
-            effort: Number(choreEffort),
-        });
-
         setChore('');
         setChoreEffort('');
         setChoreWindowStart(new Date());
@@ -467,21 +411,12 @@ const EventSelection: React.FC = () => {
                 occurrenceID: meetings[editMode.index].occurrenceID,
             };
             setMeetings(meetings.map((m, i) => i === editMode.index ? updatedMeeting : m));
-            // Update backendJSON
             const start_end_times = generateMeetingOccurrences(
                 startDateTime,
                 endDateTime,
                 recurrence && typeof recurrence === "string" ? recurrence.toLowerCase() : null,
                 meetingRepeatEnd
             );
-            setBackendJSON(prev => ({
-                ...prev,
-                meetings: prev.meetings.map((m, i) =>
-                    i === editMode.index
-                        ? { name, start_end_times, link_or_loc: null }
-                        : m
-                )
-            }));
             setEditMode(null);
             setName('');
             setStartDateTime(new Date());
@@ -509,14 +444,6 @@ const EventSelection: React.FC = () => {
                 effort: Number(assignmentEffort),
             };
             setAssignments(assignments.map((a, i) => i === editMode.index ? updatedAssignment : a));
-            setBackendJSON(prev => ({
-                ...prev,
-                assignments: prev.assignments.map((a, i) =>
-                    i === editMode.index
-                        ? { name: assignment, effort: Number(assignmentEffort), due: date.toISOString() }
-                        : a
-                )
-            }));
             setEditMode(null);
             setAssignment('');
             setAssignmentEffort('');
@@ -546,14 +473,6 @@ const EventSelection: React.FC = () => {
                 effort: Number(choreEffort),
             };
             setChores(chores.map((c, i) => i === editMode.index ? updatedChore : c));
-            setBackendJSON(prev => ({
-                ...prev,
-                chores: prev.chores.map((c, i) =>
-                    i === editMode.index
-                        ? { name: chore, window: [choreWindowStart.toISOString(), choreWindowEnd.toISOString()], effort: Number(choreEffort) }
-                        : c
-                )
-            }));
             setEditMode(null);
             setChore('');
             setChoreEffort('');
@@ -609,22 +528,10 @@ const EventSelection: React.FC = () => {
         
         if (modalData.type === 'meeting') {
             setMeetings(meetings.filter((_, i) => i !== modalData.index));
-            setBackendJSON(prev => ({
-                ...prev,
-                meetings: prev.meetings.filter((_, i) => i !== modalData.index)
-            }));
         } else if (modalData.type === 'assignment') {
             setAssignments(assignments.filter((_, i) => i !== modalData.index));
-            setBackendJSON(prev => ({
-                ...prev,
-                assignments: prev.assignments.filter((_, i) => i !== modalData.index)
-            }));
         } else if (modalData.type === 'chore') {
             setChores(chores.filter((_, i) => i !== modalData.index));
-            setBackendJSON(prev => ({
-                ...prev,
-                chores: prev.chores.filter((_, i) => i !== modalData.index)
-            }));
         }
         
         setShowModal(false);
@@ -722,7 +629,6 @@ const EventSelection: React.FC = () => {
                         }`}
                         onClick={() => {
                             setSelected(item.label);
-                            console.log(backendJSON);
                         }}
                     >
                         {/* Icon placeholder - you can add actual icons here */}
