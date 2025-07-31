@@ -546,10 +546,13 @@ async def mark_session_completed(complete: SessionCompletionDataModel, token: An
                 else:
                     raise HTTPException(status_code=400, detail="You picked a bad occurence id")
             cur_level: int = await conn.fetchval("SELECT levels FROM achievements WHERE user_id = $1", user.user_id)
-
-            if new_xp > get_xp_for_next_level(cur_level) and cur_level < MAX_LEVEL:
-                await conn.execute("UPDATE achievements SET levels = levels + 1 WHERE user_id = $1", user.user_id)
             
+            #Calculate the correct level based on the new XP
+            new_level = cur_level
+            while new_level < MAX_LEVEL and new_xp > get_xp_for_next_level(new_level):
+                new_level += 1
+            if new_level > cur_level:
+                await conn.execute("UPDATE achievements SET levels = $1 WHERE user_id = $2", new_level, user.user_id)
             return SessionCompletionResponse(message='Successfully marked chore as complete!', new_xp=new_xp, achievements=check_achievements(user.user_id, app.state.pool))
     except HTTPException as e:
         raise e
