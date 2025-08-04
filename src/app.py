@@ -6,7 +6,7 @@ import jwt
 import asyncpg
 import dotenv
 import os
-from fastapi import Depends, FastAPI, HTTPException, status, Request
+from fastapi import Depends, FastAPI, HTTPException, status, Request, Response, Cookie
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
@@ -15,18 +15,22 @@ from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from scheduler import *
 import httpx
-from urllib.parse import urlencode
+from urllib.parse import urlencode, parse_qs, urlparse
 from fastapi.responses import RedirectResponse
+import redis.asyncio as redis
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import os
+import json
 from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import base64
-from urllib.parse import urlencode, parse_qs
+import secrets
+import time
+
 
 
 dotenv.load_dotenv()
@@ -43,8 +47,10 @@ async def lifespan(app: FastAPI):
         dsn=DATABASE_URL,
         max_size=10,
     )
+    app.state.redis_client = redis.Redis(host='localhost', port=6379, db=0)
     yield
     await app.state.pool.close()
+    await app.state.redis_client.aclose()
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
@@ -111,16 +117,40 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], stat
 # TODO: GOOGLE TOKEN MAY EXPIRE, USE REFRESH TOKEN
 
 @app.get("/login/google")
-async def login_google(platform: str):
-    # Redirect user to Google's OAuth consent screen
+async def login_google(platform: str, response: Response):
+    # Redirect user to Google's OAuth consent screen, and create some state
+    encoded_state = ''
+    redis_client: redis.Redis = app.state.redis_client
+    if platform == 'web':
+        session_id = secrets.token_urlsafe(32)
+        encoded_state = base64.urlsafe_b64encode(json.dumps({
+            "platform": platform,
+            "id": session_id,
+        }).encode()).decode()
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+        )
+        # store state id in redis, will delete once callback received or expires
+        await redis_client.setex(f"oauth_web_{session_id}", 150, "pending")
+    else:
+        # simply use exact timestamp, very short-lived on redis
+        # not perfect, but CSRF attacker only has 2m 30s
+        ts = time.time()
+        encoded_state = base64.urlsafe_b64encode(json.dumps({
+            "platform": platform,
+            "ts": ts,
+        }).encode()).decode()
+        await redis_client.setex(f"oauth_nat_{ts}", 150, "pending")
+    
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         'client_secret.json',
         scopes=[
             'https://www.googleapis.com/auth/calendar.readonly', 
             'https://www.googleapis.com/auth/calendar.events.readonly',
             'openid',
-            'email',
-            'profile'
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/userinfo.profile'
         ]
     )
     flow.redirect_uri = GOOGLE_REDIRECT_URI
@@ -131,36 +161,69 @@ async def login_google(platform: str):
         include_granted_scopes='true',
         # Optional, set prompt to 'consent' will prompt the user for consent
         prompt='consent',
-        # platform, will be used to generate state
-        state={"platform": platform},
+        # state with encoded info
+        state=encoded_state,
     )
     return GoogleRedirectURL(redirect_url=authorization_url)
 
 @app.get("/auth/google/callback")
-async def google_callback(request: Request):
-    code = request.query_params.get("code")
-    if not code:
-        raise HTTPException(status_code=400, detail="Missing code from Google")
-    async with httpx.AsyncClient() as client:
-        token_resp = await client.post(
-            "https://oauth2.googleapis.com/token",
-            data={
-                "code": code,
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
-                "redirect_uri": GOOGLE_REDIRECT_URI,
-                "grant_type": "authorization_code",
-            },
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
-        token_data = token_resp.json()
-        access_token = token_data.get("access_token")
-        refresh_token = token_data.get("refresh_token")
-        id_token = token_data.get("id_token")
-
-    # Get user info from id_token
-
-    user_info = jwt.decode(id_token, options={"verify_signature": False})
+async def google_callback(request: Request, session_id: str = Cookie(None, alias="session_id")):
+    authorization_response = str(request.url)
+    # Parse code and state from request
+    parsed_url = urlparse(authorization_response)
+    query_params = parse_qs(parsed_url.query)
+    encoded_state = query_params.get("state", [None])[0]
+    code = query_params.get("code", [None])[0]
+    if not code or not encoded_state:
+        raise HTTPException(status_code=400, detail="Missing code/state from Google")
+    try:
+        # get the platform out of the state
+        decoded_string = (base64.urlsafe_b64decode(encoded_state.encode())).decode()
+        state_dict = json.loads(decoded_string)
+        platform = state_dict['platform']
+    except (ValueError, json.JSONDecodeError, KeyError) as e:
+        raise HTTPException(status_code=400, detail=f"Invalid state format: {str(e)}")
+    redis_client: redis.Redis = app.state.redis_client
+    if platform == "web":
+        # the passed state should have corresponding entry in redis
+        session_id_state = state_dict['id']
+        pending_val = await redis_client.get(f"oauth_web_{session_id_state}")
+        if not session_id_state or session_id_state != session_id or pending_val is None:
+            raise HTTPException(
+                status_code=401,
+                detail=f"Error authorizing with Google OAuth: sc: {session_id}, st: {session_id_state}, pv: {pending_val}"
+            )
+        else:
+            # remove so the state can't be reused
+            await redis_client.delete(f"oauth_web_{session_id_state}")  
+    else:
+        ts = state_dict['ts']
+        pending_str = await redis_client.get(f"oauth_nat_{ts}")
+        if time.time() - float(ts) > 150 or pending_str is None: 
+            # expired or no google login from that timestamp
+            raise HTTPException(
+                status_code=401,
+                detail="Error authorizing with Google OAuth"
+            )
+        else: 
+            await redis_client.delete(f"oauth_nat_{ts}")
+        pass
+    # we've already done the state validation, we can just fetch now
+    # if invalid state was detected, an exception would've been thrown before this
+    flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+        'client_secret.json', 
+        scopes=[
+            'https://www.googleapis.com/auth/calendar.readonly', 
+            'https://www.googleapis.com/auth/calendar.events.readonly',
+            'openid',
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/userinfo.profile'
+        ]
+    )
+    flow.redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+    flow.fetch_token(authorization_response=authorization_response)
+    credentials = flow.credentials
+    user_info = jwt.decode(credentials.id_token, options={"verify_signature": False})
     google_id = user_info["sub"]
     email = user_info.get("email")
     username = email.split("@")[0] if email else f"google_{google_id}"
@@ -173,7 +236,7 @@ async def google_callback(request: Request):
             # Update tokens
             await conn.execute(
                 "UPDATE users SET google_access_token = $1, google_refresh_token = $2 WHERE user_id = $3",
-                access_token, refresh_token, user_id
+                credentials.token, credentials.refresh_token, user_id
             )
         else:
             # If user with same email exists, link Google account
@@ -182,27 +245,29 @@ async def google_callback(request: Request):
                 user_id = user_row["user_id"]
                 await conn.execute(
                     "UPDATE users SET google_id = $1, google_access_token = $2, google_refresh_token = $3, uses_google_oauth = $4 WHERE user_id = $5",
-                    google_id, access_token, refresh_token, True, user_id
+                    google_id, credentials.token, credentials.refresh_token, True, user_id
                 )
             else:
                 # Create new user
                 user_id = await conn.fetchval(
                     "INSERT INTO users(username, email, google_id, google_access_token, google_refresh_token, uses_google_oauth) VALUES($1, $2, $3, $4, $5, $6) RETURNING user_id",
-                    username, email, google_id, access_token, refresh_token, True
+                    username, email, google_id, credentials.token, credentials.refresh_token, True
                 )
                 await conn.execute("INSERT INTO achievements(user_id, levels) VALUES($1, $2)", user_id, 1)
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     jwt_token = create_access_token(data={"sub": str(user_id)}, expires_delta=access_token_expires)
-    # Hacky workaround for Expo Go: redirect to exp:// URL with token as query param
-    # You must set EXPO_DEV_URL in your environment to your current exp:// URL (
-    expo_dev_url = os.getenv("EXPO_DEV_URL")
-    if expo_dev_url:
-        # e.g., exp://192.168.1.2:19000/--/auth?token=...
-        deep_link_url = f"{expo_dev_url}/--/auth?token={jwt_token}"
+    if platform != "web":
+        # token as query param is not secure, patch before native goes to prod
+        expo_dev_url = os.getenv("EXPO_DEV_URL")
+        if expo_dev_url:
+            # e.g., exp://192.168.1.2:19000/--/auth?token=...
+            deep_link_url = f"{expo_dev_url}/--/auth?token={jwt_token}"
+        else:
+            # fallback to custom scheme for dev client
+            deep_link_url = f"procrastinate://auth?token={jwt_token}"
+        return RedirectResponse(deep_link_url)
     else:
-        # fallback to custom scheme for dev client
-        deep_link_url = f"procrastinate://auth?token={jwt_token}"
-    return RedirectResponse(deep_link_url)
+        return RedirectResponse(os.getenv("WEB_FRONTEND"))
 
 @app.post("/googleCalendar/sync")
 async def sync(token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> MessageResponseDataModel:
