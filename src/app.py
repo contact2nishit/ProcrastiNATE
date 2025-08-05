@@ -65,7 +65,7 @@ app.add_middleware(
     secret_key=SESSION_SECRET,
     max_age=600,  # 10 minutes
     same_site="none",  # Allow cookies in OAuth redirects
-    https_only=False  # Set to True in production with HTTPS
+    https_only=True,  # Set to True in production with HTTPS
 )
 
 
@@ -126,25 +126,13 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], stat
 
 @app.get("/login/google")
 async def login_google(request: Request, platform: str):
-    # Create a state token that contains everything we need for validation
     session_id = secrets.token_urlsafe(32)
-    timestamp = int(time.time())
-    
-    # Create a self-contained state that includes validation data
     state_data = {
         "platform": platform,
         "id": session_id,
-        "timestamp": timestamp,
-        "secret": secrets.token_urlsafe(16)  # Additional security
     }
-    
     encoded_state = base64.urlsafe_b64encode(json.dumps(state_data).encode()).decode()
-    
-    # Still set session as backup, but don't rely on it
     request.session["oauth_token"] = session_id
-    print("Session set in login:", dict(request.session))
-    print("Session ID set:", session_id)
-    
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         'client_secret.json',
         scopes=[
@@ -176,24 +164,18 @@ async def google_callback(request: Request):
     query_params = parse_qs(parsed_url.query)
     encoded_state = query_params.get("state", [None])[0]
     code = query_params.get("code", [None])[0]
-    
     if not code or not encoded_state:
         return HTTPException(status_code=401, detail="Google Oauth failed")
-    
     try:
-        # get the platform out of the state
         decoded_string = (base64.urlsafe_b64decode(encoded_state.encode())).decode()
         state_dict = json.loads(decoded_string)
     except (ValueError, json.JSONDecodeError, KeyError) as e:
         raise HTTPException(status_code=401, detail="Google Oauth failed")
-    
     if not state_dict["id"] or state_dict["id"] != request.session.get("oauth_token"):
-        print("State", state_dict["id"])
-        print("Session", request.session.get("oauth_token"))
         raise HTTPException(status_code=401, detail="Google Oauth failed")
     else:
         request.session.pop("oauth_token", None)
-    
+    # We've already validated that the state matches, no need to do it again by passing in a state parameter to flow
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         'client_secret.json', 
         scopes=[
@@ -211,7 +193,6 @@ async def google_callback(request: Request):
     google_id = user_info["sub"]
     email = user_info.get("email")
     username = email.split("@")[0] if email else f"google_{google_id}"
-
     # Find or create user in DB
     async with app.state.pool.acquire() as conn:
         user_row = await conn.fetchrow("SELECT user_id FROM users WHERE google_id = $1", google_id)
@@ -238,6 +219,10 @@ async def google_callback(request: Request):
                     username, email, google_id, credentials.token, credentials.refresh_token, True
                 )
                 await conn.execute("INSERT INTO achievements(user_id, levels) VALUES($1, $2)", user_id, 1)
+        # Ensure all users have an achievements record (for existing users who may not have one)
+        achievements_exists = await conn.fetchval("SELECT 1 FROM achievements WHERE user_id = $1", user_id)
+        if not achievements_exists:
+            await conn.execute("INSERT INTO achievements(user_id, levels) VALUES($1, $2)", user_id, 1)
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     jwt_token = create_access_token(data={"sub": str(user_id)}, expires_delta=access_token_expires)
     if state_dict["platform"] != "web":
@@ -255,10 +240,8 @@ async def google_callback(request: Request):
         frontend_origin = os.getenv("WEB_FRONTEND")
         # Parse the origin from the full URL
         if frontend_origin:
-            from urllib.parse import urlparse
             parsed = urlparse(frontend_origin)
             frontend_origin = f"{parsed.scheme}://{parsed.netloc}"
-        
         return Response(
             content=f"""<!DOCTYPE html>
             <html>
@@ -305,7 +288,7 @@ async def google_callback(request: Request):
                 </script>
             </body>
             </html>""",
-                        media_type="text/html"
+            media_type="text/html"
         )
     
 
