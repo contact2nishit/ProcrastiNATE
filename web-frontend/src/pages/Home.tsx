@@ -143,9 +143,9 @@ const Home = () => {
             }
             const response = await fetch(`${url}/getLevel`, {
                 method: 'GET',
+                credentials: 'include',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
                     'Content-Type': 'application/json',
                 },
             });

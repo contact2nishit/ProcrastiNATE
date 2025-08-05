@@ -31,7 +31,6 @@ from googleapiclient.errors import HttpError
 import base64
 import secrets
 import time
-import json
 
 
 
@@ -55,19 +54,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["authorization", "content-type"],
+)
+app.add_middleware(
     SessionMiddleware, 
     secret_key=SESSION_SECRET,
     max_age=600,  # 10 minutes
-    same_site="lax",  # Changed back to lax for better compatibility
+    same_site="none",  # Allow cookies in OAuth redirects
     https_only=False  # Set to True in production with HTTPS
 )
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], 
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
 
 @app.post("/register")
 async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREATED):
@@ -170,50 +170,6 @@ async def google_callback(request: Request):
     if frontend_origin:
         parsed = urlparse(frontend_origin)
         frontend_origin = f"{parsed.scheme}://{parsed.netloc}"
-    
-    def error_response(error_msg: str):
-        return Response(
-            content=f"""<!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Login Error</title>
-                    <style>
-                        body {{ 
-                            font-family: Arial, sans-serif; 
-                            text-align: center; 
-                            padding: 50px;
-                            background-color: #f5f5f5;
-                        }}
-                        .error {{ color: #f44336; }}
-                    </style>
-                </head>
-                <body>
-                    <h2 class="error">Login Failed</h2>
-                    <p>{error_msg}</p>
-                    <p>This window will close automatically...</p>
-                    <script>
-                        (function() {{
-                            try {{
-                                if (window.opener && window.opener !== window) {{
-                                    window.opener.postMessage({{
-                                        type: 'OAUTH_ERROR',
-                                        message: '{error_msg}'
-                                    }}, '{frontend_origin}');
-                                    setTimeout(() => window.close(), 2000);
-                                }} else {{
-                                    setTimeout(() => window.location.href = '{frontend_origin}', 3000);
-                                }}
-                            }} catch (error) {{
-                                console.error('OAuth error callback:', error);
-                                setTimeout(() => window.close(), 2000);
-                            }}
-                        }})();
-                    </script>
-                </body>
-                </html>""",
-            media_type="text/html"
-        )
-    
     authorization_response = str(request.url)
     # Parse code and state from request
     parsed_url = urlparse(authorization_response)
@@ -222,29 +178,22 @@ async def google_callback(request: Request):
     code = query_params.get("code", [None])[0]
     
     if not code or not encoded_state:
-        return error_response("Missing authorization code from Google")
+        return HTTPException(status_code=401, detail="Google Oauth failed")
     
     try:
         # get the platform out of the state
         decoded_string = (base64.urlsafe_b64decode(encoded_state.encode())).decode()
         state_dict = json.loads(decoded_string)
     except (ValueError, json.JSONDecodeError, KeyError) as e:
-        return error_response(f"Invalid state format: {str(e)}")
-
-    current_time = int(time.time())
-    state_timestamp = state_dict.get("timestamp", 0)
-    if current_time - state_timestamp > 600:
-        print("S")
-        return error_response("OAuth state expired")
-    if not state_dict.get("id") or not state_dict.get("secret") or not state_dict.get("platform"):
-        print("SAS")
-        return error_response("Invalid state data")
-    session_token = request.session.get("oauth_token")
-    if session_token and session_token != state_dict["id"]:
-        print("SSDasd")
-        print(f"Session mismatch: state={state_dict['id']}, session={session_token}")
-        return error_response("Session validation failed")
-    request.session.pop("oauth_token", None)
+        raise HTTPException(status_code=401, detail="Google Oauth failed")
+    
+    if not state_dict["id"] or state_dict["id"] != request.session.get("oauth_token"):
+        print("State", state_dict["id"])
+        print("Session", request.session.get("oauth_token"))
+        raise HTTPException(status_code=401, detail="Google Oauth failed")
+    else:
+        request.session.pop("oauth_token", None)
+    
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         'client_secret.json', 
         scopes=[
@@ -262,6 +211,8 @@ async def google_callback(request: Request):
     google_id = user_info["sub"]
     email = user_info.get("email")
     username = email.split("@")[0] if email else f"google_{google_id}"
+
+    # Find or create user in DB
     async with app.state.pool.acquire() as conn:
         user_row = await conn.fetchrow("SELECT user_id FROM users WHERE google_id = $1", google_id)
         if user_row:
@@ -307,6 +258,7 @@ async def google_callback(request: Request):
             from urllib.parse import urlparse
             parsed = urlparse(frontend_origin)
             frontend_origin = f"{parsed.scheme}://{parsed.netloc}"
+        
         return Response(
             content=f"""<!DOCTYPE html>
             <html>
@@ -353,7 +305,7 @@ async def google_callback(request: Request):
                 </script>
             </body>
             </html>""",
-            media_type="text/html"
+                        media_type="text/html"
         )
     
 
@@ -474,14 +426,6 @@ async def sync(token: Annotated[str, Depends(oauth2_scheme)], status_code=status
         print(e)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@app.options("/schedule")
-def opt():
-    return {
-        "Allow": "GET, POST, PUT, DELETE",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE"
-    }
 
 @app.post("/schedule")
 async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleResponseFormat:
@@ -593,14 +537,6 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
             detail=f"Something went wrong on the backend, please check the logs"
         )
     
-@app.options("/setSchedule")
-def opt2():
-    return {
-        "Allow": "GET, POST, PUT, DELETE",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE"
-    }
 
 @app.post("/setSchedule")
 async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleSetInStone:
