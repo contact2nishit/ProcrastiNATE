@@ -223,4 +223,4 @@ class LevelResponse(BaseModel):
 
 class SessionCompletionResponse(MessageResponseDataModel):
     """Response for marking a session as completed"""
-    achievements : dict[str, bool] | None = None
+    achievements : defaultdict[str, bool] | None = None

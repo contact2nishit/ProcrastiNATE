@@ -553,7 +553,7 @@ async def mark_session_completed(complete: SessionCompletionDataModel, token: An
                 new_level += 1
             if new_level > cur_level:
                 await conn.execute("UPDATE achievements SET levels = $1 WHERE user_id = $2", new_level, user.user_id)
-            return SessionCompletionResponse(message='Successfully marked chore as complete!', new_xp=new_xp, achievements=check_achievements(user.user_id, app.state.pool))
+            return SessionCompletionResponse(message='Successfully marked chore as complete!', new_xp=new_xp, achievements= await check_achievements(app.state.pool, user.user_id))
     except HTTPException as e:
         raise e
     except Exception as e:

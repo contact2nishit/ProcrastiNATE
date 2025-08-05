@@ -16,12 +16,12 @@ async def check_achievements(conn, user_id: int):
         sessions = sessions_data['sessions']
         assignments_completed = sessions_data['assignments_completed']
         chores_completed = sessions_data['chores_completed']
-        level = achievements['level']
+        level = achievements['levels']
 
         unlocked = {}
 
         # Session Based Achievements
-        session_unlocked = await check_session_achievements(conn, user_id, sessions, achievements)
+        session_unlocked = await check_session_achievements(sessions, achievements)
         unlocked.update(session_unlocked)
 
         # Level Based Achievements
@@ -36,6 +36,7 @@ async def check_achievements(conn, user_id: int):
             set_clause = ', '.join([f"{k} = TRUE" for k in unlocked.keys()])
             await conn.execute(f"UPDATE achievements SET {set_clause} WHERE user_id = $1", user_id)
 
+        print(unlocked)
         return unlocked
     except Exception as e:
         print(f"Error checking achievements: {str(e)}")
@@ -48,12 +49,12 @@ async def get_sessions_past_month(conn, user_id: int):
         one_month_ago = now - timedelta(days=30)
         # Fetch all assignment and chore occurrences in one query using UNION ALL
         sessions = await conn.fetch("""
-            SELECT 'assignment' AS type, ao.*, a.completed AS parent_completed, a.deadline
+            SELECT 'assignment' AS type, ao.*, a.completed AS parent_completed, a.deadline AS deadline, a.effort AS effort
             FROM assignment_occurences ao
             JOIN assignments a ON ao.assignment_id = a.assignment_id
             WHERE ao.user_id = $1 AND ao.start_time > $2
             UNION ALL
-            SELECT 'chore' AS type, co.*, c.completed AS parent_completed
+            SELECT 'chore' AS type, co.*, c.completed AS parent_completed, NULL AS deadline, c.effort AS effort
             FROM chore_occurences co
             JOIN chores c ON co.chore_id = c.chore_id
             WHERE co.user_id = $1 AND co.start_time > $2
