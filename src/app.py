@@ -7,6 +7,7 @@ import asyncpg
 import dotenv
 import os
 from fastapi import Depends, FastAPI, HTTPException, status, Request, Response, Cookie
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
@@ -30,6 +31,7 @@ from googleapiclient.errors import HttpError
 import base64
 import secrets
 import time
+import json
 
 
 
@@ -39,6 +41,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+SESSION_SECRET = os.getenv("SESSION_SECRET_KEY")
 
 
 @asynccontextmanager
@@ -47,12 +50,17 @@ async def lifespan(app: FastAPI):
         dsn=DATABASE_URL,
         max_size=10,
     )
-    app.state.redis_client = redis.Redis(host='localhost', port=6379, db=0)
     yield
     await app.state.pool.close()
-    await app.state.redis_client.aclose()
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=SESSION_SECRET,
+    max_age=600,  # 10 minutes
+    same_site="lax",  # Changed back to lax for better compatibility
+    https_only=False  # Set to True in production with HTTPS
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -117,31 +125,25 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], stat
 # TODO: GOOGLE TOKEN MAY EXPIRE, USE REFRESH TOKEN
 
 @app.get("/login/google")
-async def login_google(platform: str, response: Response):
-    # Redirect user to Google's OAuth consent screen, and create some state
-    encoded_state = ''
-    redis_client: redis.Redis = app.state.redis_client
-    if platform == 'web':
-        session_id = secrets.token_urlsafe(32)
-        encoded_state = base64.urlsafe_b64encode(json.dumps({
-            "platform": platform,
-            "id": session_id,
-        }).encode()).decode()
-        response.set_cookie(
-            key="session_id",
-            value=session_id,
-        )
-        # store state id in redis, will delete once callback received or expires
-        await redis_client.setex(f"oauth_web_{session_id}", 150, "pending")
-    else:
-        # simply use exact timestamp, very short-lived on redis
-        # not perfect, but CSRF attacker only has 2m 30s
-        ts = time.time()
-        encoded_state = base64.urlsafe_b64encode(json.dumps({
-            "platform": platform,
-            "ts": ts,
-        }).encode()).decode()
-        await redis_client.setex(f"oauth_nat_{ts}", 150, "pending")
+async def login_google(request: Request, platform: str):
+    # Create a state token that contains everything we need for validation
+    session_id = secrets.token_urlsafe(32)
+    timestamp = int(time.time())
+    
+    # Create a self-contained state that includes validation data
+    state_data = {
+        "platform": platform,
+        "id": session_id,
+        "timestamp": timestamp,
+        "secret": secrets.token_urlsafe(16)  # Additional security
+    }
+    
+    encoded_state = base64.urlsafe_b64encode(json.dumps(state_data).encode()).decode()
+    
+    # Still set session as backup, but don't rely on it
+    request.session["oauth_token"] = session_id
+    print("Session set in login:", dict(request.session))
+    print("Session ID set:", session_id)
     
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         'client_secret.json',
@@ -155,61 +157,94 @@ async def login_google(platform: str, response: Response):
     )
     flow.redirect_uri = GOOGLE_REDIRECT_URI
     authorization_url, state = flow.authorization_url(
-        # Can refresh without asking
         access_type='offline',
-        # Optional, enable incremental authorization. Recommended as a best practice.
         include_granted_scopes='true',
-        # Optional, set prompt to 'consent' will prompt the user for consent
         prompt='consent',
-        # state with encoded info
         state=encoded_state,
     )
     return GoogleRedirectURL(redirect_url=authorization_url)
 
 @app.get("/auth/google/callback")
-async def google_callback(request: Request, session_id: str = Cookie(None, alias="session_id")):
+async def google_callback(request: Request):
+    frontend_origin = os.getenv("WEB_FRONTEND", "http://localhost:3000")
+    if frontend_origin:
+        parsed = urlparse(frontend_origin)
+        frontend_origin = f"{parsed.scheme}://{parsed.netloc}"
+    
+    def error_response(error_msg: str):
+        return Response(
+            content=f"""<!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Login Error</title>
+                    <style>
+                        body {{ 
+                            font-family: Arial, sans-serif; 
+                            text-align: center; 
+                            padding: 50px;
+                            background-color: #f5f5f5;
+                        }}
+                        .error {{ color: #f44336; }}
+                    </style>
+                </head>
+                <body>
+                    <h2 class="error">Login Failed</h2>
+                    <p>{error_msg}</p>
+                    <p>This window will close automatically...</p>
+                    <script>
+                        (function() {{
+                            try {{
+                                if (window.opener && window.opener !== window) {{
+                                    window.opener.postMessage({{
+                                        type: 'OAUTH_ERROR',
+                                        message: '{error_msg}'
+                                    }}, '{frontend_origin}');
+                                    setTimeout(() => window.close(), 2000);
+                                }} else {{
+                                    setTimeout(() => window.location.href = '{frontend_origin}', 3000);
+                                }}
+                            }} catch (error) {{
+                                console.error('OAuth error callback:', error);
+                                setTimeout(() => window.close(), 2000);
+                            }}
+                        }})();
+                    </script>
+                </body>
+                </html>""",
+            media_type="text/html"
+        )
+    
     authorization_response = str(request.url)
     # Parse code and state from request
     parsed_url = urlparse(authorization_response)
     query_params = parse_qs(parsed_url.query)
     encoded_state = query_params.get("state", [None])[0]
     code = query_params.get("code", [None])[0]
+    
     if not code or not encoded_state:
-        raise HTTPException(status_code=400, detail="Missing code/state from Google")
+        return error_response("Missing authorization code from Google")
+    
     try:
         # get the platform out of the state
         decoded_string = (base64.urlsafe_b64decode(encoded_state.encode())).decode()
         state_dict = json.loads(decoded_string)
-        platform = state_dict['platform']
     except (ValueError, json.JSONDecodeError, KeyError) as e:
-        raise HTTPException(status_code=400, detail=f"Invalid state format: {str(e)}")
-    redis_client: redis.Redis = app.state.redis_client
-    if platform == "web":
-        # the passed state should have corresponding entry in redis
-        session_id_state = state_dict['id']
-        pending_val = await redis_client.get(f"oauth_web_{session_id_state}")
-        if not session_id_state or session_id_state != session_id or pending_val is None:
-            raise HTTPException(
-                status_code=401,
-                detail=f"Error authorizing with Google OAuth: sc: {session_id}, st: {session_id_state}, pv: {pending_val}"
-            )
-        else:
-            # remove so the state can't be reused
-            await redis_client.delete(f"oauth_web_{session_id_state}")  
-    else:
-        ts = state_dict['ts']
-        pending_str = await redis_client.get(f"oauth_nat_{ts}")
-        if time.time() - float(ts) > 150 or pending_str is None: 
-            # expired or no google login from that timestamp
-            raise HTTPException(
-                status_code=401,
-                detail="Error authorizing with Google OAuth"
-            )
-        else: 
-            await redis_client.delete(f"oauth_nat_{ts}")
-        pass
-    # we've already done the state validation, we can just fetch now
-    # if invalid state was detected, an exception would've been thrown before this
+        return error_response(f"Invalid state format: {str(e)}")
+
+    current_time = int(time.time())
+    state_timestamp = state_dict.get("timestamp", 0)
+    if current_time - state_timestamp > 600:
+        print("S")
+        return error_response("OAuth state expired")
+    if not state_dict.get("id") or not state_dict.get("secret") or not state_dict.get("platform"):
+        print("SAS")
+        return error_response("Invalid state data")
+    session_token = request.session.get("oauth_token")
+    if session_token and session_token != state_dict["id"]:
+        print("SSDasd")
+        print(f"Session mismatch: state={state_dict['id']}, session={session_token}")
+        return error_response("Session validation failed")
+    request.session.pop("oauth_token", None)
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         'client_secret.json', 
         scopes=[
@@ -227,8 +262,6 @@ async def google_callback(request: Request, session_id: str = Cookie(None, alias
     google_id = user_info["sub"]
     email = user_info.get("email")
     username = email.split("@")[0] if email else f"google_{google_id}"
-
-    # Find or create user in DB
     async with app.state.pool.acquire() as conn:
         user_row = await conn.fetchrow("SELECT user_id FROM users WHERE google_id = $1", google_id)
         if user_row:
@@ -256,7 +289,7 @@ async def google_callback(request: Request, session_id: str = Cookie(None, alias
                 await conn.execute("INSERT INTO achievements(user_id, levels) VALUES($1, $2)", user_id, 1)
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     jwt_token = create_access_token(data={"sub": str(user_id)}, expires_delta=access_token_expires)
-    if platform != "web":
+    if state_dict["platform"] != "web":
         # token as query param is not secure, patch before native goes to prod
         expo_dev_url = os.getenv("EXPO_DEV_URL")
         if expo_dev_url:
@@ -267,7 +300,62 @@ async def google_callback(request: Request, session_id: str = Cookie(None, alias
             deep_link_url = f"procrastinate://auth?token={jwt_token}"
         return RedirectResponse(deep_link_url)
     else:
-        return RedirectResponse(os.getenv("WEB_FRONTEND"))
+        # For web platform, return secure HTML that sends token via postMessage
+        frontend_origin = os.getenv("WEB_FRONTEND")
+        # Parse the origin from the full URL
+        if frontend_origin:
+            from urllib.parse import urlparse
+            parsed = urlparse(frontend_origin)
+            frontend_origin = f"{parsed.scheme}://{parsed.netloc}"
+        return Response(
+            content=f"""<!DOCTYPE html>
+            <html>
+            <head>
+                <title>Login Success</title>
+                <style>
+                    body {{ 
+                        font-family: Arial, sans-serif; 
+                        text-align: center; 
+                        padding: 50px;
+                        background-color: #f5f5f5;
+                    }}
+                    .success {{ color: #4CAF50; }}
+                </style>
+            </head>
+            <body>
+                <h2 class="success">Login Successful!</h2>
+                <p>This window will close automatically...</p>
+                <script>
+                    (function() {{
+                        try {{
+                            if (window.opener && window.opener !== window) {{
+                                // Send token to parent window via postMessage
+                                window.opener.postMessage({{
+                                    type: 'OAUTH_SUCCESS',
+                                    token: '{jwt_token}'
+                                }}, '{frontend_origin}');
+                                window.close();
+                            }} else {{
+                                // Fallback: redirect to frontend if not in popup
+                                window.location.href = '{frontend_origin}';
+                            }}
+                        }} catch (error) {{
+                            console.error('OAuth callback error:', error);
+                            if (window.opener) {{
+                                window.opener.postMessage({{
+                                    type: 'OAUTH_ERROR',
+                                    message: 'Failed to complete login'
+                                }}, '{frontend_origin}');
+                            }}
+                            window.close();
+                        }}
+                    }})();
+                </script>
+            </body>
+            </html>""",
+            media_type="text/html"
+        )
+    
 
 @app.post("/googleCalendar/sync")
 async def sync(token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> MessageResponseDataModel:
