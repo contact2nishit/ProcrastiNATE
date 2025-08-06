@@ -496,7 +496,7 @@ const Home = () => {
                                         <p className="text-green-600 font-bold mt-2 text-lg">✓ Completed</p>
                                     ) : (
                                         <button
-                                            className="mt-2 bg-gray-800 rounded-md py-2 px-4 text-white font-bold hover:bg-gray-700 transition-colors"
+                                            className="mt-2 mr-2 bg-gray-800 rounded-md py-2 px-4 text-white font-bold hover:bg-gray-700 transition-colors"
                                             onClick={() => {
                                                 const now = new Date();
                                                 const startTime = new Date(item.start);
@@ -583,7 +583,7 @@ const Home = () => {
                 </button>
                 
                 {/* Update/Delete/Session completion Modal */}
-                {modalVisible && (
+                {modalVisible && modalType !== 'achievements' && (
                     <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
                         <div className="bg-white rounded-xl p-6 w-[85%] max-w-md max-h-[80vh] overflow-y-auto shadow-2xl transform animate-scale-in">
                             {modalType === 'update' && (
@@ -680,35 +680,48 @@ const Home = () => {
                         </div>
                     </div>
                 )}
-                {modalType === 'achievements' && achievements.length > 0 && (
-                    <>
-                        <h3 className="text-2xl font-bold mb-6 text-gray-900 text-center">🎉 Achievements Unlocked! 🎉</h3>
-                        <div className="w-16 h-16 mr-4">
-                            {achievements.map((achievement, index) => (
-                                <div key={index} className="flex items-center mb-4 p-4 bg-gradient-to-r from-yellow-100 to-yellow-200 rounded-lg border-2 border-yellow-400">
-                                   <div className="w-16 h-16 mr-4">
-                                        {getBadgeComponent(achievement.name)}
-                                   </div>
-                                <div className="flex-1">
-                                    <h4 className="text-lg font-bold text-gray-900 capitalize">
-                                        {achievement.name.replace(/_/g, ' ')}
-                                    </h4>
-                                    <p className="text-sm text-gray-600">Achievement unlocked!</p>
+
+                {/* Achievement Modal - Separate with transparent background */}
+                {modalVisible && modalType === 'achievements' && (
+                    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+                        <div className="bg-transparent rounded-xl p-6 w-[90%] max-w-2xl max-h-[80vh] overflow-y-auto transform animate-scale-in">
+                            <h3 className="text-2xl font-bold mb-6 text-white text-center drop-shadow-lg">🎉 Achievements Unlocked! 🎉</h3>
+                            
+                            {/* Centered horizontal container */}
+                            <div className="flex justify-center items-center">
+                                <div className="flex overflow-x-auto space-x-8 py-4 px-2 hide-scrollbar">
+                                    {achievements.map((achievement, index) => (
+                                        <div key={index} className="flex flex-col items-center min-w-[140px]">
+                                            {/* Badge container - no background, larger size */}
+                                            <div className="w-32 h-32 mb-4 flex items-center justify-center">
+                                                <div className="scale-[0.6] origin-center">
+                                                    {getBadgeComponent(achievement.name)}
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Achievement name with background */}
+                                            <div className="bg-gradient-to-b from-yellow-100 to-yellow-200 rounded-lg border-2 border-yellow-400 px-3 py-2">
+                                                <h4 className="text-sm font-bold text-gray-900 text-center capitalize leading-tight whitespace-nowrap">
+                                                    {achievement.name.replace(/_/g, ' ')}
+                                                </h4>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-                        ))}
+                            
+                            <button
+                                className="bg-green-600 rounded-lg py-3 px-6 text-white font-bold text-base w-full mt-6 hover:bg-green-700 transition-colors"
+                                onClick={() => {
+                                    setModalVisible(false);
+                                    setAchievements([]);
+                                    alert('Session marked as completed!');
+                                }}
+                            >
+                                Awesome!
+                            </button>
                         </div>
-                    <button
-                        className="bg-green-600 rounded-lg py-3 px-6 text-white font-bold text-base w-full mt-4 hover:bg-green-700 transition-colors"
-                        onClick={() => {
-                            setModalVisible(false);
-                            setAchievements([]);
-                            alert('Session marked as completed!');
-                        }}
-                    >
-                        Awesome! 🎊
-                    </button>
-                    </>
+                    </div>
                 )}
                 <button 
                     onClick={handleBack}

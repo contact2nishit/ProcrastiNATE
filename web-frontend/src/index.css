@@ -40,3 +40,14 @@ code {
 .animate-scale-in {
   animation: scale-in 0.2s ease-out;
 }
+
+/* Hide scrollbar for webkit browsers (Chrome, Safari, Edge) */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for Firefox */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}

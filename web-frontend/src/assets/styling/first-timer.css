@@ -12,7 +12,7 @@
 
 .badge-container-first-timer {
     position: relative;
-    animation: float 3s ease-in-out infinite;
+    animation: float-first-timer 3s ease-in-out infinite;
 }
 
 @keyframes float-first-timer {
@@ -39,7 +39,7 @@
     justify-content: center;
     align-items: center;
     overflow: visible;
-    animation: glow 2s ease-in-out infinite alternate;
+    animation: glow-first-timer 2s ease-in-out infinite alternate;
 }
 
 @keyframes glow-first-timer {
@@ -70,7 +70,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    animation: rotate 10s linear infinite;
+    animation: rotate-first-timer 10s linear infinite;
 }
 
 @keyframes rotate-first-timer {
@@ -81,7 +81,7 @@
 .trophy-container-first-timer {
     position: relative;
     z-index: 3;
-    animation: bounce 2s ease-in-out infinite;
+    animation: bounce-first-timer 2s ease-in-out infinite;
 }
 
 @keyframes bounce-first-timer {
@@ -178,7 +178,7 @@
         0 0 10px rgba(255, 255, 255, 0.5);
     z-index: 3;
     margin-top: 8px;
-    animation: textGlow 2s ease-in-out infinite alternate;
+    animation: textGlow-first-timer 2s ease-in-out infinite alternate;
 }
 
 @keyframes textGlow-first-timer {
@@ -218,7 +218,7 @@
     position: absolute;
     color: #FFD700;
     font-size: 12px;
-    animation: particle-float 3s infinite ease-in-out;
+    animation: particle-float-first-timer 3s infinite ease-in-out;
     text-shadow: 0 0 3px rgba(255, 215, 0, 0.8);
 }
 
@@ -262,7 +262,7 @@
     border-radius: 50%;
     transform: rotate(-25deg);
     z-index: 2;
-    animation: shine-pulse 3s ease-in-out infinite;
+    animation: shine-pulse-first-timer 3s ease-in-out infinite;
 }
 
 @keyframes shine-pulse-first-timer {
@@ -287,7 +287,7 @@
     height: 4px;
     background: #FFD700;
     border-radius: 50%;
-    animation: explode 4s infinite ease-out;
+    animation: explode-first-timer 4s infinite ease-out;
 }
 
 .explosion-particle-first-timer:nth-child(1) { animation-delay: 0s; }

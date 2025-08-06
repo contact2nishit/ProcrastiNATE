@@ -34,8 +34,8 @@ const BadgeFirstTimer: React.FC = () => {
           </div>
         </div>
 
-        <div className="big-text-first-timer">FIRST!</div>
-        <div className="label-first-timer">TIMER</div>
+        <div className="big-text-first-timer">FIRST</div>
+        <div className="label-first-timer">TIMER!</div>
       </div>
     </div>
   );
