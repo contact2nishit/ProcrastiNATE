@@ -72,8 +72,7 @@ app.add_middleware(
 @app.post("/register")
 async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREATED):
     if not data.username or not data.email or not data.pwd:
-        status_code = status.HTTP_400_BAD_REQUEST
-        return {"error": "Username, email, or password missing"}
+        raise HTTPException(status_code=400, detail="Username, email, or password missing")
     user = data.username
     mail = data.email
     pwd = data.pwd
@@ -81,8 +80,7 @@ async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREA
         async with app.state.pool.acquire() as conn:
             user1 = await conn.fetchrow("SELECT user_id FROM users WHERE username = $1 OR email = $2", user, mail)
             if user1: 
-                status_code = status.HTTP_409_CONFLICT
-                return {"error": "An account is already registered with the given username or email"}
+                raise HTTPException(status_code=409, detail="Already registered")
             hash = get_password_hash(pwd)
             user_id = await conn.fetchval("INSERT INTO users(username, email, password_hash) VALUES($1, $2, $3) RETURNING user_id", user, mail, hash)
             await conn.execute("INSERT INTO achievements(user_id, levels) VALUES($1, $2)", user_id, 1)
