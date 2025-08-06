@@ -1073,13 +1073,17 @@ async def fetch(start_time: str, end_time: str, meetings: bool, assignments: boo
 
 @app.get("/getLevel")
 async def get_level(token: Annotated[str, Depends(oauth2_scheme)]) -> LevelResponse:
-    user = await get_current_user(token, app.state.pool)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication credentials")
-    # Fetch the user's level from the database or any other source
-    user_details = await app.state.pool.fetchrow("SELECT username, xp FROM users WHERE user_id = $1", user.user_id)
-    return LevelResponse(
-        user_name=user_details['username'],
-        xp = int(user_details['xp']),
-        level = await app.state.pool.fetchval("SELECT levels FROM achievements WHERE user_id = $1", user.user_id)
-    )
+    try:
+        user = await get_current_user(token, app.state.pool)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication credentials")
+        user_details = await app.state.pool.fetchrow("SELECT username, xp FROM users WHERE user_id = $1", user.user_id)
+        return LevelResponse(
+            user_name=user_details['username'],
+            xp = int(user_details['xp']),
+            level = await app.state.pool.fetchval("SELECT levels FROM achievements WHERE user_id = $1", user.user_id)
+        )
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"{e}")

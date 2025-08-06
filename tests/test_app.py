@@ -8,8 +8,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 's
 from app import app
 from data_models import RegistrationDataModel, UserInDB
 
-class TestRegisterEndpoint:
-    """Test suite for the /register endpoint"""
+class TestEndpoints:
+    """Test suite for most endpoints"""
     
     def setup_method(self):
         """Setup test client and mocks before each test"""
@@ -84,8 +84,7 @@ class TestRegisterEndpoint:
         response = self.client.post("/register", json=registration_data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
     
-    @patch('app.get_password_hash')
-    def test_register_duplicate_username(self, mock_hash):
+    def test_register_duplicate_username(self):
         """Test registration with existing username"""
         self.mock_conn.fetchrow.return_value = {"user_id": 456}
         registration_data = {
@@ -96,8 +95,7 @@ class TestRegisterEndpoint:
         response = self.client.post("/register", json=registration_data)
         assert response.status_code == status.HTTP_409_CONFLICT
     
-    @patch('app.get_password_hash')
-    def test_register_duplicate_email(self, mock_hash):
+    def test_register_duplicate_email(self):
         """Test registration with existing email"""
         self.mock_conn.fetchrow.return_value = {"user_id": 789}
         registration_data = {
@@ -108,8 +106,7 @@ class TestRegisterEndpoint:
         response = self.client.post("/register", json=registration_data)
         assert response.status_code == status.HTTP_409_CONFLICT
     
-    @patch('app.get_password_hash')
-    def test_register_database_error_on_check(self, mock_hash):
+    def test_register_database_error_on_check(self):
         """Test registration when database check fails"""
         self.mock_conn.fetchrow.side_effect = Exception("Database connection failed")
         registration_data = {
@@ -175,27 +172,6 @@ class TestRegisterEndpoint:
         assert response.status_code == status.HTTP_200_OK
         mock_hash.assert_called_once_with("p@ssw0rd!@#$%^&*()")
 
-
-class TestLoginEndpoint:
-    """Test suite for the /login endpoint"""
-    
-    def setup_method(self):
-        """Set up test client and common mocks"""
-        self.client = TestClient(app)
-        self.mock_conn = AsyncMock()
-        self.mock_acquire = MagicMock()
-        self.mock_acquire.__aenter__ = AsyncMock(return_value=self.mock_conn)
-        self.mock_acquire.__aexit__ = AsyncMock(return_value=None)
-        self.mock_pool = MagicMock()
-        self.mock_pool.acquire.return_value = self.mock_acquire
-        app.state.pool = self.mock_pool
-    
-    def teardown_method(self):
-        """Clean up after each test"""
-        # Clean up the pool
-        if hasattr(app.state, 'pool'):
-            delattr(app.state, 'pool')
-    
     @patch('app.authenticate_user')
     @patch('app.create_access_token')
     def test_login_success(self, mock_create_token, mock_auth):
@@ -407,3 +383,49 @@ class TestLoginEndpoint:
             headers={"Content-Type": "application/x-www-form-urlencoded"}
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @patch('app.get_current_user')
+    def test_get_level_success(self, mock_get_current_user):
+        """Test successful level retrieval"""
+        mock_user = UserInDB(
+            username="testuser",
+            user_id=123,
+            email="test@example.com",
+            hashed_password="hashed"
+        )
+        mock_get_current_user.return_value = mock_user
+        self.mock_pool.fetchrow = AsyncMock(return_value={"username": "testuser", "xp": 150})
+        self.mock_pool.fetchval = AsyncMock(return_value=3)
+        headers = {"Authorization": "Bearer fake_token_123"}
+        response = self.client.get("/getLevel", headers=headers)
+        assert response.status_code == status.HTTP_200_OK
+        response_data = response.json()
+        assert response_data["user_name"] == "testuser"
+        assert response_data["xp"] == 150
+        assert response_data["level"] == 3
+
+    
+    @patch('app.get_current_user')
+    def test_get_level_user_not_found(self, mock_get_current_user):
+        """Test level retrieval when get_current_user returns None"""
+        mock_get_current_user.return_value = None
+        headers = {"Authorization": "Bearer invalid_token"}
+        response = self.client.get("/getLevel", headers=headers)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.json()["detail"] == "Invalid authentication credentials"
+        mock_get_current_user.assert_called_once_with("invalid_token", self.mock_pool)
+    
+    @patch('app.get_current_user')
+    def test_get_level_database_error(self, mock_get_current_user):
+        """Test level retrieval when database query fails"""
+        mock_user = UserInDB(
+            username="testuser",
+            user_id=123,
+            email="test@example.com", 
+            hashed_password="hashed"
+        )
+        mock_get_current_user.return_value = mock_user
+        self.mock_pool.fetchrow = AsyncMock(side_effect=Exception("Database connection failed"))
+        headers = {"Authorization": "Bearer valid_token"}
+        response = self.client.get("/getLevel", headers=headers)
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
