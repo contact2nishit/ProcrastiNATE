@@ -4,12 +4,82 @@ import os
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 from fastapi import status
+from datetime import datetime, timezone, timedelta, time, date
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from app import app
-from data_models import RegistrationDataModel, UserInDB
+from data_models import (
+    RegistrationDataModel, UserInDB, ScheduleRequest, MeetingInRequest, 
+    AssignmentInRequest, ChoreInRequest, Schedule, ScheduleResponseFormat, 
+    SessionCompletionDataModel, RescheduleRequestDataModel
+)
 
 class TestEndpoints:
     """Test suite for most endpoints"""
+    
+    @pytest.fixture
+    def mock_user(self):
+        return UserInDB(
+            username="testuser",
+            user_id=123,
+            email="test@example.com",
+            hashed_password="hashed"
+        )
+    
+    @pytest.fixture
+    def sample_meetings(self):
+        return [
+            MeetingInRequest(
+                name="Team Standup",
+                start_end_times=[
+                    [datetime(2024, 8, 7, 9, 0, tzinfo=timezone.utc), datetime(2024, 8, 7, 9, 30, tzinfo=timezone.utc)],
+                    [datetime(2024, 8, 8, 9, 0, tzinfo=timezone.utc), datetime(2024, 8, 8, 9, 30, tzinfo=timezone.utc)]
+                ],
+                link_or_loc="https://zoom.us/meeting"
+            ),
+            MeetingInRequest(
+                name="Client Call",
+                start_end_times=[
+                    [datetime(2024, 8, 7, 14, 0, tzinfo=timezone.utc), datetime(2024, 8, 7, 15, 0, tzinfo=timezone.utc)]
+                ],
+                link_or_loc=None
+            )
+        ]
+    
+    @pytest.fixture
+    def sample_assignments(self):
+        return [
+            AssignmentInRequest(
+                name="Math Homework",
+                effort=120,
+                due=datetime(2024, 8, 9, 23, 59, tzinfo=timezone.utc)
+            ),
+            AssignmentInRequest(
+                name="Essay Draft",
+                effort=180,
+                due=datetime(2024, 8, 10, 17, 0, tzinfo=timezone.utc)
+            )
+        ]
+    
+    @pytest.fixture
+    def sample_chores(self):
+        return [
+            ChoreInRequest(
+                name="Grocery Shopping",
+                effort=60,
+                window=[
+                    datetime(2024, 8, 7, 8, 0, tzinfo=timezone.utc),
+                    datetime(2024, 8, 7, 20, 0, tzinfo=timezone.utc)
+                ]
+            ),
+            ChoreInRequest(
+                name="House Cleaning",
+                effort=90,
+                window=[
+                    datetime(2024, 8, 8, 10, 0, tzinfo=timezone.utc),
+                    datetime(2024, 8, 9, 18, 0, tzinfo=timezone.utc)
+                ]
+            )
+        ]
     
     def setup_method(self):
         """Setup test client and mocks before each test"""
@@ -429,3 +499,452 @@ class TestEndpoints:
         headers = {"Authorization": "Bearer valid_token"}
         response = self.client.get("/getLevel", headers=headers)
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+    @patch('app.get_current_user')
+    def test_schedule_successful_basic(self, mock_get_current_user, mock_user, sample_meetings, sample_assignments, sample_chores):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetch.side_effect = [[], [], []]
+        mock_connection.fetchval.return_value = 1
+        mock_schedule = Schedule(
+            assignments=[],
+            chores=[],
+            conflicting_assignments=[],
+            conflicting_chores=[],
+            not_enough_time_assignments=[],
+            not_enough_time_chores=[],
+            total_potential_xp=100
+        )
+        with patch('app.schedule_tasks', return_value=[mock_schedule]) as mock_schedule_tasks:
+            request_data = ScheduleRequest(
+                meetings=sample_meetings,
+                assignments=sample_assignments,
+                chores=sample_chores,
+                tz_offset_minutes=0
+            )
+            headers = {"Authorization": "Bearer mock_token"}
+            response = self.client.post("/schedule", json=request_data.model_dump(mode='json'), headers=headers)
+            assert response.status_code == 200
+            response_data = response.json()
+            assert "schedules" in response_data
+            assert "conflicting_meetings" in response_data
+            assert "meetings" in response_data
+            mock_schedule_tasks.assert_called_once()
+
+    @patch('app.get_current_user')
+    def test_schedule_with_meeting_conflicts(self, mock_get_current_user, mock_user, sample_meetings):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        conflicting_times = [
+            {'start_time': datetime(2024, 8, 7, 9, 15, tzinfo=timezone.utc), 'end_time': datetime(2024, 8, 7, 9, 45, tzinfo=timezone.utc)}
+        ]
+        mock_connection.fetch.side_effect = [conflicting_times, [], []]
+        mock_connection.fetchval.return_value = 1
+        mock_schedule = Schedule(
+            assignments=[],
+            chores=[],
+            conflicting_assignments=[],
+            conflicting_chores=[],
+            not_enough_time_assignments=[],
+            not_enough_time_chores=[],
+            total_potential_xp=100
+        )
+        with patch('app.schedule_tasks', return_value=[mock_schedule]):
+            request_data = ScheduleRequest(
+                meetings=sample_meetings,
+                assignments=[],
+                chores=[],
+                tz_offset_minutes=0
+            )
+            headers = {"Authorization": "Bearer mock_token"}
+            response = self.client.post("/schedule", json=request_data.model_dump(mode='json'), headers=headers)
+            assert response.status_code == 200
+            response_data = response.json()
+            assert len(response_data["conflicting_meetings"]) > 0
+
+    @patch('app.get_current_user')
+    def test_schedule_with_assignment_conflicts(self, mock_get_current_user, mock_user, sample_assignments):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetch.side_effect = [[], [], []]
+        mock_connection.fetchval.return_value = 1
+        conflicting_schedule = Schedule(
+            assignments=[],
+            chores=[],
+            conflicting_assignments=["Math Homework"],
+            conflicting_chores=[],
+            not_enough_time_assignments=[],
+            not_enough_time_chores=[],
+            total_potential_xp=0
+        )
+        with patch('app.schedule_tasks', return_value=[conflicting_schedule]):
+            request_data = ScheduleRequest(
+                meetings=[],
+                assignments=sample_assignments,
+                chores=[],
+                tz_offset_minutes=0
+            )
+            headers = {"Authorization": "Bearer mock_token"}
+            response = self.client.post("/schedule", json=request_data.model_dump(mode='json'), headers=headers)
+            assert response.status_code == 200
+            response_data = response.json()
+            assert len(response_data["schedules"][0]["conflicting_assignments"]) > 0
+
+    @patch('app.get_current_user')
+    def test_schedule_with_chore_conflicts(self, mock_get_current_user, mock_user, sample_chores):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetch.side_effect = [[], [], []]
+        mock_connection.fetchval.return_value = 1
+        conflicting_schedule = Schedule(
+            assignments=[],
+            chores=[],
+            conflicting_assignments=[],
+            conflicting_chores=["Grocery Shopping"],
+            not_enough_time_assignments=[],
+            not_enough_time_chores=[],
+            total_potential_xp=0
+        )
+        with patch('app.schedule_tasks', return_value=[conflicting_schedule]):
+            request_data = ScheduleRequest(
+                meetings=[],
+                assignments=[],
+                chores=sample_chores,
+                tz_offset_minutes=0
+            )
+            headers = {"Authorization": "Bearer mock_token"}
+            response = self.client.post("/schedule", json=request_data.model_dump(mode='json'), headers=headers)
+            assert response.status_code == 200
+            response_data = response.json()
+            assert len(response_data["schedules"][0]["conflicting_chores"]) > 0
+
+    @patch('app.get_current_user')
+    def test_schedule_database_error(self, mock_get_current_user, mock_user):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_context.__aenter__.side_effect = Exception("Database connection failed")
+        self.mock_pool.acquire.return_value = mock_context
+        request_data = ScheduleRequest(
+            meetings=[],
+            assignments=[],
+            chores=[],
+            tz_offset_minutes=0
+        )
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/schedule", json=request_data.model_dump(mode='json'), headers=headers)
+        assert response.status_code == 500
+        assert "Something went wrong on the backend" in response.json()["detail"]
+
+    @patch('app.get_current_user')
+    def test_setSchedule_successful_first_time(self, mock_get_current_user, mock_user, sample_meetings, sample_assignments, sample_chores):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchval.return_value = 1
+        mock_connection.execute.return_value = None
+        mock_connection.executemany.return_value = None
+        from data_models import AssignmentInPotentialSchedule, ChoreInPotentialSchedule, ScheduledTaskInfo, TimeSlot
+        sample_slot = TimeSlot(start=datetime(2024, 8, 7, 10, 0, tzinfo=timezone.utc), end=datetime(2024, 8, 7, 11, 0, tzinfo=timezone.utc), xp_potential=100)
+        sample_schedule_info = ScheduledTaskInfo(effort_assigned=60, status="fully_scheduled", slots=[sample_slot])
+        sample_assignment_scheduled = AssignmentInPotentialSchedule(name="Math Homework", effort=120, due=datetime(2024, 8, 9, 23, 59, tzinfo=timezone.utc), schedule=sample_schedule_info)
+        sample_chore_scheduled = ChoreInPotentialSchedule(name="Grocery Shopping", effort=60, window=[datetime(2024, 8, 7, 8, 0, tzinfo=timezone.utc), datetime(2024, 8, 7, 20, 0, tzinfo=timezone.utc)], schedule=sample_schedule_info)
+        schedule_data = Schedule(
+            assignments=[sample_assignment_scheduled],
+            chores=[sample_chore_scheduled],
+            conflicting_assignments=[],
+            conflicting_chores=[],
+            not_enough_time_assignments=[],
+            not_enough_time_chores=[],
+            total_potential_xp=100
+        )
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/setSchedule", json=schedule_data.model_dump(mode='json'), headers=headers)
+        assert response.status_code == 200
+        response_data = response.json()
+        assert "assignments" in response_data
+        assert "chores" in response_data
+
+    @patch('app.get_current_user')
+    def test_setSchedule_successful_update_existing(self, mock_get_current_user, mock_user, sample_meetings):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchval.return_value = 1
+        mock_connection.execute.return_value = None
+        mock_connection.executemany.return_value = None
+        schedule_data = Schedule(
+            assignments=[],
+            chores=[],
+            conflicting_assignments=[],
+            conflicting_chores=[],
+            not_enough_time_assignments=[],
+            not_enough_time_chores=[],
+            total_potential_xp=0
+        )
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/setSchedule", json=schedule_data.model_dump(mode='json'), headers=headers)
+        assert response.status_code == 200
+        response_data = response.json()
+        assert "assignments" in response_data
+        assert "chores" in response_data
+
+    @patch('app.get_current_user')
+    def test_setSchedule_database_error_during_check(self, mock_get_current_user, mock_user):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchval.side_effect = Exception("Database query failed")
+        from data_models import AssignmentInPotentialSchedule, ScheduledTaskInfo, TimeSlot
+        sample_slot = TimeSlot(start=datetime(2024, 8, 7, 10, 0, tzinfo=timezone.utc), end=datetime(2024, 8, 7, 11, 0, tzinfo=timezone.utc), xp_potential=100)
+        sample_schedule_info = ScheduledTaskInfo(effort_assigned=60, status="fully_scheduled", slots=[sample_slot])
+        sample_assignment = AssignmentInPotentialSchedule(name="Math Homework", effort=120, due=datetime(2024, 8, 9, 23, 59, tzinfo=timezone.utc), schedule=sample_schedule_info)
+        schedule_data = Schedule(
+            assignments=[sample_assignment],
+            chores=[],
+            conflicting_assignments=[],
+            conflicting_chores=[],
+            not_enough_time_assignments=[],
+            not_enough_time_chores=[],
+            total_potential_xp=100
+        )
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/setSchedule", json=schedule_data.model_dump(mode='json'), headers=headers)
+        assert response.status_code == 500
+        assert "Internal server error" in response.json()["detail"]
+
+    @patch('app.get_current_user')
+    def test_setSchedule_database_error_during_insert(self, mock_get_current_user, mock_user):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchval.side_effect = [1, Exception("Insert operation failed")]  # First succeeds, second fails
+        from data_models import AssignmentInPotentialSchedule, ScheduledTaskInfo, TimeSlot
+        sample_slot = TimeSlot(start=datetime(2024, 8, 7, 10, 0, tzinfo=timezone.utc), end=datetime(2024, 8, 7, 11, 0, tzinfo=timezone.utc), xp_potential=100)
+        sample_schedule_info = ScheduledTaskInfo(effort_assigned=60, status="fully_scheduled", slots=[sample_slot])
+        sample_assignment = AssignmentInPotentialSchedule(name="Math Homework", effort=120, due=datetime(2024, 8, 9, 23, 59, tzinfo=timezone.utc), schedule=sample_schedule_info)
+        schedule_data = Schedule(
+            assignments=[sample_assignment],
+            chores=[],
+            conflicting_assignments=[],
+            conflicting_chores=[],
+            not_enough_time_assignments=[],
+            not_enough_time_chores=[],
+            total_potential_xp=100
+        )
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/setSchedule", json=schedule_data.model_dump(mode='json'), headers=headers)
+        assert response.status_code == 500
+        assert "Internal server error" in response.json()["detail"]
+
+    @patch('app.get_current_user')
+    def test_reschedule_successful_basic(self, mock_get_current_user, mock_user):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchrow.return_value = {
+            "assignment_id": 1,
+            "assignment_name": "Math Homework",
+            "effort": 120,
+            "deadline": datetime(2024, 8, 9, 23, 59, tzinfo=timezone.utc)
+        }
+        mock_connection.fetch.side_effect = [
+            [{"start_time": datetime(2024, 8, 7, 10, 0, tzinfo=timezone.utc), "end_time": datetime(2024, 8, 7, 11, 0, tzinfo=timezone.utc), "occurence_id": 1}],
+            [],
+            [],
+            []
+        ]
+        mock_connection.execute.return_value = None
+        mock_schedule = Schedule(
+            assignments=[],
+            chores=[],
+            conflicting_assignments=[],
+            conflicting_chores=[],
+            not_enough_time_assignments=[],
+            not_enough_time_chores=[],
+            total_potential_xp=100
+        )
+        with patch('app.schedule_tasks', return_value=[mock_schedule]):
+            request_data = RescheduleRequestDataModel(
+                event_type="assignment",
+                id=1,
+                allow_overlaps=False,
+                new_effort=150,
+                tz_offset_minutes=0
+            )
+            headers = {"Authorization": "Bearer mock_token"}
+            response = self.client.post("/reschedule", json=request_data.model_dump(mode='json'), headers=headers)
+            assert response.status_code == 200
+            response_data = response.json()
+            assert "schedules" in response_data
+
+    @patch('app.get_current_user')
+    def test_reschedule_no_existing_schedule(self, mock_get_current_user, mock_user):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchrow.return_value = None
+        request_data = RescheduleRequestDataModel(
+            event_type="assignment",
+            id=1,
+            allow_overlaps=False,
+            tz_offset_minutes=0
+        )
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/reschedule", json=request_data.model_dump(mode='json'), headers=headers)
+        assert response.status_code == 404
+        assert "not found" in response.json()["detail"]
+
+    @patch('app.get_current_user')
+    def test_reschedule_meeting_not_found(self, mock_get_current_user, mock_user):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchrow.return_value = None
+        request_data = RescheduleRequestDataModel(
+            event_type="chore",
+            id=999,
+            allow_overlaps=True,
+            tz_offset_minutes=0
+        )
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/reschedule", json=request_data.model_dump(mode='json'), headers=headers)
+        assert response.status_code == 404
+        assert "not found" in response.json()["detail"]
+
+    @patch('app.get_current_user')
+    def test_reschedule_database_error(self, mock_get_current_user, mock_user):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchrow.side_effect = Exception("Database error during reschedule")
+        request_data = RescheduleRequestDataModel(
+            event_type="assignment",
+            id=1,
+            allow_overlaps=False,
+            tz_offset_minutes=0
+        )
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/reschedule", json=request_data.model_dump(mode='json'), headers=headers)
+        assert response.status_code == 500
+        assert "Internal server error" in response.json()["detail"]
+
+    @patch('app.get_current_user')
+    def test_markSessionCompleted_successful_existing_record(self, mock_get_current_user, mock_user):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchval.side_effect = [100, 250, 5]  # xp_potential, new_xp, cur_level
+        mock_connection.execute.return_value = None
+        request_data = SessionCompletionDataModel(
+            occurence_id=1,
+            completed=True,
+            is_assignment=True,
+            locked_in=5,
+            score=85
+        )
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/markSessionCompleted", json=request_data.model_dump(mode='json'), headers=headers)
+        assert response.status_code == 200
+
+    @patch('app.get_current_user')
+    def test_markSessionCompleted_successful_new_record(self, mock_get_current_user, mock_user):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchval.side_effect = [80, 180, 3]  # xp_potential, new_xp, cur_level
+        mock_connection.execute.return_value = None
+        request_data = SessionCompletionDataModel(
+            occurence_id=2,
+            completed=False,
+            is_assignment=False,
+            locked_in=3
+        )
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/markSessionCompleted", json=request_data.model_dump(mode='json'), headers=headers)
+        assert response.status_code == 200
+
+    @patch('app.get_current_user')
+    def test_markSessionCompleted_database_error_during_check(self, mock_get_current_user, mock_user):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchval.return_value = None  # No xp_potential returned = bad occurence_id
+        request_data = SessionCompletionDataModel(
+            occurence_id=-1,
+            completed=True,
+            is_assignment=True,
+            locked_in=7
+        )
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/markSessionCompleted", json=request_data.model_dump(mode='json'), headers=headers)
+        assert response.status_code == 400
+        assert "You picked a bad occurence id" in response.json()["detail"]
+
+    @patch('app.get_current_user')
+    def test_markSessionCompleted_database_error_during_update(self, mock_get_current_user, mock_user):
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.execute.side_effect = Exception("Database update failed")
+        request_data = SessionCompletionDataModel(
+            occurence_id=1,
+            completed=True,
+            is_assignment=True,
+            locked_in=4
+        )
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/markSessionCompleted", json=request_data.model_dump(mode='json'), headers=headers)
+        assert response.status_code == 500
+        assert "Internal server error" in response.json()["detail"]
