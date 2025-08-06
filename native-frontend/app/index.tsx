@@ -62,7 +62,9 @@ export default function App() {
       }
 
       // Request the Google OAuth login URL from your backend
-      const resp = await fetch(`${url}/login/google`);
+      const requestUrl = new URL(`${url}/login/google`);
+      requestUrl.searchParams.set("platform", "native");
+      const resp = await fetch(requestUrl.toString());
       if (!resp.ok) {
         alert('Failed to get Google login URL');
         return;

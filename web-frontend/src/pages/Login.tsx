@@ -48,14 +48,63 @@ const Login = () => {
                 alert('Backend URL not set.');
                 return;
             }
-            const resp = await fetch(`${backendURL}/login/google`);
+            const url = new URL(`${backendURL}/login/google`);
+            url.searchParams.set("platform", "web");
+            const resp = await fetch(url.toString(), {
+                credentials: 'include' // Include cookies in the request
+            });
             if (!resp.ok) {
                 alert('Failed to get Google login URL');
                 return;
             }
             const data = await resp.json();
             const googleAuthUrl = data.redirect_url;
-            window.location.href = googleAuthUrl;
+            
+            // Open popup window for OAuth
+            const popup = window.open(
+                googleAuthUrl,
+                'googleOAuth',
+                'width=500,height=600,scrollbars=yes,resizable=yes'
+            );
+            
+            // Listen for postMessage from popup
+            const messageHandler = (event: MessageEvent) => {
+                // Only accept messages from our backend domain
+                if (event.origin !== new URL(backendURL).origin) return;
+                
+                if (event.data.type === 'OAUTH_SUCCESS' && event.data.token) {
+                    localStorage.setItem('token', event.data.token);
+                    popup?.close();
+                    window.removeEventListener('message', messageHandler);
+                    navigate('/requiresCurrentSchedule/Home');
+                } else if (event.data.type === 'OAUTH_ERROR') {
+                    popup?.close();
+                    window.removeEventListener('message', messageHandler);
+                    alert('Google login failed: ' + (event.data.message || 'Unknown error'));
+                }
+            };
+            
+            window.addEventListener('message', messageHandler);
+            
+            // Check if popup closed without success
+            const checkClosed = setInterval(() => {
+                if (popup?.closed) {
+                    clearInterval(checkClosed);
+                    window.removeEventListener('message', messageHandler);
+                    alert('Google login was cancelled');
+                }
+            }, 1000);
+            
+            // Timeout after 5 minutes
+            setTimeout(() => {
+                if (popup && !popup.closed) {
+                    popup.close();
+                    clearInterval(checkClosed);
+                    window.removeEventListener('message', messageHandler);
+                    alert('Google login timed out');
+                }
+            }, 5 * 60 * 1000);
+            
         } catch (e) {
             alert('Google login error: ' + e);
         }

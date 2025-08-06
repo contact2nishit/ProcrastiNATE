@@ -6,7 +6,8 @@ import jwt
 import asyncpg
 import dotenv
 import os
-from fastapi import Depends, FastAPI, HTTPException, status, Request
+from fastapi import Depends, FastAPI, HTTPException, status, Request, Response, Cookie
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
@@ -15,16 +16,22 @@ from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from scheduler import *
 import httpx
-from urllib.parse import urlencode
+from urllib.parse import urlencode, parse_qs, urlparse
 from fastapi.responses import RedirectResponse
+import redis.asyncio as redis
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import os
+import json
 from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import base64
+import secrets
+import time
+
 
 
 dotenv.load_dotenv()
@@ -33,6 +40,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+SESSION_SECRET = os.getenv("SESSION_SECRET_KEY")
 
 
 @asynccontextmanager
@@ -47,11 +55,19 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["http://localhost:3000"], 
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["authorization", "content-type"],
 )
+app.add_middleware(
+    SessionMiddleware, 
+    secret_key=SESSION_SECRET,
+    max_age=600,  # 10 minutes
+    same_site="none",  # Allow cookies in OAuth redirects
+    https_only=True,  # Set to True in production with HTTPS
+)
+
 
 @app.post("/register")
 async def register(data: RegistrationDataModel, status_code=status.HTTP_201_CREATED):
@@ -109,59 +125,74 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], stat
 # TODO: GOOGLE TOKEN MAY EXPIRE, USE REFRESH TOKEN
 
 @app.get("/login/google")
-async def login_google():
-    # Redirect user to Google's OAuth consent screen
+async def login_google(request: Request, platform: str):
+    session_id = secrets.token_urlsafe(32)
+    state_data = {
+        "platform": platform,
+        "id": session_id,
+    }
+    encoded_state = base64.urlsafe_b64encode(json.dumps(state_data).encode()).decode()
+    request.session["oauth_token"] = session_id
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         'client_secret.json',
         scopes=[
             'https://www.googleapis.com/auth/calendar.readonly', 
             'https://www.googleapis.com/auth/calendar.events.readonly',
             'openid',
-            'email',
-            'profile'
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/userinfo.profile'
         ]
     )
     flow.redirect_uri = GOOGLE_REDIRECT_URI
     authorization_url, state = flow.authorization_url(
-        # Can refresh without asking
         access_type='offline',
-        # Optional, enable incremental authorization. Recommended as a best practice.
         include_granted_scopes='true',
-        # Optional, set prompt to 'consent' will prompt the user for consent
-        prompt='consent'
+        prompt='consent',
+        state=encoded_state,
     )
     return GoogleRedirectURL(redirect_url=authorization_url)
 
 @app.get("/auth/google/callback")
 async def google_callback(request: Request):
-
-    code = request.query_params.get("code")
-    if not code:
-        raise HTTPException(status_code=400, detail="Missing code from Google")
-    async with httpx.AsyncClient() as client:
-        token_resp = await client.post(
-            "https://oauth2.googleapis.com/token",
-            data={
-                "code": code,
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
-                "redirect_uri": GOOGLE_REDIRECT_URI,
-                "grant_type": "authorization_code",
-            },
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
-        token_data = token_resp.json()
-        access_token = token_data.get("access_token")
-        refresh_token = token_data.get("refresh_token")
-        id_token = token_data.get("id_token")
-
-    # Get user info from id_token
-
-    user_info = jwt.decode(id_token, options={"verify_signature": False})
+    frontend_origin = os.getenv("WEB_FRONTEND", "http://localhost:3000")
+    if frontend_origin:
+        parsed = urlparse(frontend_origin)
+        frontend_origin = f"{parsed.scheme}://{parsed.netloc}"
+    authorization_response = str(request.url)
+    # Parse code and state from request
+    parsed_url = urlparse(authorization_response)
+    query_params = parse_qs(parsed_url.query)
+    encoded_state = query_params.get("state", [None])[0]
+    code = query_params.get("code", [None])[0]
+    if not code or not encoded_state:
+        return HTTPException(status_code=401, detail="Google Oauth failed")
+    try:
+        decoded_string = (base64.urlsafe_b64decode(encoded_state.encode())).decode()
+        state_dict = json.loads(decoded_string)
+    except (ValueError, json.JSONDecodeError, KeyError) as e:
+        raise HTTPException(status_code=401, detail="Google Oauth failed")
+    if not state_dict["id"] or state_dict["id"] != request.session.get("oauth_token"):
+        raise HTTPException(status_code=401, detail="Google Oauth failed")
+    else:
+        request.session.pop("oauth_token", None)
+    # We've already validated that the state matches, no need to do it again by passing in a state parameter to flow
+    flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+        'client_secret.json', 
+        scopes=[
+            'https://www.googleapis.com/auth/calendar.readonly', 
+            'https://www.googleapis.com/auth/calendar.events.readonly',
+            'openid',
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/userinfo.profile'
+        ]
+    )
+    flow.redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+    flow.fetch_token(authorization_response=authorization_response)
+    credentials = flow.credentials
+    user_info = jwt.decode(credentials.id_token, options={"verify_signature": False})
     google_id = user_info["sub"]
     email = user_info.get("email")
     username = email.split("@")[0] if email else f"google_{google_id}"
-
     # Find or create user in DB
     async with app.state.pool.acquire() as conn:
         user_row = await conn.fetchrow("SELECT user_id FROM users WHERE google_id = $1", google_id)
@@ -170,7 +201,7 @@ async def google_callback(request: Request):
             # Update tokens
             await conn.execute(
                 "UPDATE users SET google_access_token = $1, google_refresh_token = $2 WHERE user_id = $3",
-                access_token, refresh_token, user_id
+                credentials.token, credentials.refresh_token, user_id
             )
         else:
             # If user with same email exists, link Google account
@@ -179,27 +210,87 @@ async def google_callback(request: Request):
                 user_id = user_row["user_id"]
                 await conn.execute(
                     "UPDATE users SET google_id = $1, google_access_token = $2, google_refresh_token = $3, uses_google_oauth = $4 WHERE user_id = $5",
-                    google_id, access_token, refresh_token, True, user_id
+                    google_id, credentials.token, credentials.refresh_token, True, user_id
                 )
             else:
                 # Create new user
                 user_id = await conn.fetchval(
                     "INSERT INTO users(username, email, google_id, google_access_token, google_refresh_token, uses_google_oauth) VALUES($1, $2, $3, $4, $5, $6) RETURNING user_id",
-                    username, email, google_id, access_token, refresh_token, True
+                    username, email, google_id, credentials.token, credentials.refresh_token, True
                 )
                 await conn.execute("INSERT INTO achievements(user_id, levels) VALUES($1, $2)", user_id, 1)
+        # Ensure all users have an achievements record (for existing users who may not have one)
+        achievements_exists = await conn.fetchval("SELECT 1 FROM achievements WHERE user_id = $1", user_id)
+        if not achievements_exists:
+            await conn.execute("INSERT INTO achievements(user_id, levels) VALUES($1, $2)", user_id, 1)
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     jwt_token = create_access_token(data={"sub": str(user_id)}, expires_delta=access_token_expires)
-    # Hacky workaround for Expo Go: redirect to exp:// URL with token as query param
-    # You must set EXPO_DEV_URL in your environment to your current exp:// URL (
-    expo_dev_url = os.getenv("EXPO_DEV_URL")
-    if expo_dev_url:
-        # e.g., exp://192.168.1.2:19000/--/auth?token=...
-        deep_link_url = f"{expo_dev_url}/--/auth?token={jwt_token}"
+    if state_dict["platform"] != "web":
+        # token as query param is not secure, patch before native goes to prod
+        expo_dev_url = os.getenv("EXPO_DEV_URL")
+        if expo_dev_url:
+            # e.g., exp://192.168.1.2:19000/--/auth?token=...
+            deep_link_url = f"{expo_dev_url}/--/auth?token={jwt_token}"
+        else:
+            # fallback to custom scheme for dev client
+            deep_link_url = f"procrastinate://auth?token={jwt_token}"
+        return RedirectResponse(deep_link_url)
     else:
-        # fallback to custom scheme for dev client
-        deep_link_url = f"procrastinate://auth?token={jwt_token}"
-    return RedirectResponse(deep_link_url)
+        # For web platform, return secure HTML that sends token via postMessage
+        frontend_origin = os.getenv("WEB_FRONTEND")
+        # Parse the origin from the full URL
+        if frontend_origin:
+            parsed = urlparse(frontend_origin)
+            frontend_origin = f"{parsed.scheme}://{parsed.netloc}"
+        return Response(
+            content=f"""<!DOCTYPE html>
+            <html>
+            <head>
+                <title>Login Success</title>
+                <style>
+                    body {{ 
+                        font-family: Arial, sans-serif; 
+                        text-align: center; 
+                        padding: 50px;
+                        background-color: #f5f5f5;
+                    }}
+                    .success {{ color: #4CAF50; }}
+                </style>
+            </head>
+            <body>
+                <h2 class="success">Login Successful!</h2>
+                <p>This window will close automatically...</p>
+                <script>
+                    (function() {{
+                        try {{
+                            if (window.opener && window.opener !== window) {{
+                                // Send token to parent window via postMessage
+                                window.opener.postMessage({{
+                                    type: 'OAUTH_SUCCESS',
+                                    token: '{jwt_token}'
+                                }}, '{frontend_origin}');
+                                window.close();
+                            }} else {{
+                                // Fallback: redirect to frontend if not in popup
+                                window.location.href = '{frontend_origin}';
+                            }}
+                        }} catch (error) {{
+                            console.error('OAuth callback error:', error);
+                            if (window.opener) {{
+                                window.opener.postMessage({{
+                                    type: 'OAUTH_ERROR',
+                                    message: 'Failed to complete login'
+                                }}, '{frontend_origin}');
+                            }}
+                            window.close();
+                        }}
+                    }})();
+                </script>
+            </body>
+            </html>""",
+            media_type="text/html"
+        )
+    
 
 @app.post("/googleCalendar/sync")
 async def sync(token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> MessageResponseDataModel:
@@ -318,14 +409,6 @@ async def sync(token: Annotated[str, Depends(oauth2_scheme)], status_code=status
         print(e)
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@app.options("/schedule")
-def opt():
-    return {
-        "Allow": "GET, POST, PUT, DELETE",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE"
-    }
 
 @app.post("/schedule")
 async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleResponseFormat:
@@ -437,14 +520,6 @@ async def schedule(sched: ScheduleRequest, token: Annotated[str, Depends(oauth2_
             detail=f"Something went wrong on the backend, please check the logs"
         )
     
-@app.options("/setSchedule")
-def opt2():
-    return {
-        "Allow": "GET, POST, PUT, DELETE",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE"
-    }
 
 @app.post("/setSchedule")
 async def set_schedule(chosen_schedule: Schedule, token: Annotated[str, Depends(oauth2_scheme)], status_code=status.HTTP_201_CREATED) -> ScheduleSetInStone:
