@@ -1,9 +1,11 @@
 import React from 'react';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { renderWithProviders, mockFetch, mockFetchError, mockApiResponse, cleanupMocks } from '../test-utils';
+import { renderWithProviders, mockFetch, mockFetchError, mockApiResponse, cleanupMocks, mockWindowOpen } from '../test-utils';
 import { localStorageMock } from '../setupTests';
 import Login from '../pages/Login';
+import { wait } from '@testing-library/user-event/dist/utils';
+import { Experimental_CssVarsProvider } from '@mui/material';
 
 // Mock react-router-dom navigation
 const mockNavigate = jest.fn();
@@ -17,6 +19,7 @@ describe('Login Component', () => {
   beforeEach(() => {
     cleanupMocks();
     mockNavigate.mockClear();
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
@@ -84,10 +87,24 @@ describe('Login Component', () => {
   });
 
   test('handles Google OAuth login', async () => {
+    mockFetch(mockApiResponse.googleLogin);
     renderWithProviders(<Login />, { withRouter: false });
     const googleButton = screen.getByTestId('google-login-button');
     userEvent.click(googleButton);
-    expect(googleButton).toBeInTheDocument();
-    expect(googleButton).toHaveTextContent(/google/i);
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/login/google?platform=web'),
+        expect.objectContaining({
+          credentials: 'include'
+        })
+      );
+    });
+    await waitFor(() => {
+      expect(mockWindowOpen).toHaveBeenCalledWith(
+        'https://google.com/oauth/v2/stuff?state=9034fkjdfhsdf',
+        'googleOAuth',
+        'width=500,height=600,scrollbars=yes,resizable=yes'
+      );
+    });
   });
 });

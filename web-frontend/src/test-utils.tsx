@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, RenderOptions } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, redirect } from 'react-router-dom';
 import { CurrentScheduleProvider } from './context/CurrentScheduleContext';
 import { PotentialScheduleProvider } from './context/PotentialScheduleContext';
 import { localStorageMock } from './setupTests';
@@ -66,7 +66,7 @@ export function renderWithProviders(
   return render(ui, { wrapper: Wrapper, ...renderOptions });
 }
 
-// Mock API responses
+//Premade mock API responses to use with mock fetch
 export const mockApiResponse = {
   schedule: {
     conflicting_meetings: [],
@@ -95,10 +95,22 @@ export const mockApiResponse = {
     user_name: 'testuser',
     xp: 150,
     level: 2
+  },
+  googleLogin: {
+    redirect_url: 'https://google.com/oauth/v2/stuff?state=9034fkjdfhsdf'
   }
 };
 
-// Helper to mock fetch
+export const mockPopup = {
+  close: jest.fn(),
+  closed: false
+};
+export const mockWindowOpen = jest.fn().mockReturnValue(mockPopup);
+Object.defineProperty(window, 'open', {
+  value: mockWindowOpen,
+  writable: true
+});
+
 export function mockFetch(response: any, ok = true, status = 200) {
   (global.fetch as jest.Mock).mockResolvedValue({
     ok,
@@ -108,12 +120,10 @@ export function mockFetch(response: any, ok = true, status = 200) {
   });
 }
 
-// Helper to mock fetch error
 export function mockFetchError(errorMessage: string) {
   (global.fetch as jest.Mock).mockRejectedValue(new Error(errorMessage));
 }
 
-// Helper to clean up all mocks
 export function cleanupMocks() {
   jest.clearAllMocks();
   localStorageMock.getItem.mockReturnValue(null);
