@@ -117,6 +117,7 @@ const Login = () => {
                 <div className="w-full mb-6 flex flex-col">
                     <label className="text-base font-medium text-gray-700 mb-2">Username</label>
                     <input
+                        data-testid="username-input"
                         className="border border-gray-300 rounded px-3 py-2 text-base text-gray-800 focus:outline-none"
                         type="text"
                         placeholder="Username"
@@ -127,6 +128,7 @@ const Login = () => {
                 <div className="w-full mb-6 flex flex-col">
                     <label className="text-base font-medium text-gray-700 mb-2">Password</label>
                     <input
+                        data-testid="password-input"
                         className="border border-gray-300 rounded px-3 py-2 text-base text-gray-800 focus:outline-none"
                         type="password"
                         placeholder="Password"
@@ -134,13 +136,13 @@ const Login = () => {
                         onChange={e => setPassword(e.target.value)}
                     />
                 </div>
-                <button type="submit" className="bg-gray-800 text-white py-3 px-8 rounded-lg text-lg font-medium mb-3 hover:bg-gray-900 transition">Sign In</button>
-                <button type="button" onClick={handleGoogleLogin} className="bg-blue-600 text-white py-3 px-8 rounded-lg text-base font-medium mb-3 hover:bg-blue-700 transition">
+                <button data-testid="login-button" type="submit" className="bg-gray-800 text-white py-3 px-8 rounded-lg text-lg font-medium mb-3 hover:bg-gray-900 transition">Sign In</button>
+                <button data-testid="google-login-button" type="button" onClick={handleGoogleLogin} className="bg-blue-600 text-white py-3 px-8 rounded-lg text-base font-medium mb-3 hover:bg-blue-700 transition">
                     Sign In with Google
                 </button>
                 <div className="mt-2 text-base text-black text-center font-medium">
                     Don't have an account?{' '}
-                    <span className="text-black font-medium underline cursor-pointer" onClick={handleSignup}>Sign Up</span>
+                    <span data-testid="signup-link" className="text-black font-medium underline cursor-pointer" onClick={handleSignup}>Sign Up</span>
                 </div>
             </form>
         </div>
