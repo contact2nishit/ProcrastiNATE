@@ -411,7 +411,10 @@ const Home = () => {
                 )}
                 
                 <div className="flex justify-between items-center mt-5 mx-4">
-                    <button className="bg-gray-800 rounded-full w-12 h-12 flex items-center justify-center shadow-lg">
+                    <button 
+                        className="bg-gray-800 rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
+                        data-testid="logout-button"
+                    >
                         <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
                         </svg>
@@ -419,7 +422,7 @@ const Home = () => {
                     <button 
                         onClick={calendarProceed} 
                         className="bg-gray-800 rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
-                        data-testid="calendar-button"
+                        data-testid="calendar-view-button"
                     >
                         <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
@@ -453,12 +456,12 @@ const Home = () => {
                     </div>
                 )}
                 
-                <h2 className="text-2xl font-bold text-center mt-5 ml-2 text-gray-800">To Do List for Today</h2>
+                <h2 className="text-2xl font-bold text-center mt-5 ml-2 text-gray-800" data-testid="today-schedule-title">To Do List for Today</h2>
                 
                 <div className="flex-1 overflow-y-auto pb-24">
                     {todoList.map((item, idx) => (
-                        <div key={item.id ?? idx} className={`mx-4 my-2 rounded-xl p-4 shadow-sm ${getCardStyle(item.type)}`}>
-                            <h3 className="text-lg font-bold text-gray-900">{item.name}</h3>
+                        <div key={item.id ?? idx} className={`mx-4 my-2 rounded-xl p-4 shadow-sm ${getCardStyle(item.type)}`} data-testid={`schedule-item-${item.name.replace(/\s+/g, '-').toLowerCase()}`}>
+                            <h3 className="text-lg font-bold text-gray-900" data-testid={`item-name-${item.name.replace(/\s+/g, '-').toLowerCase()}`}>{item.name}</h3>
                             <p className="text-sm text-gray-600 mt-0.5 mb-1">{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</p>
                             <p className="text-base text-gray-800 mt-0.5">
                                 {new Date(item.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(item.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -472,6 +475,7 @@ const Home = () => {
                                     ) : (
                                         <button
                                             className="mt-2 bg-gray-800 rounded-md py-2 px-4 text-white font-bold hover:bg-gray-700 transition-colors"
+                                            data-testid={`mark-completed-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
                                             onClick={() => {
                                                 const now = new Date();
                                                 const startTime = new Date(item.start);
@@ -492,6 +496,7 @@ const Home = () => {
                                     {/* Delete button for assignments/chores */}
                                     <button
                                         className="mt-2 bg-red-600 rounded-md py-2 px-4 text-white font-bold hover:bg-red-700 transition-colors"
+                                        data-testid={`delete-${item.type}-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
                                         onClick={() => handleDeleteEvent(item.id as string, item.type as "assignment" | "chore")}
                                     >
                                         Delete
@@ -499,6 +504,7 @@ const Home = () => {
                                     {/* Reschedule button */}
                                     <button
                                         className="mt-2 ml-2 bg-blue-600 rounded-md py-2 px-4 text-white font-bold hover:bg-blue-700 transition-colors"
+                                        data-testid={`reschedule-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
                                         onClick={() => handleReschedule(item)}
                                     >
                                         Reschedule
@@ -511,6 +517,7 @@ const Home = () => {
                                 <div className="flex mt-2 space-x-2">
                                     <button
                                         className="bg-blue-600 rounded-md py-2 px-3 text-white font-bold hover:bg-blue-700 transition-colors"
+                                        data-testid={`update-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
                                         onClick={() => {
                                             setModalType('update');
                                             setSelectedMeeting(item);
@@ -524,6 +531,7 @@ const Home = () => {
                                     </button>
                                     <button
                                         className="bg-red-600 rounded-md py-2 px-3 text-white font-bold hover:bg-red-700 transition-colors"
+                                        data-testid={`delete-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
                                         onClick={() => {
                                             setModalType('delete');
                                             setSelectedMeeting(item);
@@ -538,11 +546,15 @@ const Home = () => {
                     ))}
                     
                     {todoList.length === 0 && (
-                        <p className="text-gray-700 m-5 text-lg text-center">No events for today.</p>
+                        <p className="text-gray-700 m-5 text-lg text-center" data-testid="no-events-message">No events for today.</p>
                     )}
                     
                     <div className="text-center mt-10 mb-1">
-                        <button onClick={handleAddEvent} className="bg-black rounded-full text-white w-12 h-12 text-4xl font-bold hover:bg-gray-800 transition-colors">
+                        <button 
+                            onClick={handleAddEvent} 
+                            className="bg-black rounded-full text-white w-12 h-12 text-4xl font-bold hover:bg-gray-800 transition-colors"
+                            data-testid="add-event-button"
+                        >
                             +
                         </button>
                         <p className="text-sm text-center mt-1">Add event</p>
@@ -553,6 +565,7 @@ const Home = () => {
                     onClick={handleSyncGoogleCalendar} 
                     disabled={loading}
                     className="bg-blue-600 p-3 rounded-lg mt-8 mx-4 mb-2 text-center text-white font-bold text-base hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    data-testid="sync-button"
                 >
                     {loading ? 'Syncing...' : 'Sync Google Calendar'}
                 </button>
@@ -570,6 +583,7 @@ const Home = () => {
                                         placeholder="New Name"
                                         value={updateName}
                                         onChange={(e) => setUpdateName(e.target.value)}
+                                        data-testid="meeting-name-input"
                                     />
                                     <input
                                         type="text"
@@ -577,6 +591,7 @@ const Home = () => {
                                         placeholder="New Location/Link"
                                         value={updateLoc}
                                         onChange={(e) => setUpdateLoc(e.target.value)}
+                                        data-testid="meeting-location-input"
                                     />
                                     <input
                                         type="text"
@@ -584,10 +599,12 @@ const Home = () => {
                                         placeholder="New Start Time (YYYY-MM-DDTHH:MM:SS+00:00)"
                                         value={updateTime}
                                         onChange={(e) => setUpdateTime(e.target.value)}
+                                        data-testid="meeting-time-input"
                                     />
                                     <button
                                         className="bg-blue-600 rounded-lg py-3 px-6 text-white font-bold text-base w-full hover:bg-blue-700 transition-colors"
                                         onClick={handleUpdateMeeting}
+                                        data-testid="submit-update-button"
                                     >
                                         Submit Update
                                     </button>
@@ -603,12 +620,14 @@ const Home = () => {
                                     <button
                                         className="bg-red-600 rounded-lg py-3 px-6 text-white font-bold text-base w-full mb-2 hover:bg-red-700 transition-colors"
                                         onClick={() => handleDeleteMeeting(false)}
+                                        data-testid="delete-this-occurrence-button"
                                     >
                                         Delete This Occurrence
                                     </button>
                                     <button
                                         className="bg-red-600 rounded-lg py-3 px-6 text-white font-bold text-base w-full hover:bg-red-700 transition-colors"
                                         onClick={() => handleDeleteMeeting(true)}
+                                        data-testid="delete-all-future-button"
                                     >
                                         Delete All Future Occurrences
                                     </button>
@@ -631,6 +650,7 @@ const Home = () => {
                                                 onChange={(_, newValue) => setLockedInValue(newValue as number)}
                                                 valueLabelDisplay="auto"
                                                 marks
+                                                data-testid="effort-slider"
                                             />
                                         </Box>
                                         <Typography variant="body1" fontWeight="bold" color="text.secondary">
@@ -640,6 +660,7 @@ const Home = () => {
                                     <button
                                         className="bg-red-600 rounded-lg py-3 px-6 text-white font-bold text-base w-full hover:bg-red-700 transition-colors"
                                         onClick={() => markSessionCompleted(selectedSessionToComplete?.occurence_id, selectedSessionToComplete?.is_assignment, lockedInValue)}
+                                        data-testid="confirm-completion-button"
                                     >
                                         Mark Session Completed
                                     </button>
@@ -649,6 +670,7 @@ const Home = () => {
                             <button
                                 className="bg-gray-600 rounded-lg py-3 px-6 text-white font-bold text-base w-full mt-2 hover:bg-gray-700 transition-colors"
                                 onClick={() => setModalVisible(false)}
+                                data-testid="cancel-button"
                             >
                                 Cancel
                             </button>
