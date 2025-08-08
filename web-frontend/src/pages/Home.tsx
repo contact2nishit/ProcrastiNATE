@@ -9,6 +9,10 @@ import { useCurrentScheduleContext } from '../context/CurrentScheduleContext';
 import { Achievement } from '../utils';
 import { set } from 'date-fns';
 import BadgeFirstTimer from '../assets/first-timer';
+import BadgeWeekendWarrior from '../assets/weekend-warrior';
+import BadgeConsistencyKing from '../assets/consistency-king';
+import BadgeNightOwl from '../assets/night-owl';
+
 // Create a custom theme for MUI components
 const theme = createTheme({
     palette: {
@@ -422,6 +426,12 @@ const Home = () => {
             case 'first_timer':
                 return <BadgeFirstTimer />;
             // Add more cases for other achievement badges
+            case 'weekend_warrior':
+                return <BadgeWeekendWarrior />;
+            case 'consistency_king':
+                return <BadgeConsistencyKing />;
+            case 'night_owl':
+                return <BadgeNightOwl />;
             default:
                 return null;
         }
