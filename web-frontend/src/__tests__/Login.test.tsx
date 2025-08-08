@@ -25,7 +25,6 @@ describe('Login Component', () => {
 
   test('renders login form elements', () => {
     renderWithProviders(<Login />, { withRouter: false });
-
     expect(screen.getByTestId('username-input')).toBeInTheDocument();
     expect(screen.getByTestId('password-input')).toBeInTheDocument();
     expect(screen.getByTestId('login-button')).toBeInTheDocument();
@@ -33,30 +32,15 @@ describe('Login Component', () => {
     expect(screen.getByTestId('signup-link')).toBeInTheDocument();
   });
 
-  test('shows validation errors for empty fields', async () => {
-    renderWithProviders(<Login />, { withRouter: false });
-
-    const loginButton = screen.getByTestId('login-button');
-    await userEvent.click(loginButton);
-
-    // Since the Login component doesn't have built-in validation, 
-    // this test would need to be updated based on actual validation implementation
-    // For now, just verify the form submission attempt
-    expect(loginButton).toBeInTheDocument();
-  });
-
   test('handles successful login', async () => {
     mockFetch(mockApiResponse.login);
-    
     renderWithProviders(<Login />, { withRouter: false });
-
     const usernameInput = screen.getByTestId('username-input');
     const passwordInput = screen.getByTestId('password-input');
     const loginButton = screen.getByTestId('login-button');
-
-    await userEvent.type(usernameInput, 'testuser');
-    await userEvent.type(passwordInput, 'password123');
-    await userEvent.click(loginButton);
+    userEvent.type(usernameInput, 'testuser');
+    userEvent.type(passwordInput, 'password123');
+    userEvent.click(loginButton);
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
@@ -70,8 +54,6 @@ describe('Login Component', () => {
         })
       );
     });
-
-    // Should save token to localStorage
     await waitFor(() => {
       expect(localStorageMock.setItem).toHaveBeenCalledWith('token', 'mock_token_123');
     });
@@ -79,31 +61,23 @@ describe('Login Component', () => {
 
   test('displays error message on failed login', async () => {
     mockFetch(mockApiResponse.loginError, false, 401);
-    
     renderWithProviders(<Login />, { withRouter: false });
-
     const usernameInput = screen.getByTestId('username-input');
     const passwordInput = screen.getByTestId('password-input');
     const loginButton = screen.getByTestId('login-button');
-
-    await userEvent.type(usernameInput, 'wronguser');
-    await userEvent.type(passwordInput, 'wrongpass');
-    await userEvent.click(loginButton);
-
+    userEvent.type(usernameInput, 'wronguser');
+    userEvent.type(passwordInput, 'wrongpass');
+    userEvent.click(loginButton);
     await waitFor(() => {
       expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Login failed'));
     });
-
-    // Should not save any token
     expect(localStorageMock.setItem).not.toHaveBeenCalled();
   });
 
   test('navigates to signup page when clicking signup link', async () => {
     renderWithProviders(<Login />, { withRouter: false });
-
     const signupLink = screen.getByTestId('signup-link');
-    await userEvent.click(signupLink);
-
+    userEvent.click(signupLink);
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/Signup');
     });
@@ -111,11 +85,8 @@ describe('Login Component', () => {
 
   test('handles Google OAuth login', async () => {
     renderWithProviders(<Login />, { withRouter: false });
-
     const googleButton = screen.getByTestId('google-login-button');
-    await userEvent.click(googleButton);
-    
-    // Verify Google button exists and can be clicked
+    userEvent.click(googleButton);
     expect(googleButton).toBeInTheDocument();
     expect(googleButton).toHaveTextContent(/google/i);
   });

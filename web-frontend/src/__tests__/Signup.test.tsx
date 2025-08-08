@@ -23,7 +23,6 @@ describe('Signup Component', () => {
 
   test('renders signup form elements', () => {
     renderWithProviders(<Signup />, { withRouter: false });
-
     expect(screen.getByTestId('email-input')).toBeInTheDocument();
     expect(screen.getByTestId('username-input')).toBeInTheDocument();
     expect(screen.getByTestId('password-input')).toBeInTheDocument();
@@ -35,10 +34,8 @@ describe('Signup Component', () => {
 
   test('shows validation error for empty fields', async () => {
     renderWithProviders(<Signup />, { withRouter: false });
-
     const signupButton = screen.getByTestId('signupButton');
-    await userEvent.click(signupButton);
-
+    userEvent.click(signupButton);
     await waitFor(() => {
       expect(window.alert).toHaveBeenCalledWith('Please fill in all fields.');
     });
@@ -46,19 +43,16 @@ describe('Signup Component', () => {
 
   test('shows validation error for password length', async () => {
     renderWithProviders(<Signup />, { withRouter: false });
-
     const emailInput = screen.getByTestId('email-input');
     const usernameInput = screen.getByTestId('username-input');
     const passwordInput = screen.getByTestId('password-input');
     const confirmPasswordInput = screen.getByTestId('confirm-password-input');
     const signupButton = screen.getByTestId('signupButton');
-
-    await userEvent.type(emailInput, 'test@example.com');
-    await userEvent.type(usernameInput, 'testuser');
-    await userEvent.type(passwordInput, '123'); // Short password
-    await userEvent.type(confirmPasswordInput, '123');
-    await userEvent.click(signupButton);
-
+    userEvent.type(emailInput, 'test@example.com');
+    userEvent.type(usernameInput, 'testuser');
+    userEvent.type(passwordInput, '123');
+    userEvent.type(confirmPasswordInput, '123');
+    userEvent.click(signupButton);
     await waitFor(() => {
       expect(window.alert).toHaveBeenCalledWith('Password should be at least 8 characters');
     });
@@ -66,19 +60,16 @@ describe('Signup Component', () => {
 
   test('shows validation error for password mismatch', async () => {
     renderWithProviders(<Signup />, { withRouter: false });
-
     const emailInput = screen.getByTestId('email-input');
     const usernameInput = screen.getByTestId('username-input');
     const passwordInput = screen.getByTestId('password-input');
     const confirmPasswordInput = screen.getByTestId('confirm-password-input');
     const signupButton = screen.getByTestId('signupButton');
-
-    await userEvent.type(emailInput, 'test@example.com');
-    await userEvent.type(usernameInput, 'testuser');
-    await userEvent.type(passwordInput, 'password123');
-    await userEvent.type(confirmPasswordInput, 'differentpassword');
-    await userEvent.click(signupButton);
-
+    userEvent.type(emailInput, 'test@example.com');
+    userEvent.type(usernameInput, 'testuser');
+    userEvent.type(passwordInput, 'password123');
+    userEvent.type(confirmPasswordInput, 'differentpassword');
+    userEvent.click(signupButton);
     await waitFor(() => {
       expect(window.alert).toHaveBeenCalledWith('Passwords do not match.');
     });
@@ -86,21 +77,17 @@ describe('Signup Component', () => {
 
   test('handles successful signup', async () => {
     mockFetch(mockApiResponse.register);
-    
     renderWithProviders(<Signup />, { withRouter: false });
-
     const emailInput = screen.getByTestId('email-input');
     const usernameInput = screen.getByTestId('username-input');
     const passwordInput = screen.getByTestId('password-input');
     const confirmPasswordInput = screen.getByTestId('confirm-password-input');
     const signupButton = screen.getByTestId('signupButton');
-
-    await userEvent.type(emailInput, 'test@example.com');
-    await userEvent.type(usernameInput, 'testuser');
-    await userEvent.type(passwordInput, 'password123');
-    await userEvent.type(confirmPasswordInput, 'password123');
-    await userEvent.click(signupButton);
-
+    userEvent.type(emailInput, 'test@example.com');
+    userEvent.type(usernameInput, 'testuser');
+    userEvent.type(passwordInput, 'password123');
+    userEvent.type(confirmPasswordInput, 'password123');
+    userEvent.click(signupButton);
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('/register'),
@@ -117,11 +104,9 @@ describe('Signup Component', () => {
         })
       );
     });
-
     await waitFor(() => {
       expect(window.alert).toHaveBeenCalledWith('Registration successful!');
     });
-
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/');
     });
@@ -129,78 +114,55 @@ describe('Signup Component', () => {
 
   test('handles signup error', async () => {
     mockFetch({ error: 'Username already exists' }, false, 400);
-    
     renderWithProviders(<Signup />, { withRouter: false });
-
     const emailInput = screen.getByTestId('email-input');
     const usernameInput = screen.getByTestId('username-input');
     const passwordInput = screen.getByTestId('password-input');
     const confirmPasswordInput = screen.getByTestId('confirm-password-input');
     const signupButton = screen.getByTestId('signupButton');
-
-    await userEvent.type(emailInput, 'test@example.com');
-    await userEvent.type(usernameInput, 'existinguser');
-    await userEvent.type(passwordInput, 'password123');
-    await userEvent.type(confirmPasswordInput, 'password123');
-    await userEvent.click(signupButton);
-
+    userEvent.type(emailInput, 'test@example.com');
+    userEvent.type(usernameInput, 'existinguser');
+    userEvent.type(passwordInput, 'password123');
+    userEvent.type(confirmPasswordInput, 'password123');
+    userEvent.click(signupButton);
     await waitFor(() => {
       expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Registration failed'));
     });
-
-    // Should not navigate on error
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   test('toggles password visibility', async () => {
     renderWithProviders(<Signup />, { withRouter: false });
-
     const passwordInput = screen.getByTestId('password-input') as HTMLInputElement;
     const toggleButton = screen.getByTestId('toggle-password-visibility');
-
-    // Initially password should be hidden
     expect(passwordInput.type).toBe('password');
-
-    // Click toggle to show password
-    await userEvent.click(toggleButton);
+    userEvent.click(toggleButton);
     expect(passwordInput.type).toBe('text');
-
-    // Click again to hide password
-    await userEvent.click(toggleButton);
+    userEvent.click(toggleButton);
     expect(passwordInput.type).toBe('password');
   });
 
   test('toggles confirm password visibility', async () => {
     renderWithProviders(<Signup />, { withRouter: false });
-
     const confirmPasswordInput = screen.getByTestId('confirm-password-input') as HTMLInputElement;
     const toggleButton = screen.getByTestId('toggle-confirm-password-visibility');
-
-    // Initially password should be hidden
     expect(confirmPasswordInput.type).toBe('password');
-
-    // Click toggle to show password
-    await userEvent.click(toggleButton);
+    userEvent.click(toggleButton);
     expect(confirmPasswordInput.type).toBe('text');
-
-    // Click again to hide password
-    await userEvent.click(toggleButton);
+    userEvent.click(toggleButton);
     expect(confirmPasswordInput.type).toBe('password');
   });
 
   test('updates input values correctly', async () => {
     renderWithProviders(<Signup />, { withRouter: false });
-
     const emailInput = screen.getByTestId('email-input') as HTMLInputElement;
     const usernameInput = screen.getByTestId('username-input') as HTMLInputElement;
     const passwordInput = screen.getByTestId('password-input') as HTMLInputElement;
     const confirmPasswordInput = screen.getByTestId('confirm-password-input') as HTMLInputElement;
-
-    await userEvent.type(emailInput, 'test@example.com');
-    await userEvent.type(usernameInput, 'testuser');
-    await userEvent.type(passwordInput, 'password123');
-    await userEvent.type(confirmPasswordInput, 'password123');
-
+    userEvent.type(emailInput, 'test@example.com');
+    userEvent.type(usernameInput, 'testuser');
+    userEvent.type(passwordInput, 'password123');
+    userEvent.type(confirmPasswordInput, 'password123');
     expect(emailInput.value).toBe('test@example.com');
     expect(usernameInput.value).toBe('testuser');
     expect(passwordInput.value).toBe('password123');
