@@ -412,6 +412,7 @@ const Home = () => {
                 
                 <div className="flex justify-between items-center mt-5 mx-4">
                     <button 
+                        onClick={handleBack}
                         className="bg-gray-800 rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
                         data-testid="logout-button"
                     >
