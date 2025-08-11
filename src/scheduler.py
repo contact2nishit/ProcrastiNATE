@@ -7,10 +7,7 @@ import random
 from datetime import datetime, timedelta
 
 
-# ---- Constants ----
 CHUNK_MINUTES = 1
-
-# ---- Scheduling Logic ----
 
 
 def generate_available_slots(
