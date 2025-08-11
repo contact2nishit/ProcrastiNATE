@@ -23,7 +23,7 @@ def test_basic_schedule():
     assert all(a.schedule.status == "fully_scheduled" for a in schedule.assignments)
     assert all(c.schedule.status == "fully_scheduled" for c in schedule.chores)
 
-def overlap_at_least_one_not_schedulable():
+def test_overlap_at_least_one_not_schedulable():
     assignments = [AssignmentInRequest(name="Math HW", effort=30, due=now + timedelta(minutes=30)), AssignmentInRequest(name="Math HW2", effort=30, due=now + timedelta(minutes=30))]
     schedule = schedule_tasks([], assignments, [], num_schedules=1, now=now)[0]
     assert schedule.assignments[0].schedule.status == 'unschedulable' or schedule.assignments[1].schedule.status == 'unschedulable'

@@ -55,6 +55,7 @@ def find_time_blocks(
     that the algorithm skips forward and tries to schedule the next block 2 hours after.
     After a skip, do not apply the skip rule again until at least 30 minutes of scheduling has occurred.
     If skipping lands past the end, backtrack and try to fill as much as possible.
+    Returns individual 1-minute slots without merging.
     """
     assigned_mins = 0
     scheduled = []
@@ -101,11 +102,8 @@ def find_time_blocks(
                 did_skip = True
                 continue
             # If skip would go past end, backtrack: ignore skip, just continue scheduling as normal
-        # Schedule this slot
-        if not scheduled or scheduled[-1][1] != slot[0]:
-            scheduled.append(slot)
-        else:
-            scheduled[-1] = (scheduled[-1][0], slot[1])
+        # Schedule this slot - keep as individual slot instead of merging
+        scheduled.append(slot)
         assigned_mins += CHUNK_MINUTES
         i += 1
         if did_skip:
@@ -116,6 +114,31 @@ def find_time_blocks(
             effort_minutes, available_slots, used_slots, skip_prob=0.0
         )
     return scheduled
+
+
+def merge_contiguous_slots(slots: List[Tuple[datetime, datetime]]) -> List[Tuple[datetime, datetime]]:
+    """
+    Merge contiguous time slots into larger blocks for display purposes.
+    Input slots should be sorted by start time.
+    """
+    if not slots:
+        return []
+    
+    # Sort slots by start time to ensure proper merging
+    sorted_slots = sorted(slots, key=lambda x: x[0])
+    merged = []
+    current_start, current_end = sorted_slots[0]
+    
+    for start, end in sorted_slots[1:]:
+        if start == current_end:  # Contiguous slots
+            current_end = end
+        else:  # Gap found, save current merged slot and start new one
+            merged.append((current_start, current_end))
+            current_start, current_end = start, end
+    
+    # Don't forget the last slot
+    merged.append((current_start, current_end))
+    return merged
 
 
 def loosely_sort_assignments(
@@ -166,9 +189,6 @@ def calc_xp_for_slot(
     # XP for this slot
     xp = xp_per_min * duration_min * time_factor
     return int(round(xp))
-
-
-# ---- Main scheduling function ----
 
 
 def schedule_tasks(
@@ -280,8 +300,6 @@ def schedule_tasks(
                 and s[0] >= time_range[0]
                 and s[1] <= time_range[1]
             ]
-            # DO NOT shuffle avail_for_this
-
             assigned_slots = find_time_blocks(
                 task.effort, avail_for_this, used_slots, skip_prob=skip_prob
             )
@@ -294,29 +312,28 @@ def schedule_tasks(
                 if assigned_minutes == task.effort
                 else "partially_scheduled" if assigned_minutes > 0 else "unschedulable"
             )
-
-            for s in assigned_slots:
-                used_slots.add(s)
-
+            for slot in assigned_slots:
+                used_slots.add(slot)
+            # Merge contiguous slots for display purposes
+            merged_slots_for_display = merge_contiguous_slots(assigned_slots)
             slot_objs = []
             if task_type == "assignment":
                 due_time = enforce_timestamp_utc(task.due)
                 total_effort = task.effort
-                for s in assigned_slots:
+                for s in merged_slots_for_display:
                     xp = calc_xp_for_slot(s[0], s[1], total_effort, due_time, now)
                     total_potential_xp += xp
                     slot_objs.append(TimeSlot(start=s[0], end=s[1], xp_potential=xp))
             else:
                 due_time = enforce_timestamp_utc(task.window[1])
                 total_effort = task.effort
-                for s in assigned_slots:
+                for s in merged_slots_for_display:
                     xp = calc_xp_for_slot(s[0], s[1], total_effort, due_time, now)
                     total_potential_xp += xp
                     slot_objs.append(TimeSlot(start=s[0], end=s[1], xp_potential=xp))
             schedule_info = ScheduledTaskInfo(
                 effort_assigned=assigned_minutes, status=status, slots=slot_objs
             )
-
             if task_type == "assignment":
                 result = AssignmentInPotentialSchedule(
                     **task.model_dump(), schedule=schedule_info
