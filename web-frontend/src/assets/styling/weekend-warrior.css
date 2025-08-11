@@ -1,0 +1,315 @@
+.badge-container-weekend-warrior {
+    position: relative;
+    animation: float-weekend-warrior 3s ease-in-out infinite;
+}
+
+@keyframes float-weekend-warrior {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-12px) rotate(-3deg); }
+}
+
+.badge-weekend-warrior {
+    width: 220px;
+    height: 220px;
+    position: relative;
+    border-radius: 50%;
+    background: 
+        radial-gradient(circle at 30% 30%, #FF4500 0%, #DC143C 30%, #8B0000 60%, #2F0000 100%);
+    box-shadow: 
+        0 0 35px rgba(255, 69, 0, 0.7),
+        0 0 70px rgba(220, 20, 60, 0.5),
+        0 18px 40px rgba(0, 0, 0, 0.4),
+        inset 0 5px 15px rgba(255, 255, 255, 0.2),
+        inset 0 -5px 15px rgba(47, 0, 0, 0.4);
+    border: 6px solid #4B0000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: visible;
+    animation: glow-weekend-warrior 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes glow-weekend-warrior {
+    from { 
+        box-shadow: 
+            0 0 35px rgba(255, 69, 0, 0.7),
+            0 0 70px rgba(220, 20, 60, 0.5),
+            0 18px 40px rgba(0, 0, 0, 0.4),
+            inset 0 5px 15px rgba(255, 255, 255, 0.2),
+            inset 0 -5px 15px rgba(47, 0, 0, 0.4);
+    }
+    to { 
+        box-shadow: 
+            0 0 50px rgba(255, 69, 0, 0.9),
+            0 0 90px rgba(220, 20, 60, 0.7),
+            0 18px 40px rgba(0, 0, 0, 0.4),
+            inset 0 5px 15px rgba(255, 255, 255, 0.3),
+            inset 0 -5px 15px rgba(47, 0, 0, 0.4);
+    }
+}
+
+.inner-ring-weekend-warrior {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border: 3px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: rotate-weekend-warrior 8s linear infinite;
+}
+
+@keyframes rotate-weekend-warrior {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.sword-container-weekend-warrior {
+    position: relative;
+    z-index: 3;
+    animation: bounce-weekend-warrior 2.5s ease-in-out infinite;
+}
+
+@keyframes bounce-weekend-warrior {
+    0%, 100% { transform: translateY(0px) scale(1) rotate(0deg); }
+    25% { transform: translateY(-3px) scale(1.02) rotate(-2deg); }
+    50% { transform: translateY(-8px) scale(1.08) rotate(0deg); }
+    75% { transform: translateY(-3px) scale(1.02) rotate(2deg); }
+}
+
+.sword-weekend-warrior {
+    width: 80px;
+    height: 95px;
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.sword-blade-weekend-warrior {
+    width: 8px;
+    height: 60px;
+    background: 
+        linear-gradient(135deg, 
+            #E6E6FA 0%, 
+            #C0C0C0 20%, 
+            #A9A9A9 40%, 
+            #808080 60%, 
+            #696969 100%);
+    margin: 0 auto;
+    border-radius: 4px 4px 0 0;
+    position: relative;
+    box-shadow: 
+        0 3px 10px rgba(0, 0, 0, 0.3),
+        inset 2px 0 5px rgba(255, 255, 255, 0.6),
+        inset -2px 0 5px rgba(105, 105, 105, 0.4);
+    border: 1px solid #555;
+}
+
+.sword-blade-weekend-warrior::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 1px;
+}
+
+.sword-guard-weekend-warrior {
+    width: 35px;
+    height: 6px;
+    background: linear-gradient(135deg, #B8860B 0%, #DAA520 50%, #FFD700 100%);
+    margin: 0 auto;
+    border-radius: 3px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    border: 1px solid #8B7000;
+}
+
+.sword-handle-weekend-warrior {
+    width: 12px;
+    height: 25px;
+    background: linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #CD853F 100%);
+    margin: 2px auto;
+    border-radius: 2px;
+    box-shadow: 
+        0 2px 5px rgba(0, 0, 0, 0.3),
+        inset 1px 0 3px rgba(205, 133, 63, 0.6),
+        inset -1px 0 3px rgba(139, 69, 19, 0.4);
+    border: 1px solid #654321;
+}
+
+.sword-pommel-weekend-warrior {
+    width: 16px;
+    height: 8px;
+    background: linear-gradient(135deg, #B8860B 0%, #DAA520 50%, #FFD700 100%);
+    margin: 2px auto;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    border: 1px solid #8B7000;
+}
+
+.big-text-weekend-warrior {
+    font-size: 24px;
+    font-weight: 900;
+    color: #FFFFFF;
+    text-shadow: 
+        3px 3px 0px #2F0000,
+        -1px -1px 0px #2F0000,
+        1px -1px 0px #2F0000,
+        -1px 1px 0px #2F0000,
+        0 0 12px rgba(255, 69, 0, 0.8);
+    z-index: 3;
+    margin-top: 5px;
+    animation: textGlow-weekend-warrior 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes textGlow-weekend-warrior {
+    from { text-shadow: 
+        3px 3px 0px #2F0000,
+        -1px -1px 0px #2F0000,
+        1px -1px 0px #2F0000,
+        -1px 1px 0px #2F0000,
+        0 0 12px rgba(255, 69, 0, 0.8); }
+    to { text-shadow: 
+        3px 3px 0px #2F0000,
+        -1px -1px 0px #2F0000,
+        1px -1px 0px #2F0000,
+        -1px 1px 0px #2F0000,
+        0 0 25px rgba(255, 69, 0, 1); }
+}
+
+.label-weekend-warrior {
+    position: absolute;
+    bottom: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #FFD700;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    letter-spacing: 2px;
+    z-index: 3;
+}
+
+.particles-weekend-warrior {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.particle-weekend-warrior {
+    position: absolute;
+    color: #FF4500;
+    font-size: 14px;
+    animation: particle-float-weekend-warrior 3.5s infinite ease-in-out;
+    text-shadow: 0 0 4px rgba(255, 69, 0, 0.9);
+}
+
+.particle-weekend-warrior:nth-child(1) { top: 8%; left: 12%; animation-delay: 0s; }
+.particle-weekend-warrior:nth-child(2) { top: 15%; right: 8%; animation-delay: 0.6s; }
+.particle-weekend-warrior:nth-child(3) { top: 65%; left: 3%; animation-delay: 1.2s; }
+.particle-weekend-warrior:nth-child(4) { top: 75%; right: 12%; animation-delay: 1.8s; }
+.particle-weekend-warrior:nth-child(5) { top: 40%; left: -8%; animation-delay: 2.4s; }
+.particle-weekend-warrior:nth-child(6) { top: 50%; right: -8%; animation-delay: 3s; }
+
+@keyframes particle-float-weekend-warrior {
+    0%, 100% { 
+        transform: translateY(0px) scale(0.9) rotate(0deg);
+        opacity: 0.7;
+    }
+    20% { 
+        transform: translateY(-18px) scale(1.3) rotate(72deg);
+        opacity: 1;
+    }
+    40% { 
+        transform: translateY(-10px) scale(1.0) rotate(144deg);
+        opacity: 0.9;
+    }
+    60% { 
+        transform: translateY(-25px) scale(1.2) rotate(216deg);
+        opacity: 1;
+    }
+    80% { 
+        transform: translateY(-5px) scale(0.95) rotate(288deg);
+        opacity: 0.8;
+    }
+}
+
+.mega-shine-weekend-warrior {
+    position: absolute;
+    top: -15px;
+    left: -15px;
+    width: 90px;
+    height: 130px;
+    background: linear-gradient(45deg, 
+        rgba(255, 255, 255, 0.7) 0%, 
+        rgba(255, 69, 0, 0.3) 30%,
+        rgba(255, 255, 255, 0.2) 60%,
+        transparent 100%);
+    border-radius: 50%;
+    transform: rotate(-30deg);
+    z-index: 2;
+    animation: shine-pulse-weekend-warrior 3.5s ease-in-out infinite;
+}
+
+@keyframes shine-pulse-weekend-warrior {
+    0%, 100% { opacity: 0.7; }
+    33% { opacity: 0.4; }
+    66% { opacity: 0.9; }
+}
+
+.explosion-weekend-warrior {
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.explosion-particle-weekend-warrior {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    background: #FF4500;
+    border-radius: 50%;
+    animation: explode-weekend-warrior 4.5s infinite ease-out;
+    box-shadow: 0 0 6px rgba(255, 69, 0, 0.8);
+}
+
+.explosion-particle-weekend-warrior:nth-child(1) { animation-delay: 0s; }
+.explosion-particle-weekend-warrior:nth-child(2) { animation-delay: 0.3s; }
+.explosion-particle-weekend-warrior:nth-child(3) { animation-delay: 0.6s; }
+.explosion-particle-weekend-warrior:nth-child(4) { animation-delay: 0.9s; }
+.explosion-particle-weekend-warrior:nth-child(5) { animation-delay: 1.2s; }
+.explosion-particle-weekend-warrior:nth-child(6) { animation-delay: 1.5s; }
+.explosion-particle-weekend-warrior:nth-child(7) { animation-delay: 1.8s; }
+.explosion-particle-weekend-warrior:nth-child(8) { animation-delay: 2.1s; }
+
+@keyframes explode-weekend-warrior {
+    0% { 
+        transform: translate(0, 0) scale(0);
+        opacity: 1;
+    }
+    60% { 
+        transform: translate(var(--x, 120px), var(--y, -120px)) scale(1.2);
+        opacity: 0.9;
+    }
+    100% { 
+        transform: translate(var(--x, 180px), var(--y, -180px)) scale(0);
+        opacity: 0;
+    }
+}
+
+.explosion-particle-weekend-warrior:nth-child(1) { --x: 130px; --y: -90px; }
+.explosion-particle-weekend-warrior:nth-child(2) { --x: -110px; --y: -100px; }
+.explosion-particle-weekend-warrior:nth-child(3) { --x: 90px; --y: 120px; }
+.explosion-particle-weekend-warrior:nth-child(4) { --x: -130px; --y: 110px; }
+.explosion-particle-weekend-warrior:nth-child(5) { --x: 150px; --y: 30px; }
+.explosion-particle-weekend-warrior:nth-child(6) { --x: -100px; --y: -30px; }
+.explosion-particle-weekend-warrior:nth-child(7) { --x: 70px; --y: -140px; }
+.explosion-particle-weekend-warrior:nth-child(8) { --x: -80px; --y: 140px; }
