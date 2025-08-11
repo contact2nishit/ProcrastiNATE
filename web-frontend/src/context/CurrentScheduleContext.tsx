@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { Slot } from '../calendarUtils';
+import config from '../config';
 
 export type CurrentSchedule = {
 	slots: Slot[];
@@ -19,83 +20,80 @@ const CurrentScheduleContext = createContext<CurrentScheduleContextType | undefi
 
 export const CurrentScheduleProvider = ({ children }: { children: ReactNode }) => {
     const [currentSchedule, setCurrentSchedule] = useState<CurrentSchedule>({
-	slots: [],
-	startTime: "",
-	endTime: "",
+		slots: [],
+		startTime: "",
+		endTime: "",
     });
-
-    // Helper to fetch schedule for a given range
     const fetchScheduleForRange = async (start: string, end: string): Promise<Slot[]> => {
-	// Use dynamic import to avoid circular dependency
-	const config = (await import('../config')).default;
-	const url = config.backendURL;
-	const token = localStorage.getItem('token');
-	if (!url || !token) throw new Error('Missing backend URL or token');
-	const params = `start_time=${encodeURIComponent(start)}&end_time=${encodeURIComponent(end)}&meetings=true&assignments=true&chores=true`;
-	const response = await fetch(`${url}/fetch?${params}`, {
-	    method: 'GET',
-		credentials: 'include',
-	    headers: { 
-			'Authorization': `Bearer ${token}`,
-			'Content-Type': 'application/json',
-		},
-	});
-	if (!response.ok) throw new Error(await response.text());
-	const data = await response.json();
-	const slots: Slot[] = [];
-	if (data.meetings) {
-	    for (const m of data.meetings) {
-		m.start_end_times.forEach((pair: [string, string], idx: number) => {
-		    slots.push({
-			type: 'meeting',
-			name: m.name,
-			start: pair[0],
-			end: pair[1],
-			id: m.ocurrence_ids?.[idx] ?? idx,
-			meeting_id: m.meeting_id,
-			occurence_id: m.ocurrence_ids?.[idx] ?? idx,
-		    });
+		// Use dynamic import to avoid circular dependency
+		const url = config.backendURL;
+		const token = localStorage.getItem('token');
+		if (!url || !token) throw new Error('Missing backend URL or token');
+		const params = `start_time=${encodeURIComponent(start)}&end_time=${encodeURIComponent(end)}&meetings=true&assignments=true&chores=true`;
+		const response = await fetch(`${url}/fetch?${params}`, {
+			method: 'GET',
+			credentials: 'include',
+			headers: { 
+				'Authorization': `Bearer ${token}`,
+				'Content-Type': 'application/json',
+			},
 		});
-	    }
-	}
-	if (data.assignments) {
-	    for (const a of data.assignments) {
-		if (a.schedule && a.schedule.slots) {
-		    a.schedule.slots.forEach((slot: any, idx: number) => {
-			slots.push({
-			    type: 'assignment',
-			    name: a.name,
-			    start: slot.start,
-			    end: slot.end,
-			    id: `assignment_${a.assignment_id}_${a.ocurrence_ids?.[idx] ?? idx}`,
-			    completed: a.completed?.[idx] ?? false,
-			    assignment_id: a.assignment_id,
-			    occurence_id: a.ocurrence_ids?.[idx] ?? idx,
+		if (!response.ok) throw new Error(await response.text());
+		const data = await response.json();
+		const slots: Slot[] = [];
+		if (data.meetings) {
+			for (const m of data.meetings) {
+			m.start_end_times.forEach((pair: [string, string], idx: number) => {
+				slots.push({
+				type: 'meeting',
+				name: m.name,
+				start: pair[0],
+				end: pair[1],
+				id: m.ocurrence_ids?.[idx] ?? idx,
+				meeting_id: m.meeting_id,
+				occurence_id: m.ocurrence_ids?.[idx] ?? idx,
+				});
 			});
-		    });
+			}
 		}
-	    }
-	}
-	if (data.chores) {
-	    for (const c of data.chores) {
-		if (c.schedule && c.schedule.slots) {
-		    c.schedule.slots.forEach((slot: any, idx: number) => {
-			slots.push({
-			    type: 'chore',
-			    name: c.name,
-			    start: slot.start,
-			    end: slot.end,
-			    id: `chore_${c.chore_id}_${c.ocurrence_ids?.[idx] ?? idx}`,
-			    completed: c.completed?.[idx] ?? false,
-			    chore_id: c.chore_id,
-			    occurence_id: c.ocurrence_ids?.[idx] ?? idx,
-			});
-		    });
+		if (data.assignments) {
+			for (const a of data.assignments) {
+			if (a.schedule && a.schedule.slots) {
+				a.schedule.slots.forEach((slot: any, idx: number) => {
+				slots.push({
+					type: 'assignment',
+					name: a.name,
+					start: slot.start,
+					end: slot.end,
+					id: `assignment_${a.assignment_id}_${a.ocurrence_ids?.[idx] ?? idx}`,
+					completed: a.completed?.[idx] ?? false,
+					assignment_id: a.assignment_id,
+					occurence_id: a.ocurrence_ids?.[idx] ?? idx,
+				});
+				});
+			}
+			}
 		}
-	    }
-	}
-	slots.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-	return slots;
+		if (data.chores) {
+			for (const c of data.chores) {
+			if (c.schedule && c.schedule.slots) {
+				c.schedule.slots.forEach((slot: any, idx: number) => {
+				slots.push({
+					type: 'chore',
+					name: c.name,
+					start: slot.start,
+					end: slot.end,
+					id: `chore_${c.chore_id}_${c.ocurrence_ids?.[idx] ?? idx}`,
+					completed: c.completed?.[idx] ?? false,
+					chore_id: c.chore_id,
+					occurence_id: c.ocurrence_ids?.[idx] ?? idx,
+				});
+				});
+			}
+			}
+		}
+		slots.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+		return slots;
     };
 
     // Ensures the context covers at least [start, end] (expands if needed)

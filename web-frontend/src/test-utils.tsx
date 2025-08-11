@@ -19,18 +19,19 @@ export function renderWithProviders(
     withRouter = true,
     withCurrentSchedule = false,
     withPotentialSchedule = false,
-    initialToken = null,
+    initialToken,
     ...renderOptions
   }: CustomRenderOptions = {}
 ) {
-  // Set up localStorage mock
-  if (initialToken) {
-    localStorageMock.getItem.mockImplementation((key) => {
-      if (key === 'token') return initialToken;
-      return null;
-    });
-  } else {
-    localStorageMock.getItem.mockReturnValue(null);
+  if (initialToken !== undefined) {
+    if (initialToken) {
+      localStorageMock.getItem.mockImplementation((key) => {
+        if (key === 'token') return initialToken;
+        return null;
+      });
+    } else {
+      localStorageMock.getItem.mockReturnValue(null);
+    }
   }
 
   function Wrapper({ children }: { children: React.ReactNode }) {

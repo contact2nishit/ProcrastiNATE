@@ -25,7 +25,7 @@ def test_basic_schedule():
 
 
 def test_exact_fit_assignment():
-    new_now = datetime(2025, 5, 28, 10, 30, tzinfo=timezone.utc)
+    new_now = datetime.now(timezone.utc).replace(hour=10, minute=30, second=0, microsecond=0)
     assignments = [AssignmentInRequest(name="Exact Fit", effort=30, due=new_now + timedelta(minutes=30))]
     schedule = schedule_tasks([], assignments, [], num_schedules=1, now = new_now)[0]
     assert schedule.assignments[0].schedule.effort_assigned == 30
@@ -43,7 +43,7 @@ def test_unschedulable_due_to_meetings():
 
 # Removed sleep hours for now
 # def test_task_during_sleep_hours():
-#     fake_now = datetime(2025, 5, 28, 23, 30, tzinfo=timezone.utc)
+#     fake_now = datetime.now(timezone.utc).replace(hour=23, minute=30, second=0, microsecond=0)
 #     assignments = [AssignmentInRequest(name="Late Night HW", effort=30, due=fake_now + timedelta(minutes=30))]
 #     schedule = schedule_tasks([], assignments, [], num_schedules=1, now = fake_now)[0]
 #     assert schedule.assignments[0].schedule.status == "unschedulable"
@@ -59,7 +59,7 @@ def test_partial_schedule():
 
 
 def test_edge_case_due_boundary():
-    fixed_now = datetime(2025, 5, 28, 10, 0, tzinfo=timezone.utc)
+    fixed_now = datetime.now(timezone.utc).replace(hour=10, minute=0, second=0, microsecond=0)
     assignments = [AssignmentInRequest(name="Boundary Case", effort=15, due=fixed_now + timedelta(minutes=15))]
     schedule = schedule_tasks([], assignments, [], num_schedules=1, now = fixed_now)[0]
     assert schedule.assignments[0].schedule.status == "fully_scheduled"
