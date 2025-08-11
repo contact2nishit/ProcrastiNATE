@@ -705,7 +705,6 @@ const EventSelection: React.FC = () => {
         />
         <Text
           style={[
-            styles.navButtonText,
             item.textStyle, // Always apply base text style
             isSelected && styles.navButtonTextSelected,
           ]}

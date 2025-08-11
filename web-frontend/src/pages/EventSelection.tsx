@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FaCalendarAlt, FaBookOpen, FaTasks, FaCalendarCheck } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import config from '../config';
@@ -70,12 +71,32 @@ const EventSelection: React.FC = () => {
     // Add state for end repeat date for meetings
     const [meetingRepeatEnd, setMeetingRepeatEnd] = useState(new Date());
 
-    const navItems = [
-        { label: 'Meeting', icon: 'calendar-alt' },
-        { label: 'Assignment', icon: 'book' },
-        { label: 'Chore/Study', icon: 'tasks' },
-        { label: 'Events', icon: 'calendar-check' },
-    ];
+   const navItems = [
+  {
+    label: 'Meeting',
+    icon: 'FaCalendarAlt',
+    textStyle: { color: '#ff5e57', fontWeight: 'bold' },
+    selectedStyle: { backgroundColor: '#ff5e57' },
+  },
+  {
+    label: 'Assignment',
+    icon: 'FaBookOpen',
+    textStyle: { color: '#3498db' },
+    selectedStyle: { backgroundColor: '#3498db' },
+  },
+  {
+    label: 'Chore/Study',
+    icon: 'FaTasks',
+    textStyle: { color: '#2ecc71', fontStyle: 'italic' },
+    selectedStyle: { backgroundColor: '#2ecc71' },
+  },
+  {
+    label: 'Events',
+    icon: 'FaCalendarCheck',
+    textStyle: { color: '#9b59b6', textDecorationLine: 'underline' },
+    selectedStyle: { backgroundColor: '#9b59b6' },
+  },
+];
 
     // const navigation = useNavigation();
     const [date, setDate] = useState(new Date());
@@ -620,6 +641,7 @@ const EventSelection: React.FC = () => {
             {/* Navigation Bar */}
             <div className="flex justify-around py-2.5 bg-white">
                 {navItems.map((item) => (
+ 
                     <button
                         key={item.label}
                         className={`py-2.5 px-3 rounded-lg flex flex-col items-center min-w-[85px] ${
@@ -632,7 +654,7 @@ const EventSelection: React.FC = () => {
                         }}
                     >
                         {/* Icon placeholder - you can add actual icons here */}
-                        <div className="w-4 h-4 mb-1.5"></div>
+                        <div className="w-4 h-4 mb-1.5">item.icon</div>
                         <span className="text-xs font-medium">
                             {item.label}
                         </span>
