@@ -4,6 +4,7 @@ import os
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 from fastapi import status
+from googleapiclient.errors import HttpError
 from datetime import datetime, timezone, timedelta, time, date
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from app import app
@@ -1166,3 +1167,388 @@ class TestEndpoints:
         response = self.client.post("/markSessionCompleted", json=request_data.model_dump(mode='json'), headers=headers)
         assert response.status_code == 500
         assert "Internal server error" in response.json()["detail"]
+
+    @patch('app.get_current_user')
+    @patch('app.build')
+    @patch('app.Credentials')
+    def test_sync_success_basic(self, mock_credentials, mock_build, mock_get_current_user, mock_user):
+        """Test successful sync with basic Google Calendar events"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchrow.return_value = {
+            "google_access_token": "mock_access_token",
+            "google_refresh_token": "mock_refresh_token"
+        }
+        mock_connection.fetch.side_effect = [
+            [],  # No existing meetings
+            []   # No existing occurrences
+        ]
+        mock_connection.fetchval.return_value = 1  # New meeting ID
+        mock_connection.execute.return_value = None
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+        now = datetime.now(timezone.utc)
+        future_event = now + timedelta(days=5)
+        mock_events_result = {
+            "items": [
+                {
+                    "summary": "Test Meeting",
+                    "start": {"dateTime": future_event.isoformat().replace('+00:00', 'Z')},
+                    "end": {"dateTime": (future_event + timedelta(hours=1)).isoformat().replace('+00:00', 'Z')},
+                    "location": "Test Location"
+                }
+            ],
+            "nextPageToken": None
+        }
+        mock_service.events().list().execute.return_value = mock_events_result
+        mock_creds = MagicMock()
+        mock_creds.expired = False
+        mock_credentials.return_value = mock_creds  
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/googleCalendar/sync", headers=headers)
+        assert response.status_code == 200
+        response_data = response.json()
+        assert "Synced" in response_data["message"]
+        assert "1 new meetings" in response_data["message"]
+        assert "1 new occurrences" in response_data["message"]
+
+    @patch('app.get_current_user')
+    @patch('app.build')
+    @patch('app.Credentials')
+    def test_sync_success_with_30_day_limit(self, mock_credentials, mock_build, mock_get_current_user, mock_user):
+        """Test that sync only fetches events within 30-day window"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchrow.return_value = {
+            "google_access_token": "mock_access_token",
+            "google_refresh_token": "mock_refresh_token"
+        }
+        mock_connection.fetch.side_effect = [[], []]
+        mock_connection.fetchval.return_value = 1
+        mock_connection.execute.return_value = None
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+        # one within 30 days, one beyond 30 days
+        now = datetime.now(timezone.utc)
+        within_window = now + timedelta(days=15)
+        beyond_window = now + timedelta(days=35)
+        mock_events_result = {
+            "items": [
+                {
+                    "summary": "Within Window Meeting",
+                    "start": {"dateTime": within_window.isoformat().replace('+00:00', 'Z')},
+                    "end": {"dateTime": (within_window + timedelta(hours=1)).isoformat().replace('+00:00', 'Z')},
+                    "location": "Test Location"
+                },
+                {
+                    "summary": "Beyond Window Meeting", 
+                    "start": {"dateTime": beyond_window.isoformat().replace('+00:00', 'Z')},
+                    "end": {"dateTime": (beyond_window + timedelta(hours=1)).isoformat().replace('+00:00', 'Z')},
+                    "location": "Test Location"
+                }
+            ],
+            "nextPageToken": None
+        }
+        mock_service.events().list().execute.return_value = mock_events_result
+        mock_creds = MagicMock()
+        mock_creds.expired = False
+        mock_credentials.return_value = mock_creds
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/googleCalendar/sync", headers=headers)r
+        call_args = mock_service.events().list.call_args
+        assert 'timeMax' in call_args[1]
+        assert response.status_code == 200
+        response_data = response.json()
+        assert "1 new meetings" in response_data["message"]
+        assert "1 new occurrences" in response_data["message"]
+
+    @patch('app.get_current_user')
+    def test_sync_no_google_tokens(self, mock_get_current_user, mock_user):
+        """Test sync when user has not linked Google account"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchrow.return_value = {
+            "google_access_token": None,
+            "google_refresh_token": None
+        }
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/googleCalendar/sync", headers=headers)
+        assert response.status_code == 400
+        assert "User has not linked Google account" in response.json()["detail"]
+
+    @patch('app.get_current_user')
+    @patch('app.build')
+    @patch('app.Credentials')
+    @patch('app.Request')
+    def test_sync_expired_credentials_refresh(self, mock_request, mock_credentials, mock_build, mock_get_current_user, mock_user):
+        """Test sync with expired credentials that get refreshed"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchrow.return_value = {
+            "google_access_token": "expired_token",
+            "google_refresh_token": "refresh_token"
+        }
+        mock_connection.fetch.side_effect = [[], []]
+        mock_connection.fetchval.return_value = 1
+        mock_connection.execute.return_value = None
+        mock_creds = MagicMock()
+        mock_creds.expired = True
+        mock_creds.refresh_token = "refresh_token"
+        mock_creds.refresh = MagicMock()
+        mock_credentials.return_value = mock_creds
+        mock_google_request = MagicMock()
+        mock_request.return_value = mock_google_request
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+        mock_service.events().list().execute.return_value = {"items": [], "nextPageToken": None}
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/googleCalendar/sync", headers=headers)
+        # Verify credentials.refresh was called
+        mock_creds.refresh.assert_called_once()
+        assert response.status_code == 200
+
+    @patch('app.get_current_user')
+    @patch('app.build')
+    @patch('app.Credentials')
+    def test_sync_deduplication(self, mock_credentials, mock_build, mock_get_current_user, mock_user):
+        """Test that sync correctly deduplicates existing meetings and occurrences"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        
+        mock_connection.fetchrow.return_value = {
+            "google_access_token": "mock_token",
+            "google_refresh_token": "mock_refresh"
+        }
+        existing_start = datetime.now(timezone.utc) + timedelta(days=5)
+        existing_end = existing_start + timedelta(hours=1)
+        mock_connection.fetch.side_effect = [
+            [{"meeting_id": 1, "meeting_name": "Existing Meeting"}],  # Existing meetings
+            [{"meeting_id": 1, "start_time": existing_start, "end_time": existing_end}]  # Existing occurrences
+        ]
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+        # Mock the same event from Google Calendar
+        mock_events_result = {
+            "items": [
+                {
+                    "summary": "Existing Meeting",
+                    "start": {"dateTime": existing_start.isoformat().replace('+00:00', 'Z')},
+                    "end": {"dateTime": existing_end.isoformat().replace('+00:00', 'Z')},
+                    "location": "Test Location"
+                }
+            ],
+            "nextPageToken": None
+        }
+        mock_service.events().list().execute.return_value = mock_events_result
+        mock_creds = MagicMock()
+        mock_creds.expired = False
+        mock_credentials.return_value = mock_creds
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/googleCalendar/sync", headers=headers)
+        assert response.status_code == 200
+        response_data = response.json()
+        # Should show 0 new meetings and 0 new occurrences due to deduplication
+        assert "0 new meetings" in response_data["message"]
+        assert "0 new occurrences" in response_data["message"]
+
+    @patch('app.get_current_user')
+    @patch('app.build')
+    @patch('app.Credentials')
+    def test_sync_events_without_datetime(self, mock_credentials, mock_build, mock_get_current_user, mock_user):
+        """Test sync skips events without start/end dateTime (e.g., all-day events)"""
+        mock_get_current_user.return_value = mock_user 
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchrow.return_value = {
+            "google_access_token": "mock_token", 
+            "google_refresh_token": "mock_refresh"
+        }
+        mock_connection.fetch.side_effect = [[], []]
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+        # Mock events without dateTime (all-day events)
+        mock_events_result = {
+            "items": [
+                {
+                    "summary": "All Day Event",
+                    "start": {"date": "2024-08-15"},  # No dateTime, only date
+                    "end": {"date": "2024-08-16"}
+                },
+                {
+                    "summary": "No Time Event",
+                    # Missing start/end entirely
+                }
+            ],
+            "nextPageToken": None
+        }
+        mock_service.events().list().execute.return_value = mock_events_result
+        mock_creds = MagicMock()
+        mock_creds.expired = False
+        mock_credentials.return_value = mock_creds
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/googleCalendar/sync", headers=headers)
+        assert response.status_code == 200
+        response_data = response.json()
+        # Should sync 0 meetings since all events lack dateTime
+        assert "0 new meetings" in response_data["message"]
+        assert "0 new occurrences" in response_data["message"]
+
+    @patch('app.get_current_user')
+    @patch('app.build')
+    @patch('app.Credentials')
+    def test_sync_past_events_filtered(self, mock_credentials, mock_build, mock_get_current_user, mock_user):
+        """Test that sync filters out past events"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchrow.return_value = {
+            "google_access_token": "mock_token",
+            "google_refresh_token": "mock_refresh"
+        }
+        mock_connection.fetch.side_effect = [[], []]
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+        # Mock past event
+        past_time = datetime.now(timezone.utc) - timedelta(days=1)
+        mock_events_result = {
+            "items": [
+                {
+                    "summary": "Past Meeting",
+                    "start": {"dateTime": past_time.isoformat().replace('+00:00', 'Z')},
+                    "end": {"dateTime": (past_time + timedelta(hours=1)).isoformat().replace('+00:00', 'Z')},
+                    "location": "Test Location"
+                }
+            ],
+            "nextPageToken": None
+        }
+        mock_service.events().list().execute.return_value = mock_events_result
+        mock_creds = MagicMock()
+        mock_creds.expired = False
+        mock_credentials.return_value = mock_creds  
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/googleCalendar/sync", headers=headers)
+        assert response.status_code == 200
+        response_data = response.json()
+        # Should sync 0 meetings since the event is in the past
+        assert "0 new meetings" in response_data["message"]
+        assert "0 new occurrences" in response_data["message"]
+
+    @patch('app.get_current_user')
+    @patch('app.build')
+    def test_sync_google_api_error(self, mock_build, mock_get_current_user, mock_user):
+        """Test sync handling of Google Calendar API errors"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchrow.return_value = {
+            "google_access_token": "mock_token",
+            "google_refresh_token": "mock_refresh"
+        }
+        mock_build.side_effect = HttpError(resp=MagicMock(status=403), content=b'API Error')
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/googleCalendar/sync", headers=headers)
+        assert response.status_code == 500
+        assert "Google Calendar API error" in response.json()["detail"]
+
+    @patch('app.get_current_user')
+    def test_sync_database_error(self, mock_get_current_user, mock_user):
+        """Test sync handling of database errors"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchrow.side_effect = Exception("Database connection failed")
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/googleCalendar/sync", headers=headers)
+        assert response.status_code == 500
+        assert "Internal server error" in response.json()["detail"]
+
+    @patch('app.get_current_user')
+    @patch('app.build')
+    @patch('app.Credentials')
+    def test_sync_pagination(self, mock_credentials, mock_build, mock_get_current_user, mock_user):
+        """Test sync handles pagination correctly"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetchrow.return_value = {
+            "google_access_token": "mock_token",
+            "google_refresh_token": "mock_refresh"
+        }
+        mock_connection.fetch.side_effect = [[], []]
+        mock_connection.fetchval.side_effect = [1, 2]  # Two new meeting IDs
+        mock_connection.execute.return_value = None
+        mock_service = MagicMock()
+        mock_build.return_value = mock_service
+        # Mock paginated results
+        now = datetime.now(timezone.utc)
+        future_event1 = now + timedelta(days=5)
+        future_event2 = now + timedelta(days=10)
+        page1_result = {
+            "items": [
+                {
+                    "summary": "Meeting 1",
+                    "start": {"dateTime": future_event1.isoformat().replace('+00:00', 'Z')},
+                    "end": {"dateTime": (future_event1 + timedelta(hours=1)).isoformat().replace('+00:00', 'Z')},
+                    "location": "Location 1"
+                }
+            ],
+            "nextPageToken": "page2_token"
+        }
+        page2_result = {
+            "items": [
+                {
+                    "summary": "Meeting 2", 
+                    "start": {"dateTime": future_event2.isoformat().replace('+00:00', 'Z')},
+                    "end": {"dateTime": (future_event2 + timedelta(hours=1)).isoformat().replace('+00:00', 'Z')},
+                    "location": "Location 2"
+                }
+            ],
+            "nextPageToken": None
+        }
+        mock_service.events().list().execute.side_effect = [page1_result, page2_result]
+        mock_creds = MagicMock()
+        mock_creds.expired = False
+        mock_credentials.return_value = mock_creds
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/googleCalendar/sync", headers=headers)
+        assert response.status_code == 200
+        response_data = response.json()
+        assert "2 new meetings" in response_data["message"]
+        assert "2 new occurrences" in response_data["message"] 
+        # Verify API was called twice for pagination
+        assert mock_service.events().list().execute.call_count == 2

@@ -367,10 +367,12 @@ async def sync(
         # Refresh token if needed
         if creds.expired and creds.refresh_token:
             creds.refresh(Request())
-
         service = build("calendar", "v3", credentials=creds)
-        # Only fetch events with an end time in the future
-        now_iso = datetime.now(timezone.utc).isoformat()
+        # Only fetch events from now to 30 days in the future
+        now = datetime.now(timezone.utc)
+        now_iso = now.isoformat()
+        thirty_days_from_now = now + timedelta(days=30)
+        thirty_days_iso = thirty_days_from_now.isoformat()
         events = []
         page_token = None
         while True:
@@ -383,6 +385,7 @@ async def sync(
                     maxResults=2500,  # Google API max per page
                     pageToken=page_token,
                     timeMin=now_iso,  # Only fetch events that start in the future
+                    timeMax=thirty_days_iso,  # Limit to 30 days from now
                 )
                 .execute()
             )
@@ -391,17 +394,13 @@ async def sync(
             page_token = events_result.get("nextPageToken")
             if not page_token:
                 break
-
-        # For deduplication: fetch all meetings and their occurrences for this user
+       # For deduplication: fetch all meetings and their occurrences for this user
         async with app.state.pool.acquire() as conn:
-            # Get all meetings for this user
             meetings = await conn.fetch(
                 "SELECT meeting_id, meeting_name FROM meetings WHERE user_id = $1",
                 user.user_id,
             )
             meeting_name_to_id = {m["meeting_name"]: m["meeting_id"] for m in meetings}
-
-            # Get all meeting occurrences for this user, grouped by meeting_id
             occs = await conn.fetch(
                 "SELECT meeting_id, start_time, end_time FROM meeting_occurences WHERE user_id = $1",
                 user.user_id,
@@ -411,7 +410,6 @@ async def sync(
                 occs_by_meeting.setdefault(occ["meeting_id"], set()).add(
                     (occ["start_time"], occ["end_time"])
                 )
-
             new_meetings = 0
             new_occs = 0
             for event in events:
@@ -423,8 +421,8 @@ async def sync(
                 # Parse datetimes
                 start_dt = datetime.fromisoformat(start.replace("Z", "+00:00"))
                 end_dt = datetime.fromisoformat(end.replace("Z", "+00:00"))
-                # Only add if at least one occurrence is in the future
-                if end_dt < datetime.now(timezone.utc):
+                # Only add if  in the future
+                if end_dt < now:
                     continue
                 name = event.get("summary", "Google Event")
                 location = (
@@ -433,7 +431,6 @@ async def sync(
                     or "Google Calendar"
                 )
                 recurs = False  # For now, treat all as non-recurring
-
                 # Check if meeting exists by name
                 meeting_id = meeting_name_to_id.get(name)
                 if meeting_id is None:
@@ -449,10 +446,11 @@ async def sync(
                     occs_by_meeting[meeting_id] = set()
                     new_meetings += 1
 
-                # Only add future occurrences
+                # Only add future occurrences within the 30-day window
                 occ_tuple = (start_dt, end_dt)
                 if (
-                    end_dt >= datetime.now(timezone.utc)
+                    end_dt >= now
+                    and start_dt <= thirty_days_from_now
                     and occ_tuple not in occs_by_meeting[meeting_id]
                 ):
                     await conn.execute(
@@ -468,6 +466,9 @@ async def sync(
         return MessageResponseDataModel(
             message=f"Synced {new_meetings} new meetings and {new_occs} new occurrences from Google Calendar."
         )
+    except HTTPException as http_exc:
+        # Pass through known HTTP exceptions like 400
+        raise http_exc
     except HttpError as e:
         print(e)
         raise HTTPException(status_code=500, detail="Google Calendar API error")
