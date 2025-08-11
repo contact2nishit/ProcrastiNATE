@@ -487,33 +487,30 @@ async def schedule(
     Now checks for conflicts with already scheduled meetings/assignments/chores.
     """
     try:
+        print("HELLO", sched.model_dump_json())
         user = await get_current_user(token, app.state.pool)
         now = datetime.now(timezone.utc)
         last_time = get_latest_time(sched.meetings, sched.assignments, sched.chores)
         # Fetch all existing meeting, assignment, and chore occurrences for this user
         async with app.state.pool.acquire() as conn:
-            # Fetch all existing meeting occurrences
             meeting_rows = await conn.fetch(
                 "SELECT start_time, end_time FROM meeting_occurences WHERE user_id = $1 AND (start_time < $2 OR end_time > $3)",
                 user.user_id,
                 last_time,
                 now,
             )
-            # Fetch all existing assignment occurrences
             assignment_rows = await conn.fetch(
                 "SELECT start_time, end_time FROM assignment_occurences WHERE user_id = $1 AND (start_time < $2 OR end_time > $3)",
                 user.user_id,
                 last_time,
                 now,
             )
-            # Fetch all existing chore occurrences
             chore_rows = await conn.fetch(
                 "SELECT start_time, end_time FROM chore_occurences WHERE user_id = $1 AND (start_time < $2 OR end_time > $3)",
                 user.user_id,
                 last_time,
                 now,
             )
-
         # Build a MeetingInRequest representing all existing scheduled blocks
         already_scheduled_times = []
         for row in meeting_rows:
@@ -528,17 +525,28 @@ async def schedule(
             start_end_times=already_scheduled_times,
             link_or_loc=None,
         )
-
-        # Call schedule_tasks with the blocker included, always generate 11 schedules
-        schedules = schedule_tasks(
-            sched.meetings + [scheduled_blocker],
-            sched.assignments,
-            sched.chores,
-            num_schedules=11,
-            tz_offset_minutes=getattr(sched, "tz_offset_minutes", 0),
-        )
-
+        if not already_scheduled_times:
+            schedules = schedule_tasks(
+                sched.meetings,
+                sched.assignments,
+                sched.chores,
+                num_schedules=11,
+                tz_offset_minutes=getattr(sched, "tz_offset_minutes", 0),
+            )
+        else: 
+            # we send the blocking times as meetings to the scheduling algorithm
+            # this is only fine because it inserts nothing in the DB
+            # and it will just use the meetings as blocked times
+            print("HIYA", getattr(sched, "tz_offset_minutes", 0))
+            schedules = schedule_tasks(
+                sched.meetings + [scheduled_blocker],
+                sched.assignments,
+                sched.chores,
+                num_schedules=11,
+                tz_offset_minutes=getattr(sched, "tz_offset_minutes", 0),
+            )
         # Now, check for conflicts between requested meetings and already scheduled blocks
+        # maybe do this as an async task when waiting on network to fetch assignment and chore rows?
         conflicting_meetings = []
         non_conflicting_meetings = []
         for meeting in sched.meetings:
@@ -557,7 +565,6 @@ async def schedule(
                 conflicting_meetings.append(meeting.name)
             else:
                 non_conflicting_meetings.append(meeting)
-
         # Only schedule non-conflicting meetings in the DB
         meeting_resp = []
         async with app.state.pool.acquire() as conn:
@@ -593,6 +600,11 @@ async def schedule(
                     link_or_loc=meeting.link_or_loc,
                 )
                 meeting_resp += [meeting_response]
+        print("ADH", ScheduleResponseFormat(
+            conflicting_meetings=conflicting_meetings,
+            meetings=meeting_resp,
+            schedules=schedules,
+        ).model_dump_json())
         return ScheduleResponseFormat(
             conflicting_meetings=conflicting_meetings,
             meetings=meeting_resp,
