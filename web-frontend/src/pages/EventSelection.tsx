@@ -622,6 +622,8 @@ const EventSelection: React.FC = () => {
                 {navItems.map((item) => (
                     <button
                         key={item.label}
+                        // Add test id for Events tab to make it easy to navigate in tests
+                        data-testid={item.label === 'Events' ? 'nav-events' : undefined}
                         className={`py-2.5 px-3 rounded-lg flex flex-col items-center min-w-[85px] ${
                             selected === item.label 
                                 ? 'bg-black border border-white text-white' 
@@ -953,6 +955,7 @@ const EventSelection: React.FC = () => {
                     </div>
 
                     <button
+                        data-testid="submit-schedule"
                         className="bg-white rounded-lg py-3 mt-5 w-4/5 self-center mx-auto block text-black font-bold text-base hover:bg-gray-100 transition-colors"
                         onClick={submitSchedule}
                     >

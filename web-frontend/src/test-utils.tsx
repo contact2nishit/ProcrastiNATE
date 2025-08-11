@@ -99,6 +99,7 @@ export const mockApiResponse = {
   googleLogin: {
     redirect_url: 'https://google.com/oauth/v2/stuff?state=9034fkjdfhsdf'
   }
+
 };
 
 export const mockPopup = {
@@ -133,6 +134,19 @@ export function cleanupMocks() {
   (global.fetch as jest.Mock).mockClear();
   (window.alert as jest.Mock).mockClear();
 }
+
+// Rename to start with 'mock' to satisfy Jest's out-of-scope variable rule
+export const mockSetPotentialSchedules = jest.fn();
+jest.mock('./context/PotentialScheduleContext', () => {
+  const actual = jest.requireActual('./context/PotentialScheduleContext');
+  return {
+    ...actual,
+    usePotentialScheduleContext: () => ({
+      potentialSchedules: { schedules: [] },
+      setPotentialSchedules: mockSetPotentialSchedules,
+    }),
+  };
+});
 
 export * from '@testing-library/react';
 export { default as userEvent } from '@testing-library/user-event';
