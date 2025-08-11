@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Slider, LinearProgress, Box, Typography } from '@mui/material';
+import { Slider, LinearProgress, Box, Typography, Checkbox } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import config from '../config';
 import { useCurrentScheduleContext } from '../context/CurrentScheduleContext';
@@ -118,7 +118,9 @@ const Home = () => {
     const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
     const [updateName, setUpdateName] = useState('');
     const [updateLoc, setUpdateLoc] = useState('');
-    const [updateTime, setUpdateTime] = useState('');
+    const [updateStartTime, setUpdateStartTime] = useState('');
+    const [updateEndTime, setUpdateEndTime] = useState('');
+    const [updateAllOccurrences, setUpdateAllOccurrences] = useState(false);
     const [selectedSessionToComplete, setSelectedSessionToComplete] = useState<SessionToMaybeComplete>({occurence_id: "A", is_assignment: false});
     const [lockedInValue, setLockedInValue] = useState(5);
 
@@ -293,7 +295,14 @@ const Home = () => {
             };
             if (updateName) body.new_name = updateName;
             if (updateLoc) body.new_loc_or_link = updateLoc;
-            if (updateTime) body.new_time = updateTime;
+            if ((updateStartTime && !updateEndTime) || (updateEndTime && !updateStartTime)) {
+                alert('Please provide both start and end time for the meeting.');
+                return;
+            }
+            if (updateStartTime && updateEndTime) {
+                body.new_start_time = updateStartTime;
+                body.new_end_time = updateEndTime;
+            }
             const response = await fetch(`${url}/update`, {
                 method: 'POST',
                 headers: {
@@ -311,7 +320,8 @@ const Home = () => {
             setModalVisible(false);
             setUpdateName('');
             setUpdateLoc('');
-            setUpdateTime('');
+            setUpdateStartTime('');
+            setUpdateEndTime('');
             setSelectedMeeting(null);
             await refetchSchedule();
         } catch (e) {
@@ -516,7 +526,8 @@ const Home = () => {
                                             setSelectedMeeting(item);
                                             setUpdateName('');
                                             setUpdateLoc('');
-                                            setUpdateTime('');
+                                            setUpdateStartTime('');
+                                            setUpdateEndTime('');
                                             setModalVisible(true);
                                         }}
                                     >
@@ -582,8 +593,20 @@ const Home = () => {
                                         type="text"
                                         className="border border-gray-400 rounded-lg p-2 text-base text-gray-900 bg-gray-100 mb-3 w-full"
                                         placeholder="New Start Time (YYYY-MM-DDTHH:MM:SS+00:00)"
-                                        value={updateTime}
-                                        onChange={(e) => setUpdateTime(e.target.value)}
+                                        value={updateStartTime}
+                                        onChange={(e) => setUpdateStartTime(e.target.value)}
+                                    />
+                                    <input
+                                        type = "text"
+                                        className="border border-gray-400 rounded-lg p-2 text-base text-gray-900 bg-gray-100 mb-3 w-full"
+                                        placeholder="New End Time (YYYY-MM-DDTHH:MM:SS+00:00)"
+                                        value={updateEndTime}
+                                        onChange={(e) => setUpdateEndTime(e.target.value)}
+                                    />
+                                    <Checkbox
+                                        checked={updateAllOccurrences}
+                                        onChange={(e) => setUpdateAllOccurrences(e.target.checked)}
+                                        color="primary"
                                     />
                                     <button
                                         className="bg-blue-600 rounded-lg py-3 px-6 text-white font-bold text-base w-full hover:bg-blue-700 transition-colors"

@@ -54,7 +54,8 @@ class UpdateRequestDataModel(BaseModel):
     meeting_id: int 
     ocurrence_id: int
     new_name: str | None = None,
-    new_time: datetime | None = None
+    new_start_time: datetime | None = None
+    new_end_time: datetime | None = None
     new_loc_or_link: str | None = None,
 
 class RescheduleRequestDataModel(BaseModel):
@@ -129,7 +130,7 @@ class UpdateResponseDataModel(BaseModel):
     If it clashed, the time will not be updated (for now)
     Can only update the time of a meeting for now
     """
-    clashed: bool
+    clashed: List[int] # List of ocurrence IDs that clashed with the new time
     message: str | None = None
 
 class MessageResponseDataModel(BaseModel):
