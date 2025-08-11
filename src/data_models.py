@@ -5,6 +5,7 @@ from collections import defaultdict
 
 # Request data models
 
+
 class RegistrationDataModel(BaseModel):
     username: str
     email: str
@@ -14,23 +15,29 @@ class RegistrationDataModel(BaseModel):
 class TokenData(BaseModel):
     user_id: int | None = None
 
+
 class TimeSlot(BaseModel):
     """A block of time"""
+
     start: datetime
     end: datetime
     xp_potential: int = 0
+
 
 class User(BaseModel):
     username: str
     user_id: int
     email: str | None = None
 
+
 class UserInDB(User):
     hashed_password: str
+
 
 class LoginData(BaseModel):
     username: str
     password: str
+
 
 class DeleteRequestDataModel(BaseModel):
     """
@@ -38,32 +45,37 @@ class DeleteRequestDataModel(BaseModel):
     remove_all_future set to true removes future ocurrences of recurring meeting. Has no effect if assignment/chore
     If ass/chore, all occurrences removed by default
     """
+
     occurence_id: int
     remove_all_future: bool
     event_type: str = "meeting"
 
+
 class UpdateRequestDataModel(BaseModel):
     """
-        future_occurences: Boolean that represents whether the changed name and changed location should apply to future 
-        occurences of the same meeting (time changes will not apply for now)
-        meeting_id: The meetingID is a unique numeric ID for the meeting. It is returned in the MeetingInResponse schema
-        ocurrence_id: Unique ID for each ocurrence of the meeting. The ocurrence with this ID will be the only one with its time changed
-        Check MeetingInResponse schema to learn more
+    future_occurences: Boolean that represents whether the changed name and changed location should apply to future
+    occurences of the same meeting (time changes will not apply for now)
+    meeting_id: The meetingID is a unique numeric ID for the meeting. It is returned in the MeetingInResponse schema
+    ocurrence_id: Unique ID for each ocurrence of the meeting. The ocurrence with this ID will be the only one with its time changed
+    Check MeetingInResponse schema to learn more
     """
+
     future_occurences: bool
-    meeting_id: int 
+    meeting_id: int
     ocurrence_id: int
-    new_name: str | None = None,
+    new_name: str | None = (None,)
     new_time: datetime | None = None
-    new_loc_or_link: str | None = None,
+    new_loc_or_link: str | None = (None,)
+
 
 class RescheduleRequestDataModel(BaseModel):
     """Request to reschedule an assignment/chore. Can allow/disallow overlaps with current schedule for same a/c
-        Can also reassign effort/due date/time window. new_window_end is equivalent to due date for assignment, window_start has no effect for assignment
+    Can also reassign effort/due date/time window. new_window_end is equivalent to due date for assignment, window_start has no effect for assignment
     """
+
     event_type: Literal["assignment", "chore"]
-    id: int # assignment or chore ID
-    allow_overlaps: bool # if true, the occurences may overlap with the already existing (before deletion) occurences of the same assignment/chore
+    id: int  # assignment or chore ID
+    allow_overlaps: bool  # if true, the occurences may overlap with the already existing (before deletion) occurences of the same assignment/chore
     new_effort: int | None = None
     new_window_start: datetime | None = None
     new_window_end: datetime | None = None
@@ -78,100 +90,128 @@ class MeetingInRequest(BaseModel):
     Example: [[2PM, 3PM], [4PM, 5PM]] would mean 2 ocurrences: 2-3 PM one, and the 4-5 PM one
     Link or location of meeting
     """
+
     name: str
     start_end_times: List[List[datetime]]
     link_or_loc: str | None = None
+
 
 class AssignmentInRequest(BaseModel):
     """
     Name, due date, and effort (minutes of work) for an assignment
     """
+
     name: str
-    effort: int # approximate minutes of work
+    effort: int  # approximate minutes of work
     due: datetime
 
 
-class ChoreInRequest(BaseModel): 
+class ChoreInRequest(BaseModel):
     """Name, window in which the chore needs to be completed, and the minutes taken to complete"""
+
     name: str
-    window: List[datetime] # start/end time; MUST HAVE exactly 2 elements
+    window: List[datetime]  # start/end time; MUST HAVE exactly 2 elements
     effort: int
+
 
 class ScheduleRequest(BaseModel):
     """Request to Schedule each assignment in the list, each meeting, and each chore"""
+
     assignments: List[AssignmentInRequest]
     meetings: List[MeetingInRequest]
     chores: List[ChoreInRequest]
     tz_offset_minutes: int = 0  # NEW: offset from UTC in minutes
 
+
 class SessionCompletionDataModel(BaseModel):
     """Mark the assignment/chore work session with occurence_id as completed or incomplete"""
+
     occurence_id: int
     completed: bool
     is_assignment: bool
     locked_in: int
-    
+
+
 # Response data models
+
 
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+
 class GoogleRedirectURL(BaseModel):
     redirect_url: str
+
 
 class Token(BaseModel):
     access_token: str
     token_type: str
 
-class UpdateResponseDataModel(BaseModel): 
+
+class UpdateResponseDataModel(BaseModel):
     """Contains an optional message and a boolean (clashed) representing whether the updated time clashes with something else
     If it clashed, the time will not be updated (for now)
     Can only update the time of a meeting for now
     """
+
     clashed: bool
     message: str | None = None
 
+
 class MessageResponseDataModel(BaseModel):
     """Simple message response"""
+
     message: str
     new_xp: int = 0
 
+
 class ScheduledTaskInfo(BaseModel):
     """Contains info about all the occurences of a scheduled task in a specific schedule. If you see ocurrence_ids in any other schema, they're in the same order as the list in this one"""
+
     effort_assigned: int
     status: Literal["fully_scheduled", "partially_scheduled", "unschedulable"]
     slots: List[TimeSlot]
+
 
 class MeetingInResponse(MeetingInRequest):
     """Contains a list of unique ocurrence IDs IN THE SAME ORDER as ocurrences were mentioned in the start_end_time field of MeetingInRequest
     Also has a unique ID for the meeting as a whole
     """
+
     ocurrence_ids: List[int]
     meeting_id: int
 
+
 class ChoreInPotentialSchedule(ChoreInRequest):
     """Contains one potential way to arrange sessions of work on this chore"""
+
     schedule: ScheduledTaskInfo
+
 
 class AssignmentInPotentialSchedule(AssignmentInRequest):
     """Contains one potential way to arrange sessions of work on this chore"""
+
     schedule: ScheduledTaskInfo
+
 
 class ChoreInResponse(ChoreInPotentialSchedule):
     """Contains a list of unique ocurrence IDs, a unique chore ID
     These function the same way as they do. Check MeetingInRequest and MeetingInResponse for the way the start_end_times, chore_id, and ocurrence_ids are formatted
     An occurrence is one block of time set aside to work on a chore, and there can be multiple for the same assignment
     """
+
     chore_id: int
     ocurrence_ids: List[int]
     completed: List[bool]
+
 
 class AssignmentInResponse(AssignmentInPotentialSchedule):
     """Contains a list of unique ocurrence IDs, a unique assignment ID
     These function the same way as they do. Check MeetingInRequest and MeetingInResponse for the way the start_end_times, chore_id, and ocurrence_ids are formatted
     An occurrence is one block of time set aside to work on an assignment, and there can be multiple for the same assignment
     """
+
     assignment_id: int
     ocurrence_ids: List[int]
     completed: List[bool]
@@ -187,6 +227,7 @@ class Schedule(BaseModel):
     not_enough_time_assignments: Can work on these for a little bit, but not enough to meet the amount of time required
     same idea for chores
     """
+
     assignments: List[AssignmentInPotentialSchedule]
     chores: List[ChoreInPotentialSchedule]
     conflicting_assignments: List[str]
@@ -195,28 +236,36 @@ class Schedule(BaseModel):
     not_enough_time_chores: List[str]
     total_potential_xp: int = 0  # New field for total potential XP
 
+
 class ScheduleResponseFormat(BaseModel):
     """Main element of response: a list of schedules
     conflicting_meetings: has the string names of meetings that couldn't be scheduled at all because they conflict with other meetings
-    
+
     """
+
     conflicting_meetings: List[str]
     meetings: List[MeetingInResponse]
     schedules: List[Schedule]
 
-class ScheduleSetInStone(BaseModel): 
+
+class ScheduleSetInStone(BaseModel):
     """A schedule that has been set in stone in the DB, complete with ocurrece IDs"""
+
     assignments: List[AssignmentInResponse]
     chores: List[ChoreInResponse]
 
+
 class FetchResponse(BaseModel):
     """A list of assignments, chores, and meetings, with ocurrences, ocurrence IDs, and chore/assignment/meeting IDs"""
+
     assignments: List[AssignmentInResponse] | None = None
     chores: List[ChoreInResponse] | None = None
     meetings: List[MeetingInResponse] | None = None
 
+
 class LevelResponse(BaseModel):
     "Response containing the user's details and level"
+
     user_name: str
     xp: int
     level: int

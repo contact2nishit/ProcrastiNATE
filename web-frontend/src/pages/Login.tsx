@@ -48,14 +48,63 @@ const Login = () => {
                 alert('Backend URL not set.');
                 return;
             }
-            const resp = await fetch(`${backendURL}/login/google`);
+            const url = new URL(`${backendURL}/login/google`);
+            url.searchParams.set("platform", "web");
+            const resp = await fetch(url.toString(), {
+                credentials: 'include' // Include cookies in the request
+            });
             if (!resp.ok) {
                 alert('Failed to get Google login URL');
                 return;
             }
             const data = await resp.json();
             const googleAuthUrl = data.redirect_url;
-            window.location.href = googleAuthUrl;
+            
+            // Open popup window for OAuth
+            const popup = window.open(
+                googleAuthUrl,
+                'googleOAuth',
+                'width=500,height=600,scrollbars=yes,resizable=yes'
+            );
+            
+            // Listen for postMessage from popup
+            const messageHandler = (event: MessageEvent) => {
+                // Only accept messages from our backend domain
+                if (event.origin !== new URL(backendURL).origin) return;
+                
+                if (event.data.type === 'OAUTH_SUCCESS' && event.data.token) {
+                    localStorage.setItem('token', event.data.token);
+                    popup?.close();
+                    window.removeEventListener('message', messageHandler);
+                    navigate('/requiresCurrentSchedule/Home');
+                } else if (event.data.type === 'OAUTH_ERROR') {
+                    popup?.close();
+                    window.removeEventListener('message', messageHandler);
+                    alert('Google login failed: ' + (event.data.message || 'Unknown error'));
+                }
+            };
+            
+            window.addEventListener('message', messageHandler);
+            
+            // Check if popup closed without success
+            const checkClosed = setInterval(() => {
+                if (popup?.closed) {
+                    clearInterval(checkClosed);
+                    window.removeEventListener('message', messageHandler);
+                    alert('Google login was cancelled');
+                }
+            }, 1000);
+            
+            // Timeout after 5 minutes
+            setTimeout(() => {
+                if (popup && !popup.closed) {
+                    popup.close();
+                    clearInterval(checkClosed);
+                    window.removeEventListener('message', messageHandler);
+                    alert('Google login timed out');
+                }
+            }, 5 * 60 * 1000);
+            
         } catch (e) {
             alert('Google login error: ' + e);
         }
@@ -68,6 +117,7 @@ const Login = () => {
                 <div className="w-full mb-6 flex flex-col">
                     <label className="text-base font-medium text-gray-700 mb-2">Username</label>
                     <input
+                        data-testid="username-input"
                         className="border border-gray-300 rounded px-3 py-2 text-base text-gray-800 focus:outline-none"
                         type="text"
                         placeholder="Username"
@@ -78,6 +128,7 @@ const Login = () => {
                 <div className="w-full mb-6 flex flex-col">
                     <label className="text-base font-medium text-gray-700 mb-2">Password</label>
                     <input
+                        data-testid="password-input"
                         className="border border-gray-300 rounded px-3 py-2 text-base text-gray-800 focus:outline-none"
                         type="password"
                         placeholder="Password"
@@ -85,13 +136,13 @@ const Login = () => {
                         onChange={e => setPassword(e.target.value)}
                     />
                 </div>
-                <button type="submit" className="bg-gray-800 text-white py-3 px-8 rounded-lg text-lg font-medium mb-3 hover:bg-gray-900 transition">Sign In</button>
-                <button type="button" onClick={handleGoogleLogin} className="bg-blue-600 text-white py-3 px-8 rounded-lg text-base font-medium mb-3 hover:bg-blue-700 transition">
+                <button data-testid="login-button" type="submit" className="bg-gray-800 text-white py-3 px-8 rounded-lg text-lg font-medium mb-3 hover:bg-gray-900 transition">Sign In</button>
+                <button data-testid="google-login-button" type="button" onClick={handleGoogleLogin} className="bg-blue-600 text-white py-3 px-8 rounded-lg text-base font-medium mb-3 hover:bg-blue-700 transition">
                     Sign In with Google
                 </button>
                 <div className="mt-2 text-base text-black text-center font-medium">
                     Don't have an account?{' '}
-                    <span className="text-black font-medium underline cursor-pointer" onClick={handleSignup}>Sign Up</span>
+                    <span data-testid="signup-link" className="text-black font-medium underline cursor-pointer" onClick={handleSignup}>Sign Up</span>
                 </div>
             </form>
         </div>

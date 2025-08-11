@@ -57,9 +57,6 @@ const PotentialScheduleContext = createContext<PotentialScheduleContextType | un
 
 export const PotentialScheduleProvider = ({ children }: { children: ReactNode }) => {
   const [potentialSchedules, setPotentialSchedules] = useState<PotentialSchedulesData | null>(null);
-
-
-
   return (
     <PotentialScheduleContext.Provider
       value={{

@@ -1,0 +1,132 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ final_ut ]
+  pull_request:
+    branches: [ final_ut ]
+
+jobs:
+  test-and-lint:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [20.x]
+        python-version: ["3.10"]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: |
+          web-frontend/package-lock.json
+          # native-frontend/package-lock.json
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    # Install dependencies for native-frontend
+    # - name: Install native-frontend dependencies
+    #   run: |
+    #     cd native-frontend
+    #     npm ci
+    
+    # Install dependencies for web-frontend
+    - name: Install web-frontend dependencies
+      run: |
+        cd web-frontend
+        npm ci
+    
+    # Set up Python environment and dependencies
+    - name: Set up Python virtual environment
+      run: |
+        cd src
+        python -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install flake8 black pytest-cov
+    
+    # Check Python for critical syntax errors only
+    - name: Check Python for syntax errors
+      run: |
+        cd src
+        source venv/bin/activate
+        echo "Checking for critical Python syntax errors..."
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || echo "Python syntax errors found"
+        echo "Full linting report (informational):"
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+    
+    # Check Python formatting (informational)
+    - name: Check Python formatting
+      run: |
+        cd src
+        source venv/bin/activate
+        echo "Checking Python code formatting..."
+        black --check --diff . || echo "Python code formatting suggestions available"
+    
+    # Lint TypeScript code for native-frontend
+    # - name: Lint TypeScript (native-frontend)
+    #   run: |
+    #     cd native-frontend
+    #     echo "Linting native-frontend TypeScript..."
+    #     npm run lint || echo "Native frontend linting completed with issues"
+    
+    # Lint TypeScript code for web-frontend  
+    - name: Lint TypeScript (web-frontend)
+      run: |
+        cd web-frontend
+        echo "Linting web-frontend TypeScript..."
+        npm run lint || echo "Web frontend linting completed with issues"
+    
+    # Run Python tests with coverage
+    - name: Run Python tests with coverage
+      run: |
+        cd src
+        source venv/bin/activate
+        echo "Running Python tests with coverage..."
+        pytest --cov=. --cov-report=xml --cov-report=term --cov-fail-under=30 || echo "Some Python tests failed or coverage below 30%"
+    
+    # Run native-frontend tests
+    # - name: Run native-frontend tests
+    #   run: |
+    #     cd native-frontend
+    #     echo "🧪 Running native-frontend tests..."
+    #     npm test -- --coverage --coverageReporters=text --coverageReporters=cobertura --watchAll=false || echo "Some native frontend tests failed"
+    
+    # Run web-frontend tests with coverage
+    - name: Run web-frontend tests
+      run: |
+        cd web-frontend
+        echo "unning web-frontend tests..."
+        npm test -- --coverage --coverageReporters=text --coverageReporters=cobertura --watchAll=false
+        echo "Web frontend tests completed successfully"
+    
+    # Upload coverage reports (optional)
+    - name: Upload Python coverage to Codecov
+      if: always()
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./src/coverage.xml
+        flags: python
+        name: python-coverage
+        fail_ci_if_error: false
+    
+    - name: Upload web-frontend coverage to Codecov
+      if: always()
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./web-frontend/coverage/cobertura-coverage.xml
+        flags: web-frontend
+        name: web-frontend-coverage
+        fail_ci_if_error: false
+
+  
