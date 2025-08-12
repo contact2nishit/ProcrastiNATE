@@ -14,8 +14,8 @@ Motivated - Reach Level 25
 Hard-Worker - Reach Level 50
 Grinder Expert - Reach Level 75
 Legend of Grinding - Reach Level 100
-Task Slayer (I - V) - Complete (10, 30, 100, 250, 500)
-Home Hero (I - V) - Complete (10, 50, 200, 500, 1000)
+Task Slayer (assignments only) (I - V) - Complete (10, 30, 100, 250, 500) assignments
+Home Hero (chores only) (I - V) - Complete (10, 50, 200, 500, 1000) chores
 --Hidden Achievements
 Redemption - Complete an Assignment not more than 15 minutes was due
 Sleep is for the weak - Complete a session between 3 am and 5 am - done

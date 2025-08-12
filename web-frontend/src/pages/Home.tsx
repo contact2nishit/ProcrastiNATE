@@ -16,6 +16,13 @@ import BadgeFirstTimer from '../assets/first-timer';
 import BadgeWeekendWarrior from '../assets/weekend-warrior';
 import BadgeConsistencyKing from '../assets/consistency-king';
 import BadgeNightOwl from '../assets/night-owl';
+import TaskSlayerBadge from '../assets/task-slayer';
+import LegendOfGrindingBadge from '../assets/legend-of-grinding';
+import MotivatedBadge from '../assets/motivated';
+import HardWorkerBadge from '../assets/hard-worker';
+import GrinderExpertBadge from '../assets/grinder-expert';
+import HomeHeroBadge from '../assets/home-hero';
+import RedemptionBadge from '../assets/redemption';
 
 // Create a custom theme for MUI components
 const theme = createTheme({
@@ -460,6 +467,38 @@ const Home = () => {
                 return <BadgeConsistencyKing />;
             case 'night_owl':
                 return <BadgeNightOwl />;
+            case 'task_slayer':
+            case 'task_slayer_1':
+                return <TaskSlayerBadge variant={1} />;
+            case 'task_slayer_2':
+                return <TaskSlayerBadge variant={2} />;
+            case 'task_slayer_3':
+                return <TaskSlayerBadge variant={3} />;
+            case 'task_slayer_4':
+                return <TaskSlayerBadge variant={4} />;
+            case 'task_slayer_5':
+                return <TaskSlayerBadge variant={5} />;
+            case 'home_hero':
+            case 'home_hero_1':
+                return <HomeHeroBadge variant={1} />;
+            case 'home_hero_2':
+                return <HomeHeroBadge variant={2} />;
+            case 'home_hero_3':
+                return <HomeHeroBadge variant={3} />;
+            case 'home_hero_4':
+                return <HomeHeroBadge variant={4} />;
+            case 'home_hero_5':
+                return <HomeHeroBadge variant={5} />;
+            case 'legend_of_grinding':
+                return <LegendOfGrindingBadge />;
+            case 'motivated':
+                return <MotivatedBadge />;
+            case 'hard_worker':
+                return <HardWorkerBadge />;
+            case 'grinder_expert':
+                return <GrinderExpertBadge />;
+            case 'redemption':
+                return <RedemptionBadge />;
             default:
                 return null;
         }

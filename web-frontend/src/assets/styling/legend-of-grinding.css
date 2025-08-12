@@ -1,0 +1,375 @@
+.badge-container-legend-of-grinding {
+    position: relative;
+    animation: float-legend-of-grinding 3s ease-in-out infinite;
+}
+
+@keyframes float-legend-of-grinding {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(-2deg); }
+}
+
+.badge-legend-of-grinding {
+    width: 220px;
+    height: 220px;
+    position: relative;
+    border-radius: 50%;
+    background: 
+        radial-gradient(circle at 30% 30%, #FFD700 0%, #FFA500 30%, #FF8C00 60%, #B8860B 100%);
+    box-shadow: 
+        0 0 35px rgba(255, 215, 0, 0.8),
+        0 0 70px rgba(255, 165, 0, 0.6),
+        0 18px 40px rgba(0, 0, 0, 0.4),
+        inset 0 5px 15px rgba(255, 255, 255, 0.3),
+        inset 0 -5px 15px rgba(184, 134, 11, 0.4);
+    border: 6px solid #DAA520;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: visible;
+    animation: glow-legend-of-grinding 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow-legend-of-grinding {
+    from { 
+        box-shadow: 
+            0 0 35px rgba(255, 215, 0, 0.8),
+            0 0 70px rgba(255, 165, 0, 0.6),
+            0 18px 40px rgba(0, 0, 0, 0.4),
+            inset 0 5px 15px rgba(255, 255, 255, 0.3),
+            inset 0 -5px 15px rgba(184, 134, 11, 0.4);
+    }
+    to { 
+        box-shadow: 
+            0 0 60px rgba(255, 215, 0, 1),
+            0 0 100px rgba(255, 165, 0, 0.8),
+            0 18px 40px rgba(0, 0, 0, 0.4),
+            inset 0 5px 15px rgba(255, 255, 255, 0.4),
+            inset 0 -5px 15px rgba(184, 134, 11, 0.4);
+    }
+}
+
+.inner-ring-legend-of-grinding {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border: 4px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: rotate-legend-of-grinding 6s linear infinite;
+}
+
+@keyframes rotate-legend-of-grinding {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.anvil-container-legend-of-grinding {
+    position: relative;
+    z-index: 3;
+    animation: anvil-bounce-legend-of-grinding 2s ease-in-out infinite;
+}
+
+@keyframes anvil-bounce-legend-of-grinding {
+    0%, 100% { transform: translateY(0px) scale(1); }
+    25% { transform: translateY(-2px) scale(1.02); }
+    50% { transform: translateY(-5px) scale(1.05); }
+    75% { transform: translateY(-2px) scale(1.02); }
+}
+
+.anvil-legend-of-grinding {
+    width: 90px;
+    height: 80px;
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.anvil-top-legend-of-grinding {
+    width: 70px;
+    height: 25px;
+    background: linear-gradient(135deg, #C0C0C0 0%, #808080 50%, #696969 100%);
+    margin: 0 auto;
+    border-radius: 5px 5px 0 0;
+    position: relative;
+    box-shadow: 
+        0 3px 8px rgba(0, 0, 0, 0.4),
+        inset 2px 0 5px rgba(255, 255, 255, 0.6),
+        inset -2px 0 5px rgba(105, 105, 105, 0.4);
+    border: 2px solid #555;
+}
+
+.anvil-top-legend-of-grinding::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 10px;
+    width: 15px;
+    height: 8px;
+    background: linear-gradient(135deg, #A9A9A9 0%, #696969 100%);
+    border-radius: 3px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.anvil-body-legend-of-grinding {
+    width: 50px;
+    height: 30px;
+    background: linear-gradient(135deg, #A9A9A9 0%, #808080 50%, #696969 100%);
+    margin: 0 auto;
+    position: relative;
+    box-shadow: 
+        0 3px 8px rgba(0, 0, 0, 0.4),
+        inset 2px 0 5px rgba(255, 255, 255, 0.5),
+        inset -2px 0 5px rgba(105, 105, 105, 0.4);
+    border: 2px solid #444;
+}
+
+.anvil-base-legend-of-grinding {
+    width: 80px;
+    height: 20px;
+    background: linear-gradient(135deg, #696969 0%, #2F4F4F 50%, #1C1C1C 100%);
+    margin: 5px auto 0;
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
+    border: 2px solid #2F2F2F;
+}
+
+.hammer-legend-of-grinding {
+    position: absolute;
+    top: -15px;
+    right: -20px;
+    animation: hammer-strike-legend-of-grinding 1.5s ease-in-out infinite;
+}
+
+@keyframes hammer-strike-legend-of-grinding {
+    0%, 70%, 100% { transform: rotate(-30deg) translateY(0px); }
+    15%, 55% { transform: rotate(10deg) translateY(-8px); }
+}
+
+.hammer-head-legend-of-grinding {
+    width: 20px;
+    height: 15px;
+    background: linear-gradient(135deg, #A9A9A9 0%, #696969 50%, #2F4F4F 100%);
+    border-radius: 3px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+    border: 1px solid #444;
+}
+
+.hammer-handle-legend-of-grinding {
+    width: 4px;
+    height: 25px;
+    background: linear-gradient(135deg, #D2691E 0%, #A0522D 50%, #8B4513 100%);
+    margin: 2px auto 0;
+    border-radius: 2px;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
+}
+
+.sparks-legend-of-grinding {
+    position: absolute;
+    top: 10px;
+    left: 30px;
+    animation: sparks-explode-legend-of-grinding 1.5s ease-in-out infinite;
+}
+
+@keyframes sparks-explode-legend-of-grinding {
+    0%, 70%, 100% { opacity: 0; transform: scale(0); }
+    15%, 55% { opacity: 1; transform: scale(1.2); }
+}
+
+.spark-legend-of-grinding {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #FFD700;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.9);
+}
+
+.spark-legend-of-grinding:nth-child(1) { 
+    top: -5px; left: -8px; 
+    animation: spark-fly-legend-of-grinding 1.5s ease-out infinite;
+    animation-delay: 0.15s;
+}
+.spark-legend-of-grinding:nth-child(2) { 
+    top: -8px; left: 5px; 
+    animation: spark-fly-legend-of-grinding 1.5s ease-out infinite;
+    animation-delay: 0.2s;
+}
+.spark-legend-of-grinding:nth-child(3) { 
+    top: 2px; left: -10px; 
+    animation: spark-fly-legend-of-grinding 1.5s ease-out infinite;
+    animation-delay: 0.25s;
+}
+.spark-legend-of-grinding:nth-child(4) { 
+    top: 5px; left: 8px; 
+    animation: spark-fly-legend-of-grinding 1.5s ease-out infinite;
+    animation-delay: 0.3s;
+}
+
+@keyframes spark-fly-legend-of-grinding {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--spark-x, 20px), var(--spark-y, -20px)) scale(0); opacity: 0; }
+}
+
+.big-text-legend-of-grinding {
+    font-size: 22px;
+    font-weight: 900;
+    color: #FFFFFF;
+    text-shadow: 
+        3px 3px 0px #B8860B,
+        -1px -1px 0px #B8860B,
+        1px -1px 0px #B8860B,
+        -1px 1px 0px #B8860B,
+        0 0 15px rgba(255, 215, 0, 0.9);
+    z-index: 3;
+    margin-top: 8px;
+    animation: textGlow-legend-of-grinding 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes textGlow-legend-of-grinding {
+    from { text-shadow: 
+        3px 3px 0px #B8860B,
+        -1px -1px 0px #B8860B,
+        1px -1px 0px #B8860B,
+        -1px 1px 0px #B8860B,
+        0 0 15px rgba(255, 215, 0, 0.9); }
+    to { text-shadow: 
+        3px 3px 0px #B8860B,
+        -1px -1px 0px #B8860B,
+        1px -1px 0px #B8860B,
+        -1px 1px 0px #B8860B,
+        0 0 30px rgba(255, 215, 0, 1); }
+}
+
+.label-legend-of-grinding {
+    position: absolute;
+    bottom: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #FFD700;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    letter-spacing: 1.5px;
+    z-index: 3;
+}
+
+.particles-legend-of-grinding {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.particle-legend-of-grinding {
+    position: absolute;
+    color: #FFD700;
+    font-size: 14px;
+    animation: particle-float-legend-of-grinding 3s infinite ease-in-out;
+    text-shadow: 0 0 6px rgba(255, 215, 0, 0.9);
+}
+
+.particle-legend-of-grinding:nth-child(1) { top: 10%; left: 15%; animation-delay: 0s; }
+.particle-legend-of-grinding:nth-child(2) { top: 20%; right: 10%; animation-delay: 0.5s; }
+.particle-legend-of-grinding:nth-child(3) { top: 70%; left: 5%; animation-delay: 1s; }
+.particle-legend-of-grinding:nth-child(4) { top: 80%; right: 15%; animation-delay: 1.5s; }
+.particle-legend-of-grinding:nth-child(5) { top: 45%; left: -5%; animation-delay: 2s; }
+.particle-legend-of-grinding:nth-child(6) { top: 55%; right: -5%; animation-delay: 2.5s; }
+
+@keyframes particle-float-legend-of-grinding {
+    0%, 100% { 
+        transform: translateY(0px) scale(0.8) rotate(0deg);
+        opacity: 0.6;
+    }
+    25% { 
+        transform: translateY(-20px) scale(1.4) rotate(90deg);
+        opacity: 1;
+    }
+    50% { 
+        transform: translateY(-12px) scale(1.1) rotate(180deg);
+        opacity: 0.8;
+    }
+    75% { 
+        transform: translateY(-28px) scale(1.3) rotate(270deg);
+        opacity: 1;
+    }
+}
+
+.mega-shine-legend-of-grinding {
+    position: absolute;
+    top: -20px;
+    left: -20px;
+    width: 100px;
+    height: 140px;
+    background: linear-gradient(45deg, 
+        rgba(255, 255, 255, 0.8) 0%, 
+        rgba(255, 215, 0, 0.4) 30%,
+        rgba(255, 255, 255, 0.3) 60%,
+        transparent 100%);
+    border-radius: 50%;
+    transform: rotate(-25deg);
+    z-index: 2;
+    animation: shine-pulse-legend-of-grinding 3s ease-in-out infinite;
+}
+
+@keyframes shine-pulse-legend-of-grinding {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 0.5; }
+}
+
+.explosion-legend-of-grinding {
+    position: absolute;
+    width: 340px;
+    height: 340px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.explosion-particle-legend-of-grinding {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #FFD700;
+    border-radius: 50%;
+    animation: explode-legend-of-grinding 4s infinite ease-out;
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.9);
+}
+
+.explosion-particle-legend-of-grinding:nth-child(1) { animation-delay: 0s; }
+.explosion-particle-legend-of-grinding:nth-child(2) { animation-delay: 0.2s; }
+.explosion-particle-legend-of-grinding:nth-child(3) { animation-delay: 0.4s; }
+.explosion-particle-legend-of-grinding:nth-child(4) { animation-delay: 0.6s; }
+.explosion-particle-legend-of-grinding:nth-child(5) { animation-delay: 0.8s; }
+.explosion-particle-legend-of-grinding:nth-child(6) { animation-delay: 1s; }
+.explosion-particle-legend-of-grinding:nth-child(7) { animation-delay: 1.2s; }
+.explosion-particle-legend-of-grinding:nth-child(8) { animation-delay: 1.4s; }
+.explosion-particle-legend-of-grinding:nth-child(9) { animation-delay: 1.6s; }
+.explosion-particle-legend-of-grinding:nth-child(10) { animation-delay: 1.8s; }
+
+@keyframes explode-legend-of-grinding {
+    0% { 
+        transform: translate(0, 0) scale(0);
+        opacity: 1;
+    }
+    70% { 
+        transform: translate(var(--x, 140px), var(--y, -140px)) scale(1.5);
+        opacity: 0.8;
+    }
+    100% { 
+        transform: translate(var(--x, 200px), var(--y, -200px)) scale(0);
+        opacity: 0;
+    }
+}
+
+.explosion-particle-legend-of-grinding:nth-child(1) { --x: 150px; --y: -80px; }
+.explosion-particle-legend-of-grinding:nth-child(2) { --x: -120px; --y: -110px; }
+.explosion-particle-legend-of-grinding:nth-child(3) { --x: 100px; --y: 140px; }
+.explosion-particle-legend-of-grinding:nth-child(4) { --x: -140px; --y: 120px; }
+.explosion-particle-legend-of-grinding:nth-child(5) { --x: 170px; --y: 40px; }
+.explosion-particle-legend-of-grinding:nth-child(6) { --x: -90px; --y: -40px; }
+.explosion-particle-legend-of-grinding:nth-child(7) { --x: 80px; --y: -160px; }
+.explosion-particle-legend-of-grinding:nth-child(8) { --x: -70px; --y: 160px; }
+.explosion-particle-legend-of-grinding:nth-child(9) { --x: 200px; --y: -20px; }
+.explosion-particle-legend-of-grinding:nth-child(10) { --x: -180px; --y: 50px; }
