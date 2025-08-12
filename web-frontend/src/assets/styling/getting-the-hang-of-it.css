@@ -1,0 +1,372 @@
+.badge-container-hang-of-it {
+    position: relative;
+    animation: float-hang-of-it 3s ease-in-out infinite;
+}
+
+@keyframes float-hang-of-it {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+.badge-hang-of-it {
+    width: 220px;
+    height: 220px;
+    position: relative;
+    border-radius: 50%;
+    background: 
+        radial-gradient(circle at 30% 30%, #FF6B35 0%, #F7931E 30%, #C75B12 60%, #8B4513 100%);
+    box-shadow: 
+        0 0 30px rgba(255, 107, 53, 0.6),
+        0 0 60px rgba(247, 147, 30, 0.4),
+        0 15px 35px rgba(0, 0, 0, 0.3),
+        inset 0 5px 15px rgba(255, 255, 255, 0.1),
+        inset 0 -5px 15px rgba(0, 0, 0, 0.5);
+    border: 6px solid #D2691E;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: visible;
+    animation: glow-hang-of-it 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow-hang-of-it {
+    from { 
+        box-shadow: 
+            0 0 30px rgba(255, 107, 53, 0.6),
+            0 0 60px rgba(247, 147, 30, 0.4),
+            0 15px 35px rgba(0, 0, 0, 0.3),
+            inset 0 5px 15px rgba(255, 255, 255, 0.1),
+            inset 0 -5px 15px rgba(0, 0, 0, 0.5);
+    }
+    to { 
+        box-shadow: 
+            0 0 40px rgba(255, 107, 53, 0.8),
+            0 0 80px rgba(247, 147, 30, 0.6),
+            0 15px 35px rgba(0, 0, 0, 0.3),
+            inset 0 5px 15px rgba(255, 255, 255, 0.2),
+            inset 0 -5px 15px rgba(0, 0, 0, 0.5);
+    }
+}
+
+.inner-ring-hang-of-it {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: rotate-hang-of-it 10s linear infinite;
+}
+
+@keyframes rotate-hang-of-it {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.trophy-container-hang-of-it {
+    position: relative;
+    z-index: 3;
+    animation: bounce-hang-of-it 2s ease-in-out infinite;
+}
+
+@keyframes bounce-hang-of-it {
+    0%, 100% { transform: translateY(0px) scale(1); }
+    50% { transform: translateY(-5px) scale(1.05); }
+}
+
+.trophy-hang-of-it {
+    width: 80px;
+    height: 100px;
+    position: relative;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Rope/Chain Design */
+.trophy-cup-hang-of-it {
+    width: 8px;
+    height: 60px;
+    background: 
+        linear-gradient(180deg, 
+            #8B4513 0%, 
+            #A0522D 25%, 
+            #CD853F 50%, 
+            #A0522D 75%, 
+            #8B4513 100%);
+    border-radius: 4px;
+    position: relative;
+    margin: 0 auto 8px auto;
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.5),
+        inset 2px 0 4px rgba(255, 255, 255, 0.2),
+        inset -2px 0 4px rgba(0, 0, 0, 0.3);
+    animation: rope-sway-hang-of-it 3s ease-in-out infinite;
+}
+
+@keyframes rope-sway-hang-of-it {
+    0%, 100% { transform: rotate(-2deg); }
+    50% { transform: rotate(2deg); }
+}
+
+/* Rope texture lines */
+.trophy-cup-hang-of-it::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 1px;
+    height: 100%;
+    background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.3) 0px,
+        rgba(255, 255, 255, 0.3) 2px,
+        transparent 2px,
+        transparent 6px
+    );
+    transform: translateX(-50%);
+}
+
+/* Hanging Ring at top */
+.trophy-handle-hang-of-it {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 4px solid #8B4513;
+    border-radius: 50%;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: 
+        radial-gradient(circle at 30% 30%, #CD853F 0%, #A0522D 50%, #8B4513 100%);
+    box-shadow: 
+        0 0 8px rgba(139, 69, 19, 0.5),
+        inset 0 2px 4px rgba(255, 255, 255, 0.2),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+    animation: ring-swing-hang-of-it 4s ease-in-out infinite;
+}
+
+@keyframes ring-swing-hang-of-it {
+    0%, 100% { transform: translateX(-50%) rotate(-3deg); }
+    50% { transform: translateX(-50%) rotate(3deg); }
+}
+
+.trophy-handle-hang-of-it.left,
+.trophy-handle-hang-of-it.right {
+    display: none; /* Hide the original handles */
+}
+
+/* Hanging Object - Modern Geometric Shape */
+.trophy-base-hang-of-it {
+    width: 50px;
+    height: 45px;
+    background: 
+        linear-gradient(135deg, 
+            #FF6B35 0%, 
+            #F7931E 30%, 
+            #FF6B35 60%, 
+            #C75B12 100%);
+    position: relative;
+    border-radius: 8px;
+    transform: rotate(45deg);
+    box-shadow: 
+        0 8px 16px rgba(0, 0, 0, 0.4),
+        inset 0 4px 8px rgba(255, 255, 255, 0.2),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.3);
+    animation: pendant-swing-hang-of-it 2.5s ease-in-out infinite;
+}
+
+@keyframes pendant-swing-hang-of-it {
+    0%, 100% { transform: rotate(45deg) scale(1); }
+    50% { transform: rotate(45deg) scale(1.1); }
+}
+
+/* Diamond center gem */
+.trophy-base-hang-of-it::before {
+    content: '💎';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 16px;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
+}
+
+/* Additional decorative gem on the rope */
+.trophy-bottom-hang-of-it {
+    width: 12px;
+    height: 12px;
+    background: 
+        radial-gradient(circle at 30% 30%, #FFD700 0%, #FFA500 50%, #FF6B35 100%);
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    box-shadow: 
+        0 2px 6px rgba(0, 0, 0, 0.4),
+        inset 0 1px 3px rgba(255, 255, 255, 0.4);
+    animation: gem-twinkle-hang-of-it 1.5s ease-in-out infinite;
+}
+
+@keyframes gem-twinkle-hang-of-it {
+    0%, 100% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+    50% { opacity: 1; transform: translateX(-50%) scale(1.2); }
+}
+
+.big-text-hang-of-it {
+    font-size: 28px;
+    font-weight: 900;
+    color: #FFE4B5;
+    text-shadow: 
+        3px 3px 0px #8B4513,
+        -1px -1px 0px #8B4513,
+        1px -1px 0px #8B4513,
+        -1px 1px 0px #8B4513,
+        0 0 10px rgba(255, 228, 181, 0.5);
+    z-index: 3;
+    margin-top: 8px;
+    animation: textGlow-hang-of-it 2s ease-in-out infinite alternate;
+}
+
+@keyframes textGlow-hang-of-it {
+    from { text-shadow: 
+        3px 3px 0px #8B4513,
+        -1px -1px 0px #8B4513,
+        1px -1px 0px #8B4513,
+        -1px 1px 0px #8B4513,
+        0 0 10px rgba(255, 228, 181, 0.5); }
+    to { text-shadow: 
+        3px 3px 0px #8B4513,
+        -1px -1px 0px #8B4513,
+        1px -1px 0px #8B4513,
+        -1px 1px 0px #8B4513,
+        0 0 20px rgba(255, 228, 181, 0.8); }
+}
+
+.label-hang-of-it {
+    position: absolute;
+    bottom: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #FF6B35;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    letter-spacing: 2px;
+    z-index: 3;
+}
+
+.particles-hang-of-it {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.particle-hang-of-it {
+    position: absolute;
+    color: #FF6B35;
+    font-size: 12px;
+    animation: particle-float-hang-of-it 3s infinite ease-in-out;
+    text-shadow: 0 0 3px rgba(255, 107, 53, 0.8);
+}
+
+.particle-hang-of-it:nth-child(1) { top: 10%; left: 15%; animation-delay: 0s; }
+.particle-hang-of-it:nth-child(2) { top: 20%; right: 10%; animation-delay: 0.5s; }
+.particle-hang-of-it:nth-child(3) { top: 60%; left: 5%; animation-delay: 1s; }
+.particle-hang-of-it:nth-child(4) { top: 70%; right: 15%; animation-delay: 1.5s; }
+.particle-hang-of-it:nth-child(5) { top: 35%; left: -5%; animation-delay: 2s; }
+.particle-hang-of-it:nth-child(6) { top: 45%; right: -5%; animation-delay: 2.5s; }
+
+@keyframes particle-float-hang-of-it {
+    0%, 100% { 
+        transform: translateY(0px) scale(0.8) rotate(0deg);
+        opacity: 0.6;
+    }
+    25% { 
+        transform: translateY(-15px) scale(1.2) rotate(90deg);
+        opacity: 1;
+    }
+    50% { 
+        transform: translateY(-8px) scale(0.9) rotate(180deg);
+        opacity: 0.8;
+    }
+    75% { 
+        transform: translateY(-20px) scale(1.1) rotate(270deg);
+        opacity: 0.9;
+    }
+}
+
+.mega-shine-hang-of-it {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    width: 80px;
+    height: 120px;
+    background: linear-gradient(45deg, 
+        rgba(255, 255, 255, 0.3) 0%, 
+        rgba(255, 255, 255, 0.1) 30%,
+        rgba(255, 255, 255, 0.05) 60%,
+        transparent 100%);
+    border-radius: 50%;
+    transform: rotate(-25deg);
+    z-index: 2;
+    animation: shine-pulse-hang-of-it 3s ease-in-out infinite;
+}
+
+@keyframes shine-pulse-hang-of-it {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+
+.explosion-hang-of-it {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.explosion-particle-hang-of-it {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #FF6B35;
+    border-radius: 50%;
+    animation: explode-hang-of-it 4s infinite ease-out;
+}
+
+.explosion-particle-hang-of-it:nth-child(1) { animation-delay: 0s; }
+.explosion-particle-hang-of-it:nth-child(2) { animation-delay: 0.2s; }
+.explosion-particle-hang-of-it:nth-child(3) { animation-delay: 0.4s; }
+.explosion-particle-hang-of-it:nth-child(4) { animation-delay: 0.6s; }
+.explosion-particle-hang-of-it:nth-child(5) { animation-delay: 0.8s; }
+.explosion-particle-hang-of-it:nth-child(6) { animation-delay: 1s; }
+
+@keyframes explode-hang-of-it {
+    0% { 
+        transform: translate(0, 0) scale(0);
+        opacity: 1;
+    }
+    50% { 
+        transform: translate(var(--x, 100px), var(--y, -100px)) scale(1);
+        opacity: 0.8;
+    }
+    100% { 
+        transform: translate(var(--x, 150px), var(--y, -150px)) scale(0);
+        opacity: 0;
+    }
+}
+
+.explosion-particle-hang-of-it:nth-child(1) { --x: 120px; --y: -80px; }
+.explosion-particle-hang-of-it:nth-child(2) { --x: -100px; --y: -90px; }
+.explosion-particle-hang-of-it:nth-child(3) { --x: 80px; --y: 110px; }
+.explosion-particle-hang-of-it:nth-child(4) { --x: -120px; --y: 100px; }
+.explosion-particle-hang-of-it:nth-child(5) { --x: 140px; --y: 20px; }
+.explosion-particle-hang-of-it:nth-child(6) { --x: -90px; --y: -20px; }

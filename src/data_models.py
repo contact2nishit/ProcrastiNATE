@@ -130,6 +130,7 @@ class SessionCompletionDataModel(BaseModel):
     completed: bool
     is_assignment: bool
     locked_in: int
+    tz_offset_minutes: int = 0  # NEW: timezone offset from UTC in minutes
 
 
 # Response data models
@@ -268,3 +269,7 @@ class LevelResponse(BaseModel):
     user_name: str
     xp: int
     level: int
+
+class SessionCompletionResponse(MessageResponseDataModel):
+    """Response for marking a session as completed"""
+    achievements : defaultdict[str, bool] | None = None

@@ -10,6 +10,12 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs, { Dayjs } from 'dayjs';
 import config from '../config';
 import { useCurrentScheduleContext } from '../context/CurrentScheduleContext';
+import { Achievement } from '../utils';
+import { set } from 'date-fns';
+import BadgeFirstTimer from '../assets/first-timer';
+import BadgeWeekendWarrior from '../assets/weekend-warrior';
+import BadgeConsistencyKing from '../assets/consistency-king';
+import BadgeNightOwl from '../assets/night-owl';
 
 // Create a custom theme for MUI components
 const theme = createTheme({
@@ -118,7 +124,7 @@ const Home = () => {
         is_assignment: boolean;
     };
     const [modalVisible, setModalVisible] = useState(false);
-    const [modalType, setModalType] = useState<'update' | 'delete' | 'markSession' | null>(null);
+    const [modalType, setModalType] = useState<'update' | 'delete' | 'markSession' | 'achievements' |   null>(null);
     const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
     const [updateName, setUpdateName] = useState('');
     const [updateLoc, setUpdateLoc] = useState('');
@@ -129,7 +135,8 @@ const Home = () => {
     const [lockedInValue, setLockedInValue] = useState(5);
 
     const [levelInfo, setLevelInfo] = useState<{xp: number; level: number; user_name: string } | null>(null);
-    const [xpForNextLevel, setXpForNextLevel] = useState<number>(100); 
+    const [xpForNextLevel, setXpForNextLevel] = useState<number>(100);
+    const [achievements, setAchievements] = useState<Achievement[]>([]);
     const todoList = useMemo(() => {
         const now = new Date();
         const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
@@ -266,6 +273,7 @@ const Home = () => {
                     completed: true,
                     is_assignment: isAssignmentFlag,
                     locked_in: locked_in,
+                    tz_offset_minutes: -new Date().getTimezoneOffset(),
                 }),
             });
             if (!response.ok) {
@@ -277,10 +285,24 @@ const Home = () => {
                 ...prev,
                 [occurence_id]: true,
             }));
-            alert('Session marked as completed!');
             setModalVisible(false);
             await refetchSchedule();
             await fetchLevelInfo();
+            const data = await response.json();
+            const achievement = Object.keys(data.achievements);
+            console.log('Achievements:', achievement);
+            if (achievement.length > 0) {
+                console.log('Achievements unlocked:', achievement);
+                const achievementObjects: Achievement[] = achievement.map((name: string) => ({
+                    name: name,
+                    image: name,
+                }));
+                setAchievements(achievementObjects);
+                setModalType('achievements');
+                setModalVisible(true);
+            } else {
+                alert(`Session marked as completed! You earned ${data.xp} points`)
+            }
         } catch (e) {
             alert('Failed to mark session as completed: ' + e);
         }
@@ -427,7 +449,21 @@ const Home = () => {
 
         navigate(`/requiresCurrentSchedule/requiresPotentialSchedule/RescheduleScreen?id=${idToSend}&type=${item.type}&effort=${item.effort}&start=${item.start}&end=${item.end}&label=${label}`);
     };
-
+    const getBadgeComponent = (achievementName: string) => {
+        switch (achievementName) {
+            case 'first_timer':
+                return <BadgeFirstTimer />;
+            // Add more cases for other achievement badges
+            case 'weekend_warrior':
+                return <BadgeWeekendWarrior />;
+            case 'consistency_king':
+                return <BadgeConsistencyKing />;
+            case 'night_owl':
+                return <BadgeNightOwl />;
+            default:
+                return null;
+        }
+    }
     return (
         <ThemeProvider theme={theme}>
             <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -601,9 +637,9 @@ const Home = () => {
                 </button>
                 
                 {/* Update/Delete/Session completion Modal */}
-                {modalVisible && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-xl p-6 w-[85%] max-w-md">
+                {modalVisible && modalType !== 'achievements' && (
+                    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+                        <div className="bg-white rounded-xl p-6 w-[85%] max-w-md max-h-[80vh] overflow-y-auto shadow-2xl transform animate-scale-in">
                             {modalType === 'update' && (
                                 <>
                                     <h3 className="text-xl font-bold mb-4 text-gray-900">Update Meeting</h3>
@@ -735,7 +771,49 @@ const Home = () => {
                         </div>
                     </div>
                 )}
-                
+
+                {/* Achievement Modal - Separate with transparent background */}
+                {modalVisible && modalType === 'achievements' && (
+                    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+                        <div className="bg-transparent rounded-xl p-6 w-[90%] max-w-2xl max-h-[80vh] overflow-y-auto transform animate-scale-in">
+                            <h3 className="text-2xl font-bold mb-6 text-white text-center drop-shadow-lg">🎉 Achievements Unlocked! 🎉</h3>
+                            
+                            {/* Centered horizontal container */}
+                            <div className="flex justify-center items-center">
+                                <div className="flex overflow-x-auto space-x-8 py-4 px-2 hide-scrollbar">
+                                    {achievements.map((achievement, index) => (
+                                        <div key={index} className="flex flex-col items-center min-w-[140px]">
+                                            {/* Badge container - no background, larger size */}
+                                            <div className="w-32 h-32 mb-4 flex items-center justify-center">
+                                                <div className="scale-[0.6] origin-center">
+                                                    {getBadgeComponent(achievement.name)}
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Achievement name with background */}
+                                            <div className="bg-gradient-to-b from-yellow-100 to-yellow-200 rounded-lg border-2 border-yellow-400 px-3 py-2">
+                                                <h4 className="text-sm font-bold text-gray-900 text-center capitalize leading-tight whitespace-nowrap">
+                                                    {achievement.name.replace(/_/g, ' ')}
+                                                </h4>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <button
+                                className="bg-green-600 rounded-lg py-3 px-6 text-white font-bold text-base w-full mt-6 hover:bg-green-700 transition-colors"
+                                onClick={() => {
+                                    setModalVisible(false);
+                                    setAchievements([]);
+                                    alert('Session marked as completed!');
+                                }}
+                            >
+                                Awesome!
+                            </button>
+                        </div>
+                    </div>
+                )}
                 <button 
                     onClick={handleBack}
                     className="bg-black p-2 rounded-md mt-2 ml-2 mb-4 text-white w-36 text-base text-center hover:bg-gray-800 transition-colors"

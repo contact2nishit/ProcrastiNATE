@@ -18,6 +18,11 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from achievements_check import check_achievements
+import base64
+import secrets
+import time
+
 
 
 dotenv.load_dotenv()
@@ -475,7 +480,7 @@ async def schedule(
     Now checks for conflicts with already scheduled meetings/assignments/chores.
     """
     try:
-        print("HELLO", sched.model_dump_json())
+        # print("HELLO", sched.model_dump_json())
         user = await get_current_user(token, app.state.pool)
         now = datetime.now(timezone.utc)
         last_time = get_latest_time(sched.meetings, sched.assignments, sched.chores)
@@ -520,18 +525,19 @@ async def schedule(
                 sched.chores,
                 num_schedules=11,
                 tz_offset_minutes=getattr(sched, "tz_offset_minutes", 0),
+                now=datetime.now(timezone.utc)
             )
         else: 
             # we send the blocking times as meetings to the scheduling algorithm
             # this is only fine because it inserts nothing in the DB
             # and it will just use the meetings as blocked times
-            print("HIYA", getattr(sched, "tz_offset_minutes", 0))
             schedules = schedule_tasks(
                 sched.meetings + [scheduled_blocker],
                 sched.assignments,
                 sched.chores,
                 num_schedules=11,
                 tz_offset_minutes=getattr(sched, "tz_offset_minutes", 0),
+                now=datetime.now(timezone.utc)
             )
         # Now, check for conflicts between requested meetings and already scheduled blocks
         # maybe do this as an async task when waiting on network to fetch assignment and chore rows?
@@ -588,11 +594,11 @@ async def schedule(
                     link_or_loc=meeting.link_or_loc,
                 )
                 meeting_resp += [meeting_response]
-        print("ADH", ScheduleResponseFormat(
-            conflicting_meetings=conflicting_meetings,
-            meetings=meeting_resp,
-            schedules=schedules,
-        ).model_dump_json())
+        # print(ScheduleResponseFormat(
+        #     conflicting_meetings=conflicting_meetings,
+        #     meetings=meeting_resp,
+        #     schedules=schedules,
+        # ).model_dump_json())
         return ScheduleResponseFormat(
             conflicting_meetings=conflicting_meetings,
             meetings=meeting_resp,
@@ -714,9 +720,7 @@ async def set_schedule(
 
 
 @app.post("/markSessionCompleted")
-async def mark_session_completed(
-    complete: SessionCompletionDataModel, token: Annotated[str, Depends(oauth2_scheme)]
-) -> MessageResponseDataModel:
+async def mark_session_completed(complete: SessionCompletionDataModel, token: Annotated[str, Depends(oauth2_scheme)]) -> SessionCompletionResponse:
     """Mark one session of time allocated to work on an assignment (could be multiple sessions per assignment) as complete or incomplete"""
     prop_xp: float = complete.locked_in / 10
     try:
@@ -724,64 +728,44 @@ async def mark_session_completed(
             user = await get_current_user(token, app.state.pool)
             new_xp: int = 0
             if complete.is_assignment:
-                xp_potential: int = await conn.fetchval(
-                    "UPDATE assignment_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential",
-                    complete.completed,
-                    complete.locked_in,
-                    complete.occurence_id,
-                    user.user_id,
-                )
+                xp_potential  = await conn.fetchrow('UPDATE assignment_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential, assignment_id', complete.completed, complete.locked_in, complete.occurence_id, user.user_id)
                 if xp_potential is not None:
-                    xp_gained: int = round(prop_xp * xp_potential)
-                    new_xp = await conn.fetchval(
-                        "UPDATE users SET xp = xp + $1 WHERE user_id = $2 RETURNING xp",
-                        xp_gained,
-                        user.user_id,
-                    )
+                    xp_gained: int = round(prop_xp * xp_potential['xp_potential'])
+                    all_completed = await conn.fetchval("SELECT bool_and(completed) FROM assignment_occurences WHERE assignment_id = $1 AND user_id = $2", xp_potential['assignment_id'], user.user_id)
+                    # Check if all occurrences are completed
+                    if all_completed:
+                        await conn.execute("UPDATE assignments SET completed = TRUE WHERE user_id = $1 and assignment_id = $2", user.user_id, xp_potential['assignment_id'])
+                    new_xp = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2 RETURNING xp", xp_gained, user.user_id)
                 else:
-                    raise HTTPException(
-                        status_code=400, detail="You picked a bad occurence id"
-                    )
+                    raise HTTPException(status_code=400, detail="You picked a bad occurence id")
             else:
-                xp_potential: int = await conn.fetchval(
-                    "UPDATE chore_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential",
-                    complete.completed,
-                    complete.locked_in,
-                    complete.occurence_id,
-                    user.user_id,
-                )
+                xp_potential = await conn.fetchrow('UPDATE chore_occurences SET (completed, locked_in) = ($1, $2) WHERE occurence_id = $3 AND user_id = $4 RETURNING xp_potential, chore_id', complete.completed, complete.locked_in, complete.occurence_id, user.user_id)
                 if xp_potential is not None:
-                    xp_gained: int = round(prop_xp * xp_potential)
-                    new_xp = await conn.fetchval(
-                        "UPDATE users SET xp = xp + $1 WHERE user_id = $2 RETURNING xp",
-                        xp_gained,
-                        user.user_id,
-                    )
+                    xp_gained: int = round(prop_xp * xp_potential['xp_potential'])
+                    all_completed = await conn.fetchval("SELECT bool_and(completed) FROM chore_occurences WHERE chore_id = $1 AND user_id = $2", xp_potential['chore_id'], user.user_id)
+                    # Check if all occurrences are completed
+                    if all_completed:
+                        await conn.execute("UPDATE chores SET completed = TRUE WHERE user_id = $1 and chore_id = $2", user.user_id, xp_potential['chore_id'])
+                    new_xp = await conn.fetchval("UPDATE users SET xp = xp + $1 WHERE user_id = $2 RETURNING xp", xp_gained, user.user_id)
                 else:
-                    raise HTTPException(
-                        status_code=400, detail="You picked a bad occurence id"
-                    )
-            cur_level: int = await conn.fetchval(
-                "SELECT levels FROM achievements WHERE user_id = $1", user.user_id
-            )
-
-            if new_xp > get_xp_for_next_level(cur_level) and cur_level < MAX_LEVEL:
-                await conn.execute(
-                    "UPDATE achievements SET levels = levels + 1 WHERE user_id = $1",
-                    user.user_id,
-                )
-
-            return MessageResponseDataModel(
-                message="Successfully marked chore as complete!", new_xp=new_xp
-            )
+                    raise HTTPException(status_code=400, detail="You picked a bad occurence id")
+            cur_level: int = await conn.fetchval("SELECT levels FROM achievements WHERE user_id = $1", user.user_id)
+            # Calculate the correct level based on the new XP
+            new_level = cur_level
+            while new_level < MAX_LEVEL and new_xp > get_xp_for_next_level(new_level):
+                new_level += 1
+            if new_level > cur_level:
+                await conn.execute("UPDATE achievements SET levels = $1 WHERE user_id = $2", new_level, user.user_id)
+            
+            # Check achievements with timezone awareness
+            achievements_unlocked = await check_achievements(conn, user.user_id, complete.tz_offset_minutes)
+            
+            return SessionCompletionResponse(message='Successfully marked session as complete!', new_xp=new_xp, achievements=achievements_unlocked)
     except HTTPException as e:
         raise e
     except Exception as e:
         print(e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error",
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail = "Internal server error")
 
 
 @app.post("/update")
