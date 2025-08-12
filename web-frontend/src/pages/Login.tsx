@@ -39,7 +39,7 @@ const Login = () => {
     };
 
     const handleSignup = () => {
-        navigate('/Signup');
+        navigate('/signup');
     };
 
     const handleGoogleLogin = async () => {
@@ -111,40 +111,57 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen bg-black flex flex-col justify-center items-center p-5">
-            <h1 className="text-3xl text-center font-extrabold text-white mb-10">Welcome to ProcrastiNATE!</h1>
-            <form className="bg-white p-6 rounded-lg w-full max-w-md flex flex-col items-center mb-4 shadow-lg" onSubmit={handleSubmit}>
-                <div className="w-full mb-6 flex flex-col">
-                    <label className="text-base font-medium text-gray-700 mb-2">Username</label>
-                    <input
-                        data-testid="username-input"
-                        className="border border-gray-300 rounded px-3 py-2 text-base text-gray-800 focus:outline-none"
-                        type="text"
-                        placeholder="Username"
-                        value={username}
-                        onChange={e => setUsername(e.target.value)}
-                    />
-                </div>
-                <div className="w-full mb-6 flex flex-col">
-                    <label className="text-base font-medium text-gray-700 mb-2">Password</label>
-                    <input
-                        data-testid="password-input"
-                        className="border border-gray-300 rounded px-3 py-2 text-base text-gray-800 focus:outline-none"
-                        type="password"
-                        placeholder="Password"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                    />
-                </div>
-                <button data-testid="login-button" type="submit" className="bg-gray-800 text-white py-3 px-8 rounded-lg text-lg font-medium mb-3 hover:bg-gray-900 transition">Sign In</button>
-                <button data-testid="google-login-button" type="button" onClick={handleGoogleLogin} className="bg-blue-600 text-white py-3 px-8 rounded-lg text-base font-medium mb-3 hover:bg-blue-700 transition">
-                    Sign In with Google
-                </button>
-                <div className="mt-2 text-base text-black text-center font-medium">
-                    Don't have an account?{' '}
-                    <span data-testid="signup-link" className="text-black font-medium underline cursor-pointer" onClick={handleSignup}>Sign Up</span>
-                </div>
-            </form>
+        <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-50 to-pink-100 flex flex-col justify-center items-center p-5" style={{ fontFamily: 'Comic Neue, cursive' }}>
+            <h1 className="text-4xl text-center font-bold text-purple-800 mb-10" style={{ fontFamily: 'Comic Neue, cursive' }}>Welcome to ProcrastiNATE! 🚀</h1>
+            <div className="bg-white p-8 rounded-3xl w-full max-w-md border-4 border-purple-400 shadow-2xl">
+                <form onSubmit={handleSubmit} className="flex flex-col items-center">
+                    <div className="w-full mb-6 flex flex-col">
+                        <label className="text-lg font-bold text-purple-700 mb-2" style={{ fontFamily: 'Comic Neue, cursive' }}>Username</label>
+                        <input
+                            data-testid="username-input"
+                            className="border-3 border-purple-300 rounded-xl px-4 py-3 text-lg text-purple-800 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                            style={{ fontFamily: 'Comic Neue, cursive' }}
+                            type="text"
+                            placeholder="Enter your username"
+                            value={username}
+                            onChange={e => setUsername(e.target.value)}
+                        />
+                    </div>
+                    <div className="w-full mb-6 flex flex-col">
+                        <label className="text-lg font-bold text-purple-700 mb-2" style={{ fontFamily: 'Comic Neue, cursive' }}>Password</label>
+                        <input
+                            data-testid="password-input"
+                            className="border-3 border-purple-300 rounded-xl px-4 py-3 text-lg text-purple-800 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+                            style={{ fontFamily: 'Comic Neue, cursive' }}
+                            type="password"
+                            placeholder="Enter your password"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                        />
+                    </div>
+                    <button 
+                        data-testid="login-button" 
+                        type="submit" 
+                        className="bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 px-8 rounded-2xl text-xl font-bold mb-4 hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                        style={{ fontFamily: 'Comic Neue, cursive' }}
+                    >
+                        Sign In! 🎯
+                    </button>
+                    <button 
+                        data-testid="google-login-button" 
+                        type="button" 
+                        onClick={handleGoogleLogin} 
+                        className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-3 px-8 rounded-2xl text-xl font-bold mb-4 hover:from-blue-600 hover:to-cyan-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                        style={{ fontFamily: 'Comic Neue, cursive' }}
+                    >
+                        Sign In with Google 🌟
+                    </button>
+                    <div className="mt-2 text-lg text-purple-700 text-center font-bold" style={{ fontFamily: 'Comic Neue, cursive' }}>
+                        Don't have an account?{' '}
+                        <span data-testid="signup-link" className="text-pink-600 font-bold underline cursor-pointer hover:text-pink-700" onClick={handleSignup}>Sign Up! ✨</span>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };

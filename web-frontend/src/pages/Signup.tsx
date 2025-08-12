@@ -60,99 +60,109 @@ const Signup = () => {
     };
 
     return (
-        <div className="min-h-screen bg-black flex flex-col">
+        <div className="min-h-screen bg-gradient-to-br from-green-100 via-blue-50 to-purple-100 flex flex-col justify-center items-center p-5" style={{ fontFamily: 'Comic Neue, cursive' }}>
             <h1 
-                className="text-4xl text-white font-light text-center mt-8" 
+                className="text-4xl text-purple-800 font-bold text-center mb-8" 
                 data-testid="signupTitle"
+                style={{ fontFamily: 'Comic Neue, cursive' }}
             >
-                Sign Up
+                Join ProcrastiNATE! 🎉
             </h1>
 
-            <div className="bg-white mx-auto w-[90%] max-w-md p-5 mt-12 rounded-3xl flex flex-col items-center">
+            <div className="bg-white w-full max-w-lg p-8 rounded-3xl border-4 border-green-400 shadow-2xl">
                 <form onSubmit={handleSubmit} className="w-full">
-                    <div className="w-[90%] mx-auto mb-6">
-                        <label className="block text-base font-extralight text-gray-800 mb-1 -ml-2">
+                    <div className="w-full mb-6">
+                        <label className="block text-lg font-bold text-green-700 mb-2" style={{ fontFamily: 'Comic Neue, cursive' }}>
                             Email
                         </label>
                         <input
                             data-testid="email-input"
                             type="email"
-                            className="w-full border border-gray-300 rounded-md p-2.5 text-base text-gray-800 -ml-2.5 placeholder-gray-400"
-                            placeholder="Email"
+                            className="w-full border-3 border-green-300 rounded-xl p-3 text-lg text-green-800 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                            style={{ fontFamily: 'Comic Neue, cursive' }}
+                            placeholder="Enter your email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                         />
                     </div>
 
-                    <div className="w-[90%] mx-auto mb-6">
-                        <label className="block text-base font-extralight text-gray-800 mb-1 -ml-2">
+                    <div className="w-full mb-6">
+                        <label className="block text-lg font-bold text-green-700 mb-2" style={{ fontFamily: 'Comic Neue, cursive' }}>
                             Username
                         </label>
                         <input
                             data-testid="username-input"
                             type="text"
-                            className="w-full border border-gray-300 rounded-md p-2.5 text-base text-gray-800 -ml-2.5 placeholder-gray-400"
-                            placeholder="Username"
+                            className="w-full border-3 border-green-300 rounded-xl p-3 text-lg text-green-800 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                            style={{ fontFamily: 'Comic Neue, cursive' }}
+                            placeholder="Choose a username"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                         />
                     </div>
 
-                    <div className="w-[90%] mx-auto mb-6">
-                        <label className="block text-base font-extralight text-gray-800 mb-1 -ml-2">
+                    <div className="w-full mb-6">
+                        <label className="block text-lg font-bold text-green-700 mb-2" style={{ fontFamily: 'Comic Neue, cursive' }}>
                             Password
                         </label>
                         <div className="relative">
                             <input
                                 data-testid="password-input"
                                 type={showPassword ? "text" : "password"}
-                                className="w-full border border-gray-300 rounded-md p-2.5 text-base text-gray-800 -ml-2.5 placeholder-gray-400 pr-16"
-                                placeholder="Password"
+                                className="w-full border-3 border-green-300 rounded-xl p-3 text-lg text-green-800 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 pr-16"
+                                style={{ fontFamily: 'Comic Neue, cursive' }}
+                                placeholder="Create a password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
                             <button
                                 data-testid="toggle-password-visibility"
                                 type="button"
-                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm"
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-600 text-sm font-bold hover:text-green-700"
+                                style={{ fontFamily: 'Comic Neue, cursive' }}
                                 onClick={() => setShowPassword(!showPassword)}
                             >
-                                {showPassword ? 'Hide' : 'Show'}
+                                {showPassword ? '🙈' : '👁️'}
                             </button>
                         </div>
                     </div>
 
-                    <div className="w-[90%] mx-auto mb-6">
-                        <label className="block text-base font-extralight text-gray-800 mb-1 -ml-2">
+                    <div className="w-full mb-6">
+                        <label className="block text-lg font-bold text-green-700 mb-2" style={{ fontFamily: 'Comic Neue, cursive' }}>
                             Confirm Password
                         </label>
                         <div className="relative">
                             <input
                                 data-testid="confirm-password-input"
                                 type={showConfirmPassword ? "text" : "password"}
-                                className="w-full border border-gray-300 rounded-md p-2.5 text-base text-gray-800 -ml-2.5 placeholder-gray-400 pr-16"
-                                placeholder="Confirm Password"
+                                className="w-full border-3 border-green-300 rounded-xl p-3 text-lg text-green-800 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200 pr-16"
+                                style={{ fontFamily: 'Comic Neue, cursive' }}
+                                placeholder="Confirm your password"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                             />
                             <button
                                 data-testid="toggle-confirm-password-visibility"
                                 type="button"
-                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm"
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-600 text-sm font-bold hover:text-green-700"
+                                style={{ fontFamily: 'Comic Neue, cursive' }}
                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                             >
-                                {showConfirmPassword ? 'Hide' : 'Show'}
+                                {showConfirmPassword ? '🙈' : '👁️'}
                             </button>
                         </div>
                     </div>
 
-                    <button
-                        type="submit"
-                        className="bg-black text-white py-3 px-8 rounded-lg shadow-lg text-base font-light"
-                        data-testid="signupButton"
-                    >
-                        Register
-                    </button>
+                    <div className="flex justify-center">
+                        <button
+                            type="submit"
+                            className="bg-gradient-to-r from-green-500 to-blue-500 text-white py-3 px-8 rounded-2xl text-xl font-bold hover:from-green-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                            style={{ fontFamily: 'Comic Neue, cursive' }}
+                            data-testid="signupButton"
+                        >
+                            Register! 🌟
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
