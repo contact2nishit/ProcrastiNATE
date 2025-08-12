@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
 import { Slot } from '../calendarUtils';
 import config from '../config';
 
@@ -9,21 +9,33 @@ export type CurrentSchedule = {
 	endTime: string;
 };
 
+type LevelInfo = { xp: number; level: number; user_name: string } | null;
+
+let hasFetchedLevelInfoOnce = false; // module-scoped flag
+
 type CurrentScheduleContextType = {
     currSchedule: CurrentSchedule;
     setCurrSchedule: React.Dispatch<React.SetStateAction<CurrentSchedule>>;
     ensureScheduleRange: (start: string, end: string) => Promise<void>;
     refetchSchedule: () => Promise<void>;
+    levelInfo: LevelInfo;
+    xpForNextLevel: number;
+    loadingLevelInfo: boolean;
+    refreshLevelInfo: (force?: boolean) => Promise<void>;
 };
 
 const CurrentScheduleContext = createContext<CurrentScheduleContextType | undefined>(undefined);
 
 export const CurrentScheduleProvider = ({ children }: { children: ReactNode }) => {
     const [currentSchedule, setCurrentSchedule] = useState<CurrentSchedule>({
-		slots: [],
-		startTime: "",
-		endTime: "",
+        slots: [],
+        startTime: "",
+        endTime: "",
     });
+    const [levelInfo, setLevelInfo] = useState<LevelInfo>(null);
+    const [xpForNextLevel, setXpForNextLevel] = useState<number>(100);
+    const [loadingLevelInfo, setLoadingLevelInfo] = useState(false);
+
     const fetchScheduleForRange = async (start: string, end: string): Promise<Slot[]> => {
 		// Use dynamic import to avoid circular dependency
 		const url = config.backendURL;
@@ -96,6 +108,33 @@ export const CurrentScheduleProvider = ({ children }: { children: ReactNode }) =
 		return slots;
     };
 
+    const refreshLevelInfo = useCallback(async (force: boolean = false) => {
+        if (hasFetchedLevelInfoOnce && !force) return;
+        const url = config.backendURL;
+        const token = localStorage.getItem('token');
+        if (!url || !token) return;
+        try {
+            setLoadingLevelInfo(true);
+            const response = await fetch(`${url}/getLevel`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!response.ok) return;
+            const data = await response.json();
+            setLevelInfo({ xp: data.xp, level: data.level, user_name: data.user_name });
+            setXpForNextLevel(Math.floor(100 * Math.pow(1.5, data.level)));
+            hasFetchedLevelInfoOnce = true;
+        } catch (_) {
+            // swallow
+        } finally {
+            setLoadingLevelInfo(false);
+        }
+    }, []);
+
     // Ensures the context covers at least [start, end] (expands if needed)
     const ensureScheduleRange = async (start: string, end: string) => {
 	// If context is empty, fetch for [start, end]
@@ -135,7 +174,7 @@ export const CurrentScheduleProvider = ({ children }: { children: ReactNode }) =
     };
 
     return (
-	<CurrentScheduleContext.Provider value={{ currSchedule: currentSchedule, setCurrSchedule: setCurrentSchedule, ensureScheduleRange, refetchSchedule }}>
+	<CurrentScheduleContext.Provider value={{ currSchedule: currentSchedule, setCurrSchedule: setCurrentSchedule, ensureScheduleRange, refetchSchedule, levelInfo, xpForNextLevel, loadingLevelInfo, refreshLevelInfo }}>
 	    {children}
 	</CurrentScheduleContext.Provider>
     );

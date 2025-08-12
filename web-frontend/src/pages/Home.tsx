@@ -85,7 +85,7 @@ const theme = createTheme({
 
 const Home = () => {
     const [loading, setLoading] = useState(false);
-    const { currSchedule, setCurrSchedule, ensureScheduleRange, refetchSchedule } = useCurrentScheduleContext();
+    const { currSchedule, ensureScheduleRange, refetchSchedule, levelInfo, xpForNextLevel, refreshLevelInfo } = useCurrentScheduleContext() as any;
     const navigate = useNavigate();
     const handleSyncGoogleCalendar = async () => {
         try {
@@ -134,8 +134,6 @@ const Home = () => {
     const [selectedSessionToComplete, setSelectedSessionToComplete] = useState<SessionToMaybeComplete>({occurence_id: "A", is_assignment: false});
     const [lockedInValue, setLockedInValue] = useState(5);
 
-    const [levelInfo, setLevelInfo] = useState<{xp: number; level: number; user_name: string } | null>(null);
-    const [xpForNextLevel, setXpForNextLevel] = useState<number>(100);
     const [achievements, setAchievements] = useState<Achievement[]>([]);
     const todoList = useMemo(() => {
         const now = new Date();
@@ -146,54 +144,9 @@ const Home = () => {
         
         return currSchedule.slots.filter((slot: any) => slot.start >= startISO && slot.end <= endISO);
     }, [currSchedule.slots]);
-    const fetchLevelInfo = async () => {
-        try {
-            const url = config.backendURL;
-            const token = localStorage.getItem('token');
-            if (!url || !token) {
-                alert("Backend URL or token not set.");
-                return;
-            }
-            const response = await fetch(`${url}/getLevel`, {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                alert(`Server error: ${response.status} - ${errorText.substring(0, 100)}`);
-                return;
-            }
-        
-            const contentType = response.headers.get('content-type');
-            console.log('Content-Type:', contentType);
-            
-            if (!contentType || !contentType.includes('application/json')) {
-                const responseText = await response.text();
-                console.error('Response is not JSON. Content-Type:', contentType);
-                console.error('Response body:', responseText.substring(0, 500));
-                alert('Server returned non-JSON response. Check console for details.');
-                return;
-            }
-            const data = await response.json();
-            setLevelInfo({
-                xp: data.xp,
-                level: data.level,
-                user_name: data.user_name
-            })
-            setXpForNextLevel(Math.floor(100 * Math.pow(1.5, data.level)));
-        } catch (e) {
-            alert('Failed to fetch level info: ' + ((e as Error)?.message || e));
-        }
-    }
-
     useEffect(() => {
-        fetchLevelInfo();
-    }, []);
+        refreshLevelInfo();
+    }, [refreshLevelInfo]);
     useEffect(() => {
         const ensureSchedule = async () => {
             const now = new Date();
@@ -287,7 +240,7 @@ const Home = () => {
             }));
             setModalVisible(false);
             await refetchSchedule();
-            await fetchLevelInfo();
+            await refreshLevelInfo(true); // force refresh after gaining XP
             const data = await response.json();
             const achievement = Object.keys(data.achievements);
             console.log('Achievements:', achievement);
@@ -523,7 +476,7 @@ const Home = () => {
                 <h2 className="text-2xl font-bold text-center mt-5 ml-2 text-gray-800" data-testid="today-schedule-title">To Do List for Today</h2>
                 
                 <div className="flex-1 overflow-y-auto pb-24">
-                    {todoList.map((item, idx) => (
+                    {todoList.map((item: any, idx: number) => (
                         <div key={item.id ?? idx} className={`mx-4 my-2 rounded-xl p-4 shadow-sm ${getCardStyle(item.type)}`} data-testid={`schedule-item-${item.name.replace(/\s+/g, '-').toLowerCase()}`}>
                             <h3 className="text-lg font-bold text-gray-900" data-testid={`item-name-${item.name.replace(/\s+/g, '-').toLowerCase()}`}>{item.name}</h3>
                             <p className="text-sm text-gray-600 mt-0.5 mb-1">{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</p>
@@ -538,7 +491,7 @@ const Home = () => {
                                         <p className="text-green-600 font-bold mt-2 text-lg">✓ Completed</p>
                                     ) : (
                                         <button
-                                            className="mt-2 bg-gray-800 rounded-md py-2 px-4 text-white font-bold hover:bg-gray-700 transition-colors"
+                                            className="mt-2 ml-2 bg-gray-800 rounded-md py-2 px-4 text-white font-bold hover:bg-gray-700 transition-colors"
                                             data-testid={`mark-completed-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
                                             onClick={() => {
                                                 const now = new Date();
@@ -559,7 +512,7 @@ const Home = () => {
                                     )}
                                     {/* Delete button for assignments/chores */}
                                     <button
-                                        className="mt-2 bg-red-600 rounded-md py-2 px-4 text-white font-bold hover:bg-red-700 transition-colors"
+                                        className="mt-2 ml-2 bg-red-600 rounded-md py-2 px-4 text-white font-bold hover:bg-red-700 transition-colors"
                                         data-testid={`delete-${item.type}-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
                                         onClick={() => handleDeleteEvent(item.id as string, item.type as "assignment" | "chore")}
                                     >
