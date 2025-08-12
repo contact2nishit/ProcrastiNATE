@@ -664,72 +664,112 @@ const EventSelection: React.FC = () => {
 
 
     return (
-        <div className="min-h-screen bg-black flex flex-col">
+        <div className="min-h-screen flex flex-col" style={{ 
+            background: 'linear-gradient(135deg, #87CEEB 0%, #E0F6FF 30%, #B8E6FF 60%, #87CEEB 100%)',
+            fontFamily: 'Pixelify Sans, monospace'
+        }}>
+            {/* Floating Clouds - Pixelated Style */}
+            <div className="absolute inset-0 pointer-events-none">
+                {/* Large Pixelated Clouds */}
+                <div className="absolute top-20 right-12 w-26 h-18 bg-white opacity-80 animate-pulse" style={{ animationDelay: '0.5s', animationDuration: '5s', clipPath: 'polygon(0 0, 8% 0, 8% 22%, 23% 22%, 23% 0, 69% 0, 69% 17%, 85% 17%, 85% 44%, 92% 44%, 92% 67%, 77% 67%, 77% 83%, 46% 83%, 46% 100%, 15% 100%, 15% 78%, 0 78%)' }}>
+                    <div className="absolute top-2 left-6 w-18 h-14 bg-white" style={{ clipPath: 'polygon(0 0, 11% 0, 11% 29%, 33% 29%, 33% 0, 72% 0, 72% 21%, 89% 21%, 89% 64%, 67% 64%, 67% 100%, 22% 100%, 22% 71%, 0 71%)' }}></div>
+                    <div className="absolute top-4 left-2 w-14 h-10 bg-white" style={{ clipPath: 'polygon(0 0, 14% 0, 14% 30%, 29% 30%, 29% 0, 79% 0, 79% 20%, 93% 20%, 93% 70%, 64% 70%, 64% 100%, 21% 100%, 21% 60%, 0 60%)' }}></div>
+                </div>
+                
+                <div className="absolute top-36 left-16 w-22 h-14 bg-white opacity-75 animate-pulse" style={{ animationDelay: '2.5s', animationDuration: '4.5s', clipPath: 'polygon(0 0, 14% 0, 14% 29%, 27% 29%, 27% 0, 73% 0, 73% 21%, 86% 21%, 86% 57%, 100% 57%, 100% 79%, 73% 79%, 73% 100%, 27% 100%, 27% 71%, 0 71%)' }}>
+                    <div className="absolute top-1 left-4 w-14 h-10 bg-white" style={{ clipPath: 'polygon(0 0, 14% 0, 14% 30%, 36% 30%, 36% 0, 79% 0, 79% 20%, 100% 20%, 100% 70%, 57% 70%, 57% 100%, 21% 100%, 21% 60%, 0 60%)' }}></div>
+                </div>
+                
+                {/* Medium Pixelated Clouds */}
+                <div className="absolute top-52 left-28 w-16 h-10 bg-white opacity-60 animate-pulse" style={{ animationDelay: '1.8s', animationDuration: '5.8s', clipPath: 'polygon(0 0, 13% 0, 13% 30%, 31% 30%, 31% 0, 69% 0, 69% 20%, 88% 20%, 88% 60%, 100% 60%, 100% 80%, 69% 80%, 69% 100%, 31% 100%, 31% 70%, 0 70%)' }}>
+                    <div className="absolute top-1 left-2 w-10 h-6 bg-white" style={{ clipPath: 'polygon(0 0, 20% 0, 20% 33%, 40% 33%, 40% 0, 80% 0, 80% 17%, 100% 17%, 100% 67%, 60% 67%, 60% 100%, 20% 100%, 20% 67%, 0 67%)' }}></div>
+                </div>
+                
+                <div className="absolute top-24 right-24 w-14 h-8 bg-white opacity-55 animate-pulse" style={{ animationDelay: '2.8s', animationDuration: '4.3s', clipPath: 'polygon(0 0, 14% 0, 14% 38%, 29% 38%, 29% 0, 71% 0, 71% 25%, 86% 25%, 86% 63%, 100% 63%, 100% 88%, 71% 88%, 71% 100%, 29% 100%, 29% 75%, 0 75%)' }}>
+                    <div className="absolute top-1 left-1 w-8 h-4 bg-white" style={{ clipPath: 'polygon(0 0, 25% 0, 25% 50%, 50% 50%, 50% 0, 100% 0, 100% 75%, 50% 75%, 50% 100%, 0 100%)' }}></div>
+                </div>
+                
+                {/* Small Pixelated Clouds */}
+                <div className="absolute top-32 left-2/3 w-10 h-5 bg-white opacity-45 animate-pulse" style={{ animationDelay: '2.1s', animationDuration: '6.8s', clipPath: 'polygon(0 0, 20% 0, 20% 40%, 40% 40%, 40% 0, 80% 0, 80% 20%, 100% 20%, 100% 80%, 60% 80%, 60% 100%, 20% 100%, 20% 60%, 0 60%)' }}>
+                    <div className="absolute top-0 left-1 w-5 h-3 bg-white" style={{ clipPath: 'polygon(0 0, 40% 0, 40% 67%, 60% 67%, 60% 0, 100% 0, 100% 100%, 40% 100%, 40% 67%, 0 67%)' }}></div>
+                </div>
+                
+                <div className="absolute top-12 right-1/3 w-8 h-4 bg-white opacity-48 animate-pulse" style={{ animationDelay: '1.2s', animationDuration: '5.1s', clipPath: 'polygon(0 0, 25% 0, 25% 50%, 50% 50%, 50% 0, 75% 0, 75% 25%, 100% 25%, 100% 75%, 75% 75%, 75% 100%, 25% 100%, 25% 75%, 0 75%)' }}>
+                    <div className="absolute top-0 left-1 w-4 h-2 bg-white" style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 100% 100%, 100% 50%, 50% 50%, 50% 0, 0 0)' }}></div>
+                </div>
+            </div>
+
             {renderModal()}
             
             {/* Navigation Bar */}
-            <div className="flex justify-around py-2.5 bg-white">
+            <div className="flex justify-around py-4 bg-transparent relative z-10 mt-4">
                 {navItems.map((item) => (
-                    
-                    
                     <button
                         key={item.label}
-                        // Add test id for Events tab to make it easy to navigate in tests
-                        data-testid={item.label === 'Events' ? 'nav-events' : undefined}
-                        className={`py-2.5 px-3 rounded-lg flex flex-col items-center min-w-[85px] ${
+                        className={`flex flex-col items-center p-4 rounded-2xl transition-all duration-200 ${
                             selected === item.label 
-                                ? item.selectedStyle
+                                ? item.selectedStyle 
                                 : item.textStyle
                         }`}
-                        onClick={() => {
-                            setSelected(item.label);
-                        }}
+                        style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                        onClick={() => setSelected(item.label)}
                     >
-                        {/* Icon placeholder - you can add actual icons here */}
-                        <div className="w-4 h-4 mb-1.5"><item.icon /></div>
-                        <span className="text-xs font-medium">
-                            {item.label}
-                        </span>
+                        <item.icon className="text-2xl mb-2" />
+                        <span className="text-sm font-bold">{item.label}</span>
                     </button>
                 ))}
             </div>
 
             {/* Meeting Tab */}
             {selected === 'Meeting' && (
-                <div className="flex-1 ">
-                    <div className="h-full w-full bg-gradient-to-b from-sky-700 to-sky-950 pr-5 pl-5 ">
-                        <h2 className="text-3xl font-bold text-white text-center pt-5 ">
+                <div className="flex-1 relative z-10 px-4 pb-4">
+                    <div className="bg-gradient-to-br from-blue-200 to-blue-300 rounded-3xl p-6 border-4 border-orange-400 shadow-lg">
+                        <h2 className="text-3xl font-bold text-teal-800 text-center mb-6" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
                             {editMode && editMode.type === 'meeting' ? 'Edit Meeting' : 'Set up a Meeting'}
                         </h2>
 
-                        {/* Start & End Time Row */}
-            <div className="flex flex-wrap gap-5">
-                {/* Start Time */}
-                <div className="flex-1 min-w-[200px]">
-                    <label className="text-lg text-white mb-0 block">Start Time:</label>
-                    <div className="bg-sky-700 rounded-xl mt-2.5">
                         <input
-                            type="datetime-local"
-                            value={formatDateTimeLocal(startDateTime)}
-                            onChange={(e) => setStartDateTime(new Date(e.target.value))}
-                            className="h-12 w-full text-white bg-sky-600 rounded-2xl p-2"
+                            className="border-4 border-blue-400 rounded-2xl p-3 text-teal-800 bg-blue-100 w-full mb-4 font-bold"
+                            style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                            placeholder="Meeting Name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
                         />
-                    </div>
-                </div>
+                        
+                        <input
+                            className="border-4 border-blue-400 rounded-2xl p-3 text-teal-800 bg-blue-100 w-full mb-4 font-bold"
+                            style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                            placeholder="Link/Location"
+                            value={location}
+                            onChange={(e) => setLocation(e.target.value)}
+                        />
 
-                {/* End Time */}
-                <div className="flex-1 min-w-[200px]">
-                    <label className="text-lg text-white mb-0 block">End Time:</label>
-                    <div className="bg-sky-700 rounded-xl mt-2.5">
-                        <input
-                            type="datetime-local"
-                            value={formatDateTimeLocal(endDateTime)}
-                            onChange={(e) => setEndDateTime(new Date(e.target.value))}
-                            className="h-12 w-full text-white bg-sky-600 rounded-2xl p-2"
-                        />
-                    </div>
-                </div>
-            </div>
+                        {/* Start & End Time Row */}
+                        <div className="flex gap-4 mb-4">
+                            {/* Start Time */}
+                            <div className="flex-1">
+                                <label className="text-lg text-teal-800 mb-2 block font-bold" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Start Time:</label>
+                                <input
+                                    type="datetime-local"
+                                    value={formatDateTimeLocal(startDateTime)}
+                                    onChange={(e) => setStartDateTime(new Date(e.target.value))}
+                                    className="border-4 border-blue-400 rounded-2xl p-3 text-teal-800 bg-blue-100 w-full font-bold"
+                                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                />
+                            </div>
+
+                            {/* End Time */}
+                            <div className="flex-1">
+                                <label className="text-lg text-teal-800 mb-2 block font-bold" style={{ fontFamily: 'Pixelify Sans, monospace' }}>End Time:</label>
+                                <input
+                                    type="datetime-local"
+                                    value={formatDateTimeLocal(endDateTime)}
+                                    onChange={(e) => setEndDateTime(new Date(e.target.value))}
+                                    className="border-4 border-blue-400 rounded-2xl p-3 text-teal-800 bg-blue-100 w-full font-bold"
+                                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                />
+                            </div>
+                        </div>
 
                         {/* End Repeat Date Picker for recurring meetings */}
                         {(recurrence === "daily" || recurrence === "mon" || recurrence === "tue" 
@@ -809,77 +849,83 @@ const EventSelection: React.FC = () => {
                             Discard Changes
                             </button>
                         )}
-                        </div>
                     </div>
-                )}
+                </div>
+            )}
 
             {/* Assignment Tab */}
             {selected === "Assignment" && (
-                <div className="min-h-screen bg-gradient-to-b from-amber-700 to-amber-950 p-4">
-                    <h2 className="text-3xl font-bold text-white text-center my-5">
-                        {editMode && editMode.type === 'assignment' ? 'Edit Assignment' : 'Set up an Assignment'}
-                    </h2>
+                <div className="flex-1 relative z-10 px-4 pb-4">
+                    <div className="bg-gradient-to-br from-yellow-200 to-yellow-300 rounded-3xl p-6 border-4 border-orange-400 shadow-lg">
+                        <h2 className="text-3xl font-bold text-teal-800 text-center mb-6" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
+                            {editMode && editMode.type === 'assignment' ? 'Edit Assignment' : 'Set up an Assignment'}
+                        </h2>
 
-                    <label className="text-xl text-white mb-2.5 ml-2.5 ">Name:</label>
-                    <input
-                        className="border border-gray-600 rounded-lg p-2.5 text-white bg-amber-600 ml-2.5 w-[90%]"
-                        placeholder="Assignment"
-                        value={assignment}
-                        onChange={(e) => setAssignment(e.target.value)}
-                    />
-
-                    <div className="flex gap-4 ml-2.5 mt-5">
-                    {/* Effort */}
-                    <div className="flex flex-col w-1/2">
-                        <label className="text-xl text-white mb-2.5">Effort (minutes):</label>
                         <input
-                        type="number"
-                        className="border border-gray-600 rounded-lg p-2.5 text-white bg-amber-600 w-full"
-                        placeholder="Effort in minutes"
-                        value={assignmentEffort}
-                        onChange={(e) => setAssignmentEffort(e.target.value)}
+                            className="border-4 border-yellow-400 rounded-2xl p-3 text-teal-800 bg-yellow-100 w-full mb-4 font-bold"
+                            style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                            placeholder="Assignment Name"
+                            value={assignment}
+                            onChange={(e) => setAssignment(e.target.value)}
                         />
-                    </div>
 
-                    {/* Deadline */}
-                    <div className="flex flex-col w-1/2">
-                        <label className="text-xl text-white mb-2.5">Deadline:</label>
-                        <div className="bg-amber-600 rounded-xl">
-                        <input
-                            type="datetime-local"
-                            value={formatDateTimeLocal(date)}
-                            onChange={(e) => setDate(new Date(e.target.value))}
-                            className="bg-amber-600 rounded-2xl p-2 text-white w-full"
-                        />
+                        <div className="flex gap-4 mb-4">
+                            {/* Effort */}
+                            <div className="flex-1">
+                                <label className="text-lg text-teal-800 mb-2 block font-bold" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Effort (minutes):</label>
+                                <input
+                                    type="number"
+                                    className="border-4 border-yellow-400 rounded-2xl p-3 text-teal-800 bg-yellow-100 w-full font-bold"
+                                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                    placeholder="Effort in minutes"
+                                    value={assignmentEffort}
+                                    onChange={(e) => setAssignmentEffort(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Deadline */}
+                            <div className="flex-1">
+                                <label className="text-lg text-teal-800 mb-2 block font-bold" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Deadline:</label>
+                                <input
+                                    type="datetime-local"
+                                    value={formatDateTimeLocal(date)}
+                                    onChange={(e) => setDate(new Date(e.target.value))}
+                                    className="border-4 border-yellow-400 rounded-2xl p-3 text-teal-800 bg-yellow-100 w-full font-bold"
+                                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                />
+                            </div>
                         </div>
-                    </div>
-                    </div>
-                    <div className="flex flex-wrap gap-5 justify-center">
-                        <button
-                            className="w-2/5 bg-amber-300 rounded-lg py-3 text-black mt-5 mb-5 font-bold text-base hover:bg-gray-100 transition-colors hover:scale-105 border-4 border-amber-400"
-                            onClick={editMode && editMode.type === 'assignment' ? handleEditAssignment : handleAssignment}
-                        >
-                            {editMode && editMode.type === 'assignment' ? 'Update Assignment' : 'Add Event'}
-                        </button>
 
-                    
+                        <div className="flex gap-4 justify-center">
+                            <button
+                                className="flex-1 bg-gradient-to-r from-teal-500 to-blue-500 rounded-2xl py-3 text-white font-bold hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                                style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                onClick={editMode && editMode.type === 'assignment' ? handleEditAssignment : handleAssignment}
+                            >
+                                {editMode && editMode.type === 'assignment' ? 'Update Assignment' : 'Add Assignment'}
+                            </button>
 
-                        <button 
-                            className="w-2/5 bg-amber-300 rounded-lg py-3 text-black mt-5 mb-5 font-bold text-base hover:bg-gray-100 transition-colors hover:scale-105 border-4 border-amber-400"
-                            onClick={() => navigate('/requiresCurrentSchedule/Home')}
-                        >
-                            Go to home
-                        </button>
+                            <button
+                                className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl py-3 text-white font-bold hover:from-orange-600 hover:to-red-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                                style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                onClick={handlePrev}
+                            >
+                                Go to Home
+                            </button>
+                        </div>
+
+                        {editMode && editMode.type === 'assignment' && (
+                            <button
+                                className="w-full bg-gradient-to-r from-gray-400 to-gray-500 rounded-2xl py-3 text-white font-bold hover:from-gray-500 hover:to-gray-600 transform hover:scale-105 transition-all duration-200 shadow-lg mt-4"
+                                style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                onClick={handleDiscardEdit}
+                            >
+                                Discard Changes
+                            </button>
+                        )}
                     </div>
-                    {editMode && editMode.type === 'assignment' && (
-                        <button
-                            className="w-2/5 bg-amber-300 rounded-lg py-3 text-black mt-5 mb-5 font-bold text-base hover:bg-gray-100 transition-colors hover:scale-105 border-4 border-amber-400"
-                            onClick={handleDiscardEdit}
-                        >
-                            Discard Changes
-                        </button>
-                    )}
-            
+                </div>
+            )}
                 </div>
                 
             )}
@@ -887,73 +933,84 @@ const EventSelection: React.FC = () => {
 
             {/* Chore/Study Tab */}
             {selected === "Chore/Study" && (
-                <div className="min-h-screen bg-gradient-to-b from-green-700 to-green-950 p-4">
-                    <h2 className="text-3xl font-bold text-white text-center my-5">
-                        {editMode && editMode.type === 'chore' ? 'Edit Chore/Study' : 'Set up Chore/Study'}
-                    </h2>
-                    
-                    <label className="text-xl text-white mb-2.5 ml-2.5">Name:</label> 
-                    <input
-                        className="border border-gray-600 rounded-lg p-2.5 text-white bg-emerald-500 ml-2.5 w-[90%]"
-                        placeholder="Chore"
-                        value={chore}
-                        onChange={(e) => setChore(e.target.value)}
-                    />
-
-                    <label className="text-xl text-white mb-2.5 ml-2.5 mt-10">Effort (minutes):</label>
-                    <input
-                        type="number"
-                        className="border border-gray-600 rounded-lg p-2.5 text-white bg-emerald-500 ml-2.5 w-[90%]"
-                        placeholder="Effort in minutes"
-                        value={choreEffort}
-                        onChange={(e) => setChoreEffort(e.target.value)}
-                    />
-                    <div className="flex gap-4 ml-2.5 mt-5">
-                    <label className="text-xl text-white mb-0 mt-5 ml-2.5">Window Start:</label>
-                    <div className="bg-emerald-800 rounded-xl self-start mt-2.5 ml-2.5">
+                <div className="flex-1 relative z-10 px-4 pb-4">
+                    <div className="bg-gradient-to-br from-green-200 to-green-300 rounded-3xl p-6 border-4 border-orange-400 shadow-lg">
+                        <h2 className="text-3xl font-bold text-teal-800 text-center mb-6" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
+                            {editMode && editMode.type === 'chore' ? 'Edit Chore/Study' : 'Set up Chore/Study'}
+                        </h2>
+                        
                         <input
-                            type="datetime-local"
-                            value={formatDateTimeLocal(choreWindowStart)}
-                            onChange={(e) => setChoreWindowStart(new Date(e.target.value))}
-                            className="bg-emerald-700 rounded-2xl p-2 text-white"
+                            className="border-4 border-green-400 rounded-2xl p-3 text-teal-800 bg-green-100 w-full mb-4 font-bold"
+                            style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                            placeholder="Chore/Study Name"
+                            value={chore}
+                            onChange={(e) => setChore(e.target.value)}
                         />
-                    </div>
 
-                    <label className="text-xl text-white mb-0 mt-5 ml-2.5">Window End:</label>
-                    <div className="bg-emerald-800 rounded-xl self-start mt-2.5 ml-2.5">
-                        <input
-                            type="datetime-local"
-                            value={formatDateTimeLocal(choreWindowEnd)}
-                            onChange={(e) => setChoreWindowEnd(new Date(e.target.value))}
-                            className="bg-emerald-700 rounded-2xl p-2 text-white"
-                        />
-                    </div>
-                    </div>
-                    <div className="flex flex-wrap gap-5 justify-center">
-                    <button
-                        className="w-2/5 bg-emerald-300 rounded-lg py-3 text-black mt-5 mb-5 font-bold text-base hover:bg-emerald-200 transition-colors hover:scale-105 border-4 border-emerald-400"
-                        onClick={editMode && editMode.type === 'chore' ? handleEditChore : handleChore}
-                    >
-                        {editMode && editMode.type === 'chore' ? 'Update Chore' : 'Add Event'}
-                    </button>
+                        <div className="mb-4">
+                            <label className="text-lg text-teal-800 mb-2 block font-bold" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Effort (minutes):</label>
+                            <input
+                                type="number"
+                                className="border-4 border-green-400 rounded-2xl p-3 text-teal-800 bg-green-100 w-full font-bold"
+                                style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                placeholder="Effort in minutes"
+                                value={choreEffort}
+                                onChange={(e) => setChoreEffort(e.target.value)}
+                            />
+                        </div>
 
-                    
+                        <div className="flex gap-4 mb-4">
+                            <div className="flex-1">
+                                <label className="text-lg text-teal-800 mb-2 block font-bold" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Window Start:</label>
+                                <input
+                                    type="datetime-local"
+                                    value={formatDateTimeLocal(choreWindowStart)}
+                                    onChange={(e) => setChoreWindowStart(new Date(e.target.value))}
+                                    className="border-4 border-green-400 rounded-2xl p-3 text-teal-800 bg-green-100 w-full font-bold"
+                                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                />
+                            </div>
 
-                    <button 
-                        className="w-2/5 bg-emerald-300 rounded-lg py-3 text-black mt-5 mb-5 font-bold text-base hover:bg-emerald-200 transition-colors hover:scale-105 border-4 border-emerald-400"
-                        onClick={() => navigate('/requiresCurrentSchedule/Home')}
-                    >
-                        Go to home
-                    </button>
-                </div>
-                    {editMode && editMode.type === 'chore' && (
+                            <div className="flex-1">
+                                <label className="text-lg text-teal-800 mb-2 block font-bold" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Window End:</label>
+                                <input
+                                    type="datetime-local"
+                                    value={formatDateTimeLocal(choreWindowEnd)}
+                                    onChange={(e) => setChoreWindowEnd(new Date(e.target.value))}
+                                    className="border-4 border-green-400 rounded-2xl p-3 text-teal-800 bg-green-100 w-full font-bold"
+                                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4 justify-center">
                             <button
-                                className="bg-emerald-300 rounded-lg py-3 mt-2.5 w-4/5 self-center mx-auto block text-gray-800 font-bold text-base hover:bg-emerald-200 hover:scale-105 border-4 border-emerald-400 transition-colors"
+                                className="flex-1 bg-gradient-to-r from-teal-500 to-blue-500 rounded-2xl py-3 text-white font-bold hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                                style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                onClick={editMode && editMode.type === 'chore' ? handleEditChore : handleChore}
+                            >
+                                {editMode && editMode.type === 'chore' ? 'Update Chore' : 'Add Chore'}
+                            </button>
+
+                            <button
+                                className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl py-3 text-white font-bold hover:from-orange-600 hover:to-red-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                                style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                onClick={handlePrev}
+                            >
+                                Go to Home
+                            </button>
+                        </div>
+
+                        {editMode && editMode.type === 'chore' && (
+                            <button
+                                className="w-full bg-gradient-to-r from-gray-400 to-gray-500 rounded-2xl py-3 text-white font-bold hover:from-gray-500 hover:to-gray-600 transform hover:scale-105 transition-all duration-200 shadow-lg mt-4"
+                                style={{ fontFamily: 'Pixelify Sans, monospace' }}
                                 onClick={handleDiscardEdit}
                             >
                                 Discard Changes
                             </button>
                         )}
+                    </div>
                 </div>
             )}
 

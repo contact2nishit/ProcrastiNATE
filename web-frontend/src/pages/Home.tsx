@@ -233,10 +233,10 @@ const Home = () => {
     };
 
     const getCardStyle = (type: string) => {
-        if (type === 'meeting') return 'bg-indigo-100 border-l-6 border-indigo-500';
-        if (type === 'assignment') return 'bg-yellow-100 border-l-6 border-yellow-500';
-        if (type === 'chore') return 'bg-green-100 border-l-6 border-green-500';
-        return '';
+        if (type === 'meeting') return 'bg-gradient-to-br from-blue-200 to-blue-300 border-4 border-orange-400 rounded-3xl shadow-lg';
+        if (type === 'assignment') return 'bg-gradient-to-br from-yellow-200 to-yellow-300 border-4 border-orange-400 rounded-3xl shadow-lg';
+        if (type === 'chore') return 'bg-gradient-to-br from-green-200 to-green-300 border-4 border-orange-400 rounded-3xl shadow-lg';
+        return 'bg-white border-4 border-orange-400 rounded-3xl shadow-lg';
     };
     const [completedMap, setCompletedMap] = useState<{ [key: string]: boolean }>({});
     useEffect(() => {
@@ -505,18 +505,88 @@ const Home = () => {
     }
     return (
         <ThemeProvider theme={theme}>
-            <div className="min-h-screen bg-gray-100 flex flex-col">
+            <div className="min-h-screen flex flex-col" style={{ 
+                background: 'linear-gradient(135deg, #87CEEB 0%, #E0F6FF 30%, #B8E6FF 60%, #87CEEB 100%)',
+                fontFamily: 'Pixelify Sans, monospace'
+            }}>
+                {/* Floating Clouds - Pixelated Style */}
+                <div className="absolute inset-0 pointer-events-none">
+                    {/* Large Pixelated Clouds */}
+                    <div className="absolute top-20 right-12 w-26 h-18 bg-white opacity-80 animate-pulse" style={{ animationDelay: '0.5s', animationDuration: '5s', clipPath: 'polygon(0 0, 8% 0, 8% 22%, 23% 22%, 23% 0, 69% 0, 69% 17%, 85% 17%, 85% 44%, 92% 44%, 92% 67%, 77% 67%, 77% 83%, 46% 83%, 46% 100%, 15% 100%, 15% 78%, 0 78%)' }}>
+                        <div className="absolute top-2 left-6 w-18 h-14 bg-white" style={{ clipPath: 'polygon(0 0, 11% 0, 11% 29%, 33% 29%, 33% 0, 72% 0, 72% 21%, 89% 21%, 89% 64%, 67% 64%, 67% 100%, 22% 100%, 22% 71%, 0 71%)' }}></div>
+                        <div className="absolute top-4 left-2 w-14 h-10 bg-white" style={{ clipPath: 'polygon(0 0, 14% 0, 14% 30%, 29% 30%, 29% 0, 79% 0, 79% 20%, 93% 20%, 93% 70%, 64% 70%, 64% 100%, 21% 100%, 21% 60%, 0 60%)' }}></div>
+                    </div>
+                    
+                    <div className="absolute top-36 left-16 w-22 h-14 bg-white opacity-75 animate-pulse" style={{ animationDelay: '2.5s', animationDuration: '4.5s', clipPath: 'polygon(0 0, 14% 0, 14% 29%, 27% 29%, 27% 0, 73% 0, 73% 21%, 86% 21%, 86% 57%, 100% 57%, 100% 79%, 73% 79%, 73% 100%, 27% 100%, 27% 71%, 0 71%)' }}>
+                        <div className="absolute top-1 left-4 w-14 h-10 bg-white" style={{ clipPath: 'polygon(0 0, 14% 0, 14% 30%, 36% 30%, 36% 0, 79% 0, 79% 20%, 100% 20%, 100% 70%, 57% 70%, 57% 100%, 21% 100%, 21% 60%, 0 60%)' }}></div>
+                    </div>
+                    
+                    {/* Additional Large Clouds */}
+                    <div className="absolute top-16 left-1/2 w-24 h-16 bg-white opacity-70 animate-pulse" style={{ animationDelay: '3.2s', animationDuration: '6.2s', clipPath: 'polygon(0 0, 12% 0, 12% 25%, 25% 25%, 25% 0, 75% 0, 75% 19%, 88% 19%, 88% 56%, 100% 56%, 100% 81%, 75% 81%, 75% 100%, 25% 100%, 25% 69%, 0 69%)' }}>
+                        <div className="absolute top-2 left-3 w-16 h-12 bg-white" style={{ clipPath: 'polygon(0 0, 13% 0, 13% 33%, 31% 33%, 31% 0, 75% 0, 75% 25%, 88% 25%, 88% 67%, 63% 67%, 63% 100%, 25% 100%, 25% 75%, 0 75%)' }}></div>
+                    </div>
+                    
+                    <div className="absolute top-44 right-8 w-20 h-12 bg-white opacity-65 animate-pulse" style={{ animationDelay: '4.1s', animationDuration: '5.4s', clipPath: 'polygon(0 0, 15% 0, 15% 33%, 30% 33%, 30% 0, 70% 0, 70% 25%, 85% 25%, 85% 58%, 100% 58%, 100% 83%, 70% 83%, 70% 100%, 30% 100%, 30% 67%, 0 67%)' }}>
+                        <div className="absolute top-1 left-2 w-14 h-8 bg-white" style={{ clipPath: 'polygon(0 0, 18% 0, 18% 38%, 36% 38%, 36% 0, 82% 0, 82% 25%, 100% 25%, 100% 75%, 64% 75%, 64% 100%, 18% 100%, 18% 63%, 0 63%)' }}></div>
+                    </div>
+                    
+                    {/* Medium Pixelated Clouds */}
+                    <div className="absolute top-52 left-28 w-16 h-10 bg-white opacity-60 animate-pulse" style={{ animationDelay: '1.8s', animationDuration: '5.8s', clipPath: 'polygon(0 0, 13% 0, 13% 30%, 31% 30%, 31% 0, 69% 0, 69% 20%, 88% 20%, 88% 60%, 100% 60%, 100% 80%, 69% 80%, 69% 100%, 31% 100%, 31% 70%, 0 70%)' }}>
+                        <div className="absolute top-1 left-2 w-10 h-6 bg-white" style={{ clipPath: 'polygon(0 0, 20% 0, 20% 33%, 40% 33%, 40% 0, 80% 0, 80% 17%, 100% 17%, 100% 67%, 60% 67%, 60% 100%, 20% 100%, 20% 67%, 0 67%)' }}></div>
+                    </div>
+                    
+                    <div className="absolute top-24 right-24 w-14 h-8 bg-white opacity-55 animate-pulse" style={{ animationDelay: '2.8s', animationDuration: '4.3s', clipPath: 'polygon(0 0, 14% 0, 14% 38%, 29% 38%, 29% 0, 71% 0, 71% 25%, 86% 25%, 86% 63%, 100% 63%, 100% 88%, 71% 88%, 71% 100%, 29% 100%, 29% 75%, 0 75%)' }}>
+                        <div className="absolute top-1 left-1 w-8 h-4 bg-white" style={{ clipPath: 'polygon(0 0, 25% 0, 25% 50%, 50% 50%, 50% 0, 100% 0, 100% 75%, 50% 75%, 50% 100%, 0 100%)' }}></div>
+                    </div>
+                    
+                    {/* Additional Medium Clouds */}
+                    <div className="absolute top-60 right-20 w-18 h-12 bg-white opacity-55 animate-pulse" style={{ animationDelay: '1.5s', animationDuration: '4.8s', clipPath: 'polygon(0 0, 17% 0, 17% 33%, 33% 33%, 33% 0, 67% 0, 67% 25%, 83% 25%, 83% 58%, 100% 58%, 100% 83%, 67% 83%, 67% 100%, 33% 100%, 33% 67%, 0 67%)' }}>
+                        <div className="absolute top-1 left-2 w-12 h-8 bg-white" style={{ clipPath: 'polygon(0 0, 17% 0, 17% 38%, 33% 38%, 33% 0, 75% 0, 75% 25%, 92% 25%, 92% 75%, 58% 75%, 58% 100%, 25% 100%, 25% 63%, 0 63%)' }}></div>
+                    </div>
+                    
+                    <div className="absolute top-8 left-8 w-16 h-10 bg-white opacity-50 animate-pulse" style={{ animationDelay: '3.8s', animationDuration: '5.3s', clipPath: 'polygon(0 0, 13% 0, 13% 30%, 31% 30%, 31% 0, 69% 0, 69% 20%, 88% 20%, 88% 60%, 100% 60%, 100% 80%, 69% 80%, 69% 100%, 31% 100%, 31% 70%, 0 70%)' }}>
+                        <div className="absolute top-1 left-2 w-10 h-6 bg-white" style={{ clipPath: 'polygon(0 0, 20% 0, 20% 33%, 40% 33%, 40% 0, 80% 0, 80% 17%, 100% 17%, 100% 67%, 60% 67%, 60% 100%, 20% 100%, 20% 67%, 0 67%)' }}></div>
+                    </div>
+                    
+                    {/* Small Pixelated Clouds */}
+                    <div className="absolute top-32 left-2/3 w-10 h-5 bg-white opacity-45 animate-pulse" style={{ animationDelay: '2.1s', animationDuration: '6.8s', clipPath: 'polygon(0 0, 20% 0, 20% 40%, 40% 40%, 40% 0, 80% 0, 80% 20%, 100% 20%, 100% 80%, 60% 80%, 60% 100%, 20% 100%, 20% 60%, 0 60%)' }}>
+                        <div className="absolute top-0 left-1 w-5 h-3 bg-white" style={{ clipPath: 'polygon(0 0, 40% 0, 40% 67%, 60% 67%, 60% 0, 100% 0, 100% 100%, 40% 100%, 40% 67%, 0 67%)' }}></div>
+                    </div>
+                    
+                    <div className="absolute top-12 right-1/3 w-8 h-4 bg-white opacity-48 animate-pulse" style={{ animationDelay: '1.2s', animationDuration: '5.1s', clipPath: 'polygon(0 0, 25% 0, 25% 50%, 50% 50%, 50% 0, 75% 0, 75% 25%, 100% 25%, 100% 75%, 75% 75%, 75% 100%, 25% 100%, 25% 75%, 0 75%)' }}>
+                        <div className="absolute top-0 left-1 w-4 h-2 bg-white" style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 100% 100%, 100% 50%, 50% 50%, 50% 0, 0 0)' }}></div>
+                    </div>
+                    
+                    <div className="absolute top-8 left-1/4 w-6 h-3 bg-white opacity-40 animate-pulse" style={{ animationDelay: '3.3s', animationDuration: '4.7s', clipPath: 'polygon(0 0, 33% 0, 33% 67%, 67% 67%, 67% 0, 100% 0, 100% 100%, 67% 100%, 67% 67%, 0 67%)' }}>
+                        <div className="absolute top-0 left-1 w-4 h-2 bg-white" style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 100% 100%, 100% 50%, 50% 50%, 50% 0, 0 0)' }}></div>
+                    </div>
+                    
+                    {/* Additional Small Clouds */}
+                    <div className="absolute top-48 left-8 w-12 h-6 bg-white opacity-42 animate-pulse" style={{ animationDelay: '2.9s', animationDuration: '5.7s', clipPath: 'polygon(0 0, 17% 0, 17% 33%, 33% 33%, 33% 0, 67% 0, 67% 17%, 83% 17%, 83% 67%, 100% 67%, 100% 83%, 67% 83%, 67% 100%, 33% 100%, 33% 67%, 0 67%)' }}>
+                        <div className="absolute top-0 left-1 w-8 h-4 bg-white" style={{ clipPath: 'polygon(0 0, 25% 0, 25% 50%, 50% 50%, 50% 0, 75% 0, 75% 25%, 100% 25%, 100% 75%, 50% 75%, 50% 100%, 25% 100%, 25% 75%, 0 75%)' }}></div>
+                    </div>
+                    
+                    <div className="absolute top-72 right-16 w-10 h-5 bg-white opacity-38 animate-pulse" style={{ animationDelay: '4.5s', animationDuration: '6.1s', clipPath: 'polygon(0 0, 20% 0, 20% 40%, 40% 40%, 40% 0, 80% 0, 80% 20%, 100% 20%, 100% 80%, 60% 80%, 60% 100%, 20% 100%, 20% 60%, 0 60%)' }}>
+                        <div className="absolute top-0 left-1 w-6 h-3 bg-white" style={{ clipPath: 'polygon(0 0, 33% 0, 33% 67%, 67% 67%, 67% 0, 100% 0, 100% 100%, 67% 100%, 67% 67%, 0 67%)' }}></div>
+                    </div>
+                    
+                    <div className="absolute top-4 right-2 w-8 h-4 bg-white opacity-35 animate-pulse" style={{ animationDelay: '1.7s', animationDuration: '4.4s', clipPath: 'polygon(0 0, 25% 0, 25% 50%, 50% 50%, 50% 0, 75% 0, 75% 25%, 100% 25%, 100% 75%, 75% 75%, 75% 100%, 25% 100%, 25% 75%, 0 75%)' }}>
+                        <div className="absolute top-0 left-1 w-4 h-2 bg-white" style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 100% 100%, 100% 50%, 50% 50%, 50% 0, 0 0)' }}></div>
+                    </div>
+                </div>
+
                 {loading && (
                     <div className="text-center py-4">
-                        <p className="text-gray-600">Loading...</p>
+                        <p className="text-gray-600" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Loading...</p>
                     </div>
                 )}
                 
                 <div className="flex justify-between items-center mt-5 mx-4">
                     <button 
                         onClick={handleBack}
-                        className="bg-gray-800 rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
+                        className="bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-2xl w-12 h-12 flex items-center justify-center shadow-lg hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200"
                         data-testid="logout-button"
+                        style={{ fontFamily: 'Pixelify Sans, monospace' }}
                     >
                         <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
@@ -524,8 +594,9 @@ const Home = () => {
                     </button>
                     <button 
                         onClick={calendarProceed} 
-                        className="bg-gray-800 rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
+                        className="bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-2xl w-12 h-12 flex items-center justify-center shadow-lg hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200"
                         data-testid="calendar-view-button"
+                        style={{ fontFamily: 'Pixelify Sans, monospace' }}
                     >
                         <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
@@ -534,17 +605,17 @@ const Home = () => {
                 </div>
                 
                 <div className="text-center mt-5">
-                    <h1 className="text-xl font-bold text-gray-800">
+                    <h1 className="text-xl font-bold text-teal-800" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
                         {levelInfo ? `Welcome, ${levelInfo.user_name}!` : `Welcome!`}
                     </h1>
                 </div>
                 
                 {levelInfo && (
                     <div className="text-center mt-2">
-                        <p className="text-lg font-bold">
+                        <p className="text-lg font-bold text-teal-800" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
                             Level: {levelInfo.level}
                         </p>
-                        <p className="text-base mt-1">
+                        <p className="text-base mt-1 text-teal-700" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
                             XP: {levelInfo.xp} / {xpForNextLevel}
                         </p>
                         <Box sx={{ width: '250px', margin: '8px auto' }}>
@@ -553,73 +624,81 @@ const Home = () => {
                                 value={Math.min((levelInfo.xp / xpForNextLevel) * 100, 100)} 
                             />
                         </Box>
-                        <p className="text-sm mt-1">
+                        <p className="text-sm mt-1 text-teal-700" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
                             {xpForNextLevel - levelInfo.xp} XP to next level
                         </p>
                     </div>
                 )}
                 
-                <h2 className="text-2xl font-bold text-center mt-5 ml-2 text-gray-800" data-testid="today-schedule-title">To Do List for Today</h2>
+                <h2 className="text-2xl font-bold text-center mt-5 ml-2 text-teal-800" data-testid="today-schedule-title" style={{ fontFamily: 'Pixelify Sans, monospace' }}>To Do List for Today</h2>
                 
                 <div className="flex-1 overflow-y-auto pb-24">
                     {todoList.map((item, idx) => (
-                        <div key={item.id ?? idx} className={`mx-4 my-2 rounded-xl p-4 shadow-sm ${getCardStyle(item.type)}`} data-testid={`schedule-item-${item.name.replace(/\s+/g, '-').toLowerCase()}`}>
-                            <h3 className="text-lg font-bold text-gray-900" data-testid={`item-name-${item.name.replace(/\s+/g, '-').toLowerCase()}`}>{item.name}</h3>
-                            <p className="text-sm text-gray-600 mt-0.5 mb-1">{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</p>
-                            <p className="text-base text-gray-800 mt-0.5">
+                        <div key={item.id ?? idx} className={`mx-4 my-2 p-4 ${getCardStyle(item.type)} relative z-10`} data-testid={`schedule-item-${item.name.replace(/\s+/g, '-').toLowerCase()}`}>
+                            <h3 className="text-lg font-bold text-teal-800" data-testid={`item-name-${item.name.replace(/\s+/g, '-').toLowerCase()}`} style={{ fontFamily: 'Pixelify Sans, monospace' }}>{item.name}</h3>
+                            <p className="text-sm text-teal-700 mt-0.5 mb-1" style={{ fontFamily: 'Pixelify Sans, monospace' }}>{item.type.charAt(0).toUpperCase() + item.type.slice(1)}</p>
+                            <p className="text-base text-teal-800 mt-0.5" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
                                 {new Date(item.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(item.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
                             
                             {/* Mark session completed for assignments and chores */}
                             {(item.type === 'assignment' || item.type === 'chore') && item.id && (
                                 <>
-                                    {completedMap[item.id] ? (
-                                        <p className="text-green-600 font-bold mt-2 text-lg">✓ Completed</p>
-                                    ) : (
+                                    <div className="flex justify-between items-center mt-2 gap-2">
+                                        {completedMap[item.id] ? (
+                                            <p className="text-green-600 font-bold text-lg flex-1" style={{ fontFamily: 'Pixelify Sans, monospace' }}>✓ Completed</p>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    className="flex-1 bg-gradient-to-r from-teal-500 to-blue-500 rounded-2xl py-2 px-4 text-white font-bold hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                                                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                                    data-testid={`mark-completed-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
+                                                    onClick={() => {
+                                                        const now = new Date();
+                                                        const startTime = new Date(item.start);
+                                                        if (startTime > now) {
+                                                            alert(
+                                                                "This session hasn't started yet. You can only mark it completed after its start time. If you don't need this assignment or chore on your calendar any longer, you can delete it using the Delete button."
+                                                            );
+                                                            return;
+                                                        }
+                                                        setModalType('markSession');
+                                                        setModalVisible(true);
+                                                        setSelectedSessionToComplete({occurence_id: item.id as string, is_assignment: item.type === 'assignment'});
+                                                    }}
+                                                >
+                                                    Mark Completed
+                                                </button>
+                                                {/* Delete button for assignments/chores - only show when not completed */}
+                                                <button
+                                                    className="flex-1 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl py-2 px-4 text-white font-bold hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                                                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                                    data-testid={`delete-${item.type}-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
+                                                    onClick={() => handleDeleteEvent(item.id as string, item.type as "assignment" | "chore")}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </>
+                                        )}
+                                        {/* Reschedule button - always show */}
                                         <button
-                                            className="mt-2 bg-gray-800 rounded-md py-2 px-4 text-white font-bold hover:bg-gray-700 transition-colors"
-                                            data-testid={`mark-completed-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
-                                            onClick={() => {
-                                                const now = new Date();
-                                                const startTime = new Date(item.start);
-                                                if (startTime > now) {
-                                                    alert(
-                                                        "This session hasn't started yet. You can only mark it completed after its start time. If you don't need this assignment or chore on your calendar any longer, you can delete it using the Delete button."
-                                                    );
-                                                    return;
-                                                }
-                                                setModalType('markSession');
-                                                setModalVisible(true);
-                                                setSelectedSessionToComplete({occurence_id: item.id as string, is_assignment: item.type === 'assignment'});
-                                            }}
+                                            className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl py-2 px-4 text-white font-bold hover:from-orange-600 hover:to-orange-700 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                                            style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                            data-testid={`reschedule-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
+                                            onClick={() => handleReschedule(item)}
                                         >
-                                            Mark Session Completed
+                                            Reschedule
                                         </button>
-                                    )}
-                                    {/* Delete button for assignments/chores */}
-                                    <button
-                                        className="mt-2 bg-red-600 rounded-md py-2 px-4 text-white font-bold hover:bg-red-700 transition-colors"
-                                        data-testid={`delete-${item.type}-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
-                                        onClick={() => handleDeleteEvent(item.id as string, item.type as "assignment" | "chore")}
-                                    >
-                                        Delete
-                                    </button>
-                                    {/* Reschedule button */}
-                                    <button
-                                        className="mt-2 ml-2 bg-blue-600 rounded-md py-2 px-4 text-white font-bold hover:bg-blue-700 transition-colors"
-                                        data-testid={`reschedule-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
-                                        onClick={() => handleReschedule(item)}
-                                    >
-                                        Reschedule
-                                    </button>
+                                    </div>
                                 </>
                             )}
                             
                             {/* Update/Delete for meetings */}
                             {item.type === 'meeting' && (
-                                <div className="flex mt-2 space-x-2">
+                                <div className="flex justify-between items-center mt-2 gap-2">
                                     <button
-                                        className="bg-blue-600 rounded-md py-2 px-3 text-white font-bold hover:bg-blue-700 transition-colors"
+                                        className="flex-1 bg-gradient-to-r from-teal-500 to-blue-500 rounded-2xl py-2 px-4 text-white font-bold hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                                        style={{ fontFamily: 'Pixelify Sans, monospace' }}
                                         data-testid={`update-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
                                         onClick={() => {
                                             setModalType('update');
@@ -635,7 +714,8 @@ const Home = () => {
                                         Update
                                     </button>
                                     <button
-                                        className="bg-red-600 rounded-md py-2 px-3 text-white font-bold hover:bg-red-700 transition-colors"
+                                        className="flex-1 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl py-2 px-4 text-white font-bold hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                                        style={{ fontFamily: 'Pixelify Sans, monospace' }}
                                         data-testid={`delete-button-${item.name.replace(/\s+/g, '-').toLowerCase()}`}
                                         onClick={() => {
                                             setModalType('delete');
@@ -651,26 +731,28 @@ const Home = () => {
                     ))}
                     
                     {todoList.length === 0 && (
-                        <p className="text-gray-700 m-5 text-lg text-center" data-testid="no-events-message">No events for today.</p>
+                        <p className="text-teal-800 m-5 text-lg text-center" data-testid="no-events-message" style={{ fontFamily: 'Pixelify Sans, monospace' }}>No events for today.</p>
                     )}
                     
                     <div className="text-center mt-10 mb-1">
                         <button 
                             onClick={handleAddEvent} 
-                            className="bg-black rounded-full text-white w-12 h-12 text-4xl font-bold hover:bg-gray-800 transition-colors"
+                            className="bg-gradient-to-r from-teal-500 to-blue-500 rounded-2xl text-white w-12 h-12 text-4xl font-bold hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
                             data-testid="add-event-button"
+                            style={{ fontFamily: 'Pixelify Sans, monospace' }}
                         >
                             +
                         </button>
-                        <p className="text-sm text-center mt-1">Add event</p>
+                        <p className="text-sm text-center mt-1 text-teal-800" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Add event</p>
                     </div>
                 </div>
                 
                 <button 
                     onClick={handleSyncGoogleCalendar} 
                     disabled={loading}
-                    className="bg-blue-600 p-3 rounded-lg mt-8 mx-4 mb-2 text-center text-white font-bold text-base hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="bg-gradient-to-r from-orange-500 to-red-500 p-3 rounded-2xl mt-8 mx-4 mb-2 text-center text-white font-bold text-base hover:from-orange-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-all duration-200 shadow-lg"
                     data-testid="sync-button"
+                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
                 >
                     {loading ? 'Syncing...' : 'Sync Google Calendar'}
                 </button>
@@ -855,7 +937,8 @@ const Home = () => {
                 )}
                 <button 
                     onClick={handleBack}
-                    className="bg-black p-2 rounded-md mt-2 ml-2 mb-4 text-white w-36 text-base text-center hover:bg-gray-800 transition-colors"
+                    className="bg-gradient-to-r from-teal-500 to-blue-500 p-2 rounded-2xl mt-2 ml-2 mb-4 text-white w-36 text-base text-center hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
                 >
                     Back to Login
                 </button>
