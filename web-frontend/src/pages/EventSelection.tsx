@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, ReactElement } from 'react';
 import { FaCalendarAlt, FaBookOpen, FaTasks, FaCalendarCheck } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import config from '../config';
 import { usePotentialScheduleContext } from '../context/PotentialScheduleContext';
 import { formatDateTimeLocal, formatDateLocal } from '../calendarUtils';
-
+import { IconType } from 'react-icons';
 
 const EventSelection: React.FC = () => {
     const { potentialSchedules, setPotentialSchedules } = usePotentialScheduleContext();
@@ -72,7 +72,7 @@ const EventSelection: React.FC = () => {
     const [meetingRepeatEnd, setMeetingRepeatEnd] = useState(new Date());
     interface NavItem {
     label: string;
-    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+    icon: IconType;
     textStyle?: string;
     selectedStyle?: string;
     }
@@ -81,26 +81,26 @@ const EventSelection: React.FC = () => {
   {
     label: 'Meeting',
     icon: FaCalendarAlt,
-    textStyle: ' bg-blue-500 text-black',
-    selectedStyle:' bg-blue-600 text-white border border-white  ',
+    textStyle: ' bg-blue-500 text-black hover:scale-110',
+    selectedStyle:' bg-blue-600 text-white border border-white hover:scale-110',
   },
   {
     label: 'Assignment',
     icon: FaBookOpen,
-    textStyle: ' bg-yellow-500 text-black',
-    selectedStyle: ' bg-yellow-600 text-white border border-white  ',
+    textStyle: ' bg-yellow-500 text-black hover:scale-110',
+    selectedStyle: ' bg-yellow-600 text-white border border-white hover:scale-110',
   },
   {
     label: 'Chore/Study',
     icon: FaTasks,
-    textStyle: ' bg-green-500 text-black',
-    selectedStyle: ' bg-green-600 text-white border border-white  ',
+    textStyle: ' bg-green-500 text-black hover:scale-110',
+    selectedStyle: ' bg-green-600 text-white border border-white hover:scale-110 ',
   },
   {
     label: 'Events',
     icon: FaCalendarCheck,
-    textStyle: ' bg-stone-500 text-black',
-    selectedStyle: 'bg-stone-600 text-white border border-white  ',
+    textStyle: ' bg-stone-500 text-black hover:scale-110',
+    selectedStyle: 'bg-stone-600 text-white border border-white hover:scale-110 ',
   },
 ];
 
@@ -784,9 +784,9 @@ const EventSelection: React.FC = () => {
                                 <option value="sun">Every Sun</option>
                             </select>
                         </div>
-                        <div className="flex flex-wrap gap-4 justify-center">
+                        <div className="flex flex-wrap gap-5 justify-center">
                         <button
-                            className="flex-1 min-w-[150px] bg-sky-300 rounded-lg py-3 text-black mt-5 mb-5 font-bold text-base hover:bg-gray-100 transition-colors"
+                            className="w-2/5 bg-sky-300 rounded-lg py-3 text-black mt-5 mb-5 font-bold text-base hover:bg-gray-100 transition-colors hover:scale-105 border-4 border-sky-400"
                             onClick={editMode && editMode.type === 'meeting' ? handleEditMeeting : handleMeeting}
                         >
                             {editMode && editMode.type === 'meeting' ? 'Update Meeting' : 'Add Event'}
@@ -795,7 +795,7 @@ const EventSelection: React.FC = () => {
                         
 
                         <button
-                            className="flex-1 min-w-[150px] bg-sky-300 rounded-lg py-3 mt-5 mb-5 text-black font-bold text-base hover:bg-gray-100 transition-colors"
+                            className="w-2/5 bg-sky-300 rounded-lg py-3 mt-5 mb-5 text-black font-bold text-base hover:bg-gray-100 transition-colors hover:scale-105 border-4 border-sky-400"
                             onClick={handlePrev}
                         >
                             Go to Home
@@ -854,9 +854,9 @@ const EventSelection: React.FC = () => {
                         </div>
                     </div>
                     </div>
-                    <div className="flex gap-4 ml-2.5 mt-5">
+                    <div className="flex flex-wrap gap-5 justify-center">
                         <button
-                            className="bg-amber-400 rounded-lg py-3 mt-5 w-2/5 self-center mx-auto block text-black font-bold text-base hover:bg-amber-200 transition-colors"
+                            className="w-2/5 bg-amber-300 rounded-lg py-3 text-black mt-5 mb-5 font-bold text-base hover:bg-gray-100 transition-colors hover:scale-105 border-4 border-amber-400"
                             onClick={editMode && editMode.type === 'assignment' ? handleEditAssignment : handleAssignment}
                         >
                             {editMode && editMode.type === 'assignment' ? 'Update Assignment' : 'Add Event'}
@@ -865,7 +865,7 @@ const EventSelection: React.FC = () => {
                     
 
                         <button 
-                            className="bg-amber-400 rounded-lg py-3 w-2/5 mt-5 self-center mx-auto block text-black font-bold text-base hover:bg-amber-200 transition-colors"
+                            className="w-2/5 bg-amber-300 rounded-lg py-3 text-black mt-5 mb-5 font-bold text-base hover:bg-gray-100 transition-colors hover:scale-105 border-4 border-amber-400"
                             onClick={() => navigate('/requiresCurrentSchedule/Home')}
                         >
                             Go to home
@@ -873,7 +873,7 @@ const EventSelection: React.FC = () => {
                     </div>
                     {editMode && editMode.type === 'assignment' && (
                         <button
-                            className="bg-amber-300 rounded-lg py-3 mt-5 w-4/5 self-center mx-auto block text-gray-800 font-bold text-base hover:bg-amber-500 transition-colors"
+                            className="w-2/5 bg-amber-300 rounded-lg py-3 text-black mt-5 mb-5 font-bold text-base hover:bg-gray-100 transition-colors hover:scale-105 border-4 border-amber-400"
                             onClick={handleDiscardEdit}
                         >
                             Discard Changes
@@ -929,9 +929,9 @@ const EventSelection: React.FC = () => {
                         />
                     </div>
                     </div>
-                    <div className="flex gap-4 ml-2.5 mt-5">
+                    <div className="flex flex-wrap gap-5 justify-center">
                     <button
-                        className="bg-emerald-400 rounded-lg py-3 mt-27 w-4/5 self-center mx-auto block text-black font-bold text-base hover:bg-emerald-200 transition-colors"
+                        className="w-2/5 bg-emerald-300 rounded-lg py-3 text-black mt-5 mb-5 font-bold text-base hover:bg-emerald-200 transition-colors hover:scale-105 border-4 border-emerald-400"
                         onClick={editMode && editMode.type === 'chore' ? handleEditChore : handleChore}
                     >
                         {editMode && editMode.type === 'chore' ? 'Update Chore' : 'Add Event'}
@@ -940,7 +940,7 @@ const EventSelection: React.FC = () => {
                     
 
                     <button 
-                        className="bg-emerald-400 rounded-lg py-3 mt-2 w-4/5 self-center mx-auto block text-black font-bold text-base hover:bg-emerald-200 transition-colors"
+                        className="w-2/5 bg-emerald-300 rounded-lg py-3 text-black mt-5 mb-5 font-bold text-base hover:bg-emerald-200 transition-colors hover:scale-105 border-4 border-emerald-400"
                         onClick={() => navigate('/requiresCurrentSchedule/Home')}
                     >
                         Go to home
@@ -948,7 +948,7 @@ const EventSelection: React.FC = () => {
                 </div>
                     {editMode && editMode.type === 'chore' && (
                             <button
-                                className="bg-gray-400 rounded-lg py-3 mt-2.5 w-4/5 self-center mx-auto block text-gray-800 font-bold text-base hover:bg-gray-300 transition-colors"
+                                className="bg-emerald-300 rounded-lg py-3 mt-2.5 w-4/5 self-center mx-auto block text-gray-800 font-bold text-base hover:bg-emerald-200 hover:scale-105 border-4 border-emerald-400 transition-colors"
                                 onClick={handleDiscardEdit}
                             >
                                 Discard Changes
@@ -959,7 +959,7 @@ const EventSelection: React.FC = () => {
 
 
             {selected === "Events" && (
-                <div className="min-h-screen bg-black">
+                <div className="min-h-screen bg-gradient-to-b from-stone-700 to-stone-900">
                     <h2 className="text-3xl font-bold text-white text-center pt-6 pb-5">Events</h2>
 
                     {/* Meetings section */}
@@ -969,7 +969,7 @@ const EventSelection: React.FC = () => {
                             {meetings.map((meeting, index) => (
                                 <button 
                                     key={index} 
-                                    className="bg-gray-800 rounded-lg p-4 min-w-48 flex-shrink-0 hover:bg-gray-700 transition-colors" 
+                                    className="bg-sky-600 border-4 border-sky-700 rounded-lg p-4 min-w-48 flex-shrink-0 hover:bg-gray-700 transition-colors" 
                                     onClick={() => editDeleteMeeting(index)}
                                 >
                                     <div className="text-lg font-semibold text-white mb-1">
@@ -993,7 +993,7 @@ const EventSelection: React.FC = () => {
                             {assignments.map((assignment, index) => (
                                 <button 
                                     key={index} 
-                                    className="bg-gray-800 rounded-lg p-4 min-w-48 flex-shrink-0 hover:bg-gray-700 transition-colors" 
+                                    className="bg-amber-600 border-4 border-amber-700 rounded-lg p-4 min-w-48 flex-shrink-0 hover:bg-gray-700 transition-colors" 
                                     onClick={() => editDeleteAssignment(index)}
                                 >
                                     <div className="text-lg font-semibold text-white mb-1">
@@ -1015,7 +1015,7 @@ const EventSelection: React.FC = () => {
                             {chores.map((chore, index) => (
                                 <button 
                                     key={index} 
-                                    className="bg-gray-800 rounded-lg p-4 min-w-48 flex-shrink-0 hover:bg-gray-700 transition-colors" 
+                                    className="bg-emerald-600 border-4 border-emerald-700 rounded-lg p-4 min-w-48 flex-shrink-0 hover:bg-gray-700 transition-colors" 
                                     onClick={() => editDeleteChore(index)}
                                 >
                                     <div className="text-lg font-semibold text-white mb-1">
@@ -1035,7 +1035,7 @@ const EventSelection: React.FC = () => {
 
                     <button
                         data-testid="submit-schedule"
-                        className="bg-white rounded-lg py-3 mt-5 w-4/5 self-center mx-auto block text-black font-bold text-base hover:bg-gray-100 transition-colors"
+                        className="bg-stone-300 rounded-lg py-3 mt-5 w-4/5 self-center mx-auto block text-black font-bold text-base hover:bg-gray-100 hover:scale-105 border-4 border-stone-400 transition-colors"
                         onClick={submitSchedule}
                     >
                         Submit Schedule

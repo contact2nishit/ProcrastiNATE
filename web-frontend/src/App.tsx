@@ -197,7 +197,7 @@ const App: React.FC = () => {
 	return (
 		<Router>
 			<Routes>
-				<Route path="/" element={<BadgePreview />} />
+				<Route path="/" element={<Login />} />
 				{/* <Route path="/" element={<Login />} /> */}
 				<Route path="/signup" element={<Signup />} />
 				<Route path='/requiresCurrentSchedule/Home' element={
