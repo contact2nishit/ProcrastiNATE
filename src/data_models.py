@@ -53,10 +53,10 @@ class UpdateRequestDataModel(BaseModel):
     future_occurences: bool
     meeting_id: int 
     ocurrence_id: int
-    new_name: str | None = None,
+    new_name: str | None = None
     new_start_time: datetime | None = None
     new_end_time: datetime | None = None
-    new_loc_or_link: str | None = None,
+    new_loc_or_link: str | None = None
 
 class RescheduleRequestDataModel(BaseModel):
     """Request to reschedule an assignment/chore. Can allow/disallow overlaps with current schedule for same a/c

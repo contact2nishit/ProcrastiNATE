@@ -627,18 +627,20 @@ async def update(changes: UpdateRequestDataModel, token: Annotated[str, Depends(
 
             new_start = enforce_timestamp_utc(changes.new_start_time) if getattr(changes, "new_start_time", None) else None
             new_end = enforce_timestamp_utc(changes.new_end_time) if getattr(changes, "new_end_time", None) else None
-
+            #print(f"new_start: {new_start}, new_end: {new_end}")
             if (new_start is None) ^ (new_end is None):
                 return UpdateResponseDataModel(clashed=[], message="Both new_start_time and new_end_time must be provided together.")
             if new_start is not None and new_end is not None and new_end <= new_start:
                 return UpdateResponseDataModel(clashed=[], message="new_end_time must be after new_start_time.")
 
-            if getattr(changes, "new_name", None):
+            if getattr(changes, "new_name") is not None:
+                print(f"Updating meeting name to: {changes.new_name}")
                 await conn.execute(
                     "UPDATE meetings SET meeting_name = $1 WHERE meeting_id = $2 AND user_id = $3",
                     changes.new_name, changes.meeting_id, user.user_id
                 )
-            if getattr(changes, "new_loc_or_link", None):
+            if getattr(changes, "new_loc_or_link") is not None:
+                print(f"Updating meeting location/link to: {changes.new_loc_or_link}")
                 await conn.execute(
                     "UPDATE meetings SET location_or_link = $1 WHERE meeting_id = $2 AND user_id = $3",
                     changes.new_loc_or_link, changes.meeting_id, user.user_id
@@ -710,6 +712,7 @@ async def update(changes: UpdateRequestDataModel, token: Annotated[str, Depends(
                 )
                 return UpdateResponseDataModel(clashed=clashed_ids, message=msg)
             else:
+                print(f"Updating meeting with new start and end times: {new_start}, {new_end}")
                 clash = await conn.fetchval(
                     """
                     SELECT 1 FROM meeting_occurences
@@ -720,7 +723,7 @@ async def update(changes: UpdateRequestDataModel, token: Annotated[str, Depends(
                 )
                 if clash:
                     return UpdateResponseDataModel(clashed=[changes.ocurrence_id], message="Time update would clash with another meeting.")
-
+                print(f"Updating occurrence {changes.ocurrence_id} for meeting {changes.meeting_id} with new times: {new_start}, {new_end}")
                 await conn.execute(
                     """
                     UPDATE meeting_occurences

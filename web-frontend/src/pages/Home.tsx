@@ -4,6 +4,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Slider, LinearProgress, Box, Typography, Checkbox } from '@mui/material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import config from '../config';
 import { useCurrentScheduleContext } from '../context/CurrentScheduleContext';
 
@@ -118,8 +122,8 @@ const Home = () => {
     const [selectedMeeting, setSelectedMeeting] = useState<any>(null);
     const [updateName, setUpdateName] = useState('');
     const [updateLoc, setUpdateLoc] = useState('');
-    const [updateStartTime, setUpdateStartTime] = useState('');
-    const [updateEndTime, setUpdateEndTime] = useState('');
+    const [updateStartTime, setUpdateStartTime] = useState<Dayjs | null>(null);
+    const [updateEndTime, setUpdateEndTime] = useState<Dayjs | null>(null);
     const [updateAllOccurrences, setUpdateAllOccurrences] = useState(false);
     const [selectedSessionToComplete, setSelectedSessionToComplete] = useState<SessionToMaybeComplete>({occurence_id: "A", is_assignment: false});
     const [lockedInValue, setLockedInValue] = useState(5);
@@ -295,13 +299,25 @@ const Home = () => {
             };
             if (updateName) body.new_name = updateName;
             if (updateLoc) body.new_loc_or_link = updateLoc;
-            if ((updateStartTime && !updateEndTime) || (updateEndTime && !updateStartTime)) {
+            console.log('Update meeting body:', body);
+            const hasStart = !!updateStartTime;
+            const hasEnd = !!updateEndTime;
+            if ((hasStart && !hasEnd) || (hasEnd && !hasStart)) {
                 alert('Please provide both start and end time for the meeting.');
                 return;
             }
             if (updateStartTime && updateEndTime) {
-                body.new_start_time = updateStartTime;
-                body.new_end_time = updateEndTime;
+                if (updateStartTime > updateEndTime) {
+                    alert('Start time cannot be after end time.');
+                    return;
+                }
+                const toIsoUtc = (d: Dayjs) => d.toDate().toISOString().replace('Z', '+00:00');
+                body.new_start_time = toIsoUtc(updateStartTime);
+                body.new_end_time = toIsoUtc(updateEndTime);
+                console.log('Updating meeting with new start and end times:', body.new_start_time, body.new_end_time);
+            }
+            if (updateAllOccurrences) {
+                body.future_occurences = true;
             }
             const response = await fetch(`${url}/update`, {
                 method: 'POST',
@@ -320,8 +336,9 @@ const Home = () => {
             setModalVisible(false);
             setUpdateName('');
             setUpdateLoc('');
-            setUpdateStartTime('');
-            setUpdateEndTime('');
+            setUpdateStartTime(null);
+            setUpdateEndTime(null);
+            setUpdateAllOccurrences(false);
             setSelectedMeeting(null);
             await refetchSchedule();
         } catch (e) {
@@ -526,8 +543,9 @@ const Home = () => {
                                             setSelectedMeeting(item);
                                             setUpdateName('');
                                             setUpdateLoc('');
-                                            setUpdateStartTime('');
-                                            setUpdateEndTime('');
+                                            setUpdateStartTime(null);
+                                            setUpdateEndTime(null);
+                                            setUpdateAllOccurrences(false);
                                             setModalVisible(true);
                                         }}
                                     >
@@ -589,25 +607,42 @@ const Home = () => {
                                         value={updateLoc}
                                         onChange={(e) => setUpdateLoc(e.target.value)}
                                     />
-                                    <input
-                                        type="text"
-                                        className="border border-gray-400 rounded-lg p-2 text-base text-gray-900 bg-gray-100 mb-3 w-full"
-                                        placeholder="New Start Time (YYYY-MM-DDTHH:MM:SS+00:00)"
-                                        value={updateStartTime}
-                                        onChange={(e) => setUpdateStartTime(e.target.value)}
-                                    />
-                                    <input
-                                        type = "text"
-                                        className="border border-gray-400 rounded-lg p-2 text-base text-gray-900 bg-gray-100 mb-3 w-full"
-                                        placeholder="New End Time (YYYY-MM-DDTHH:MM:SS+00:00)"
-                                        value={updateEndTime}
-                                        onChange={(e) => setUpdateEndTime(e.target.value)}
-                                    />
-                                    <Checkbox
-                                        checked={updateAllOccurrences}
-                                        onChange={(e) => setUpdateAllOccurrences(e.target.checked)}
-                                        color="primary"
-                                    />
+                                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                        <DateTimePicker
+                                            label="New Start Time"
+                                            value={updateStartTime}
+                                            onChange={(newValue) => setUpdateStartTime(newValue)}
+                                            slotProps={{
+                                                textField: {
+                                                    fullWidth: true,
+                                                    className: 'mb-3 bg-gray-100',
+                                                },
+                                            }}
+                                        />
+                                        <DateTimePicker
+                                            label="New End Time"
+                                            value={updateEndTime}
+                                            onChange={(newValue) => setUpdateEndTime(newValue)}
+                                            slotProps={{
+                                                textField: {
+                                                    fullWidth: true,
+                                                    className: 'mb-3 bg-gray-100',
+                                                },
+                                            }}
+                                        />
+                                    </LocalizationProvider>
+                                     <div className="flex items-center mb-3">
+                                         <Checkbox
+                                             id="update-all-occurrences"
+                                             checked={updateAllOccurrences}
+                                             onChange={(e) => setUpdateAllOccurrences(e.target.checked)}
+                                             color="primary"
+                                             inputProps={{ "aria-label": "Update all future occurrences" }}
+                                         />
+                                         <label htmlFor="update-all-occurrences" className="text-gray-800">
+                                             Update all future occurrences
+                                         </label>
+                                     </div>
                                     <button
                                         className="bg-blue-600 rounded-lg py-3 px-6 text-white font-bold text-base w-full hover:bg-blue-700 transition-colors"
                                         onClick={handleUpdateMeeting}
