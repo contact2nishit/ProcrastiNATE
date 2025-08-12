@@ -66,12 +66,12 @@ const BadgeTaskSlayer: React.FC<BadgeTaskSlayerProps> = ({ variant = 1 }) => {
             <div className="scroll-bottom-task-slayer"></div>
             <div className="scroll-rod-top-task-slayer"></div>
             <div className="scroll-rod-bottom-task-slayer"></div>
-            <div className="roman-numeral-task-slayer">{getRomanNumeral()}</div>
           </div>
         </div>
 
         <div className="big-text-task-slayer">TASK</div>
         <div className="label-task-slayer">SLAYER {variant}!</div>
+        <div className="roman-numeral-task-slayer">{getRomanNumeral()}</div>
       </div>
     </div>
   );

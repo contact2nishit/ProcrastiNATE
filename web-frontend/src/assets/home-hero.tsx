@@ -66,12 +66,12 @@ const BadgeHomeHero: React.FC<BadgeHomeHeroProps> = ({ variant = 1 }) => {
               <div className="window-home-hero window-right-home-hero"></div>
             </div>
             <div className="hero-emblem-home-hero">H</div>
-            <div className="roman-numeral-home-hero">{getRomanNumeral()}</div>
           </div>
         </div>
 
         <div className="big-text-home-hero">HOME</div>
         <div className="label-home-hero">HERO {variant}!</div>
+        <div className="roman-numeral-home-hero">{getRomanNumeral()}</div>
       </div>
     </div>
   );
