@@ -76,12 +76,36 @@ const EventSelection: React.FC = () => {
   // Add state for end repeat date for meetings
   const [meetingRepeatEnd, setMeetingRepeatEnd] = useState(new Date());
 
-  const navItems = [
-    { label: 'Meeting', icon: 'calendar-alt' },
-    { label: 'Assignment', icon: 'book' },
-    { label: 'Chore/Study', icon: 'tasks' },
-    { label: 'Events', icon: 'calendar-check' },
-  ];
+ const navItems = [
+  {
+    label: 'Meeting',
+    icon: 'calendar-alt',
+    iconColor: '#ff5e57',
+    textStyle: { color: '#ff5e57', fontWeight: 'bold' },
+    selectedStyle: { backgroundColor: '#ff5e57' },
+  },
+  {
+    label: 'Assignment',
+    icon: 'book-open',
+    iconColor: '#3498db',
+    textStyle: { color: '#3498db' },
+    selectedStyle: { backgroundColor: '#3498db' },
+  },
+  {
+    label: 'Chore/Study',
+    icon: 'tasks',
+    iconColor: '#2ecc71',
+    textStyle: { color: '#2ecc71', fontStyle: 'italic' },
+    selectedStyle: { backgroundColor: '#2ecc71' },
+  },
+  {
+    label: 'Events',
+    icon: 'calendar-check',
+    iconColor: '#9b59b6',
+    textStyle: { color: '#9b59b6', textDecorationLine: 'underline' },
+    selectedStyle: { backgroundColor: '#9b59b6' },
+  },
+];
 
   // const navigation = useNavigation();
   const [date, setDate] = useState(new Date());
@@ -657,36 +681,40 @@ const EventSelection: React.FC = () => {
     
     <SafeAreaView style={styles.container}>
       <View style={styles.navBar}>
-        {navItems.map((item) => (
-          <TouchableOpacity
-            key={item.label}
-            style={[
-              styles.navButton,
-              selected === item.label && styles.navButtonSelected,
-            ]}
-            onPress={() => {setSelected(item.label);
-              console.log(backendJSON);
-            }}
-            // Don't want flickers when switching between tabs
-            activeOpacity={0.8}
-          >
-            <FontAwesome5
-              name={item.icon}
-              size={16}
-              color={selected === item.label ? 'white' : 'black'}
-              style={{ marginBottom: 5 }}
-            />
-            <Text
-              style={[
-                styles.navButtonText,
-                selected === item.label && styles.navButtonTextSelected,
-              ]}
-            >
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+    {navItems.map((item) => {
+    const isSelected = selected === item.label;
+    return (
+      <TouchableOpacity
+        key={item.label}
+        style={[
+          styles.navButton,
+          isSelected && styles.navButtonSelected,
+          isSelected && item.selectedStyle, // Custom color for selected
+        ]}
+        onPress={() => {
+          setSelected(item.label);
+          console.log(backendJSON);
+        }}
+        activeOpacity={0.8}
+      >
+        <FontAwesome5
+          name={item.icon}
+          size={16}
+          color={isSelected ? 'white' : item.iconColor} // Custom color if not selected
+          style={{ marginBottom: 5 }}
+        />
+        <Text
+          style={[
+            item.textStyle, // Always apply base text style
+            isSelected && styles.navButtonTextSelected,
+          ]}
+        >
+          {item.label}
+        </Text>
+      </TouchableOpacity>
+    );
+  })}
+</View>
 
       {selected === 'Meeting' && (
         <KeyboardAvoidingView
@@ -1074,39 +1102,31 @@ const EventSelection: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'black',
+    backgroundColor:'rgba(41, 42, 43, 1)',
     flex: 1,
   },
   navBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    backgroundColor: '#fff',
     paddingVertical: 10,
-    backgroundColor: 'white',
   },
   navButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: 'white',
     alignItems: 'center',
-    minWidth: 85,
+    padding: 8,
+    borderRadius: 10,
   },
   navButtonSelected: {
-    backgroundColor: 'black',
-    borderColor: 'white',
-    borderWidth: 1,
+    // Optional: add some shadow or padding
+    elevation: 2,
   },
-  navButtonText: {
-    color: 'black',
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  
   navButtonTextSelected: {
     color: 'white',
   },
 
   containerMeeting: {
-    backgroundColor: 'black',
+    backgroundColor: 'rgba(41, 42, 43, 1)',
     paddingHorizontal: 20,
     paddingTop: 30,
     marginTop:-20,
