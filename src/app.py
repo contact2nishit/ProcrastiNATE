@@ -489,7 +489,7 @@ async def schedule(
     Now checks for conflicts with already scheduled meetings/assignments/chores.
     """
     try:
-        print("HELLO", sched.model_dump_json())
+        # print("HELLO", sched.model_dump_json())
         user = await get_current_user(token, app.state.pool)
         now = datetime.now(timezone.utc)
         last_time = get_latest_time(sched.meetings, sched.assignments, sched.chores)
@@ -534,18 +534,19 @@ async def schedule(
                 sched.chores,
                 num_schedules=11,
                 tz_offset_minutes=getattr(sched, "tz_offset_minutes", 0),
+                now=datetime.now(timezone.utc)
             )
         else: 
             # we send the blocking times as meetings to the scheduling algorithm
             # this is only fine because it inserts nothing in the DB
             # and it will just use the meetings as blocked times
-            print("HIYA", getattr(sched, "tz_offset_minutes", 0))
             schedules = schedule_tasks(
                 sched.meetings + [scheduled_blocker],
                 sched.assignments,
                 sched.chores,
                 num_schedules=11,
                 tz_offset_minutes=getattr(sched, "tz_offset_minutes", 0),
+                now=datetime.now(timezone.utc)
             )
         # Now, check for conflicts between requested meetings and already scheduled blocks
         # maybe do this as an async task when waiting on network to fetch assignment and chore rows?
@@ -602,11 +603,11 @@ async def schedule(
                     link_or_loc=meeting.link_or_loc,
                 )
                 meeting_resp += [meeting_response]
-        print("ADH", ScheduleResponseFormat(
-            conflicting_meetings=conflicting_meetings,
-            meetings=meeting_resp,
-            schedules=schedules,
-        ).model_dump_json())
+        # print(ScheduleResponseFormat(
+        #     conflicting_meetings=conflicting_meetings,
+        #     meetings=meeting_resp,
+        #     schedules=schedules,
+        # ).model_dump_json())
         return ScheduleResponseFormat(
             conflicting_meetings=conflicting_meetings,
             meetings=meeting_resp,
