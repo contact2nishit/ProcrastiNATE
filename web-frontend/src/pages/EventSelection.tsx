@@ -70,31 +70,37 @@ const EventSelection: React.FC = () => {
 
     // Add state for end repeat date for meetings
     const [meetingRepeatEnd, setMeetingRepeatEnd] = useState(new Date());
+    interface NavItem {
+    label: string;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+    textStyle?: string;
+    selectedStyle?: string;
+    }
 
-   const navItems = [
+   const navItems: NavItem[] = [
   {
     label: 'Meeting',
-    icon: 'FaCalendarAlt',
-    textStyle: { color: '#ff5e57', fontWeight: 'bold' },
-    selectedStyle: { backgroundColor: '#ff5e57' },
+    icon: FaCalendarAlt,
+    textStyle: ' bg-blue-500 text-black',
+    selectedStyle:' bg-blue-600 text-white border border-white  ',
   },
   {
     label: 'Assignment',
-    icon: 'FaBookOpen',
-    textStyle: { color: '#3498db' },
-    selectedStyle: { backgroundColor: '#3498db' },
+    icon: FaBookOpen,
+    textStyle: ' bg-yellow-500 text-black',
+    selectedStyle: ' bg-yellow-600 text-white border border-white  ',
   },
   {
     label: 'Chore/Study',
-    icon: 'FaTasks',
-    textStyle: { color: '#2ecc71', fontStyle: 'italic' },
-    selectedStyle: { backgroundColor: '#2ecc71' },
+    icon: FaTasks,
+    textStyle: ' bg-green-500 text-black',
+    selectedStyle: ' bg-green-600 text-white border border-white  ',
   },
   {
     label: 'Events',
-    icon: 'FaCalendarCheck',
-    textStyle: { color: '#9b59b6', textDecorationLine: 'underline' },
-    selectedStyle: { backgroundColor: '#9b59b6' },
+    icon: FaCalendarCheck,
+    textStyle: ' bg-stone-500 text-black',
+    selectedStyle: 'bg-stone-600 text-white border border-white  ',
   },
 ];
 
@@ -641,20 +647,21 @@ const EventSelection: React.FC = () => {
             {/* Navigation Bar */}
             <div className="flex justify-around py-2.5 bg-white">
                 {navItems.map((item) => (
- 
+                    
+                    
                     <button
                         key={item.label}
                         className={`py-2.5 px-3 rounded-lg flex flex-col items-center min-w-[85px] ${
                             selected === item.label 
-                                ? 'bg-black border border-white text-white' 
-                                : 'bg-white text-black'
+                                ? item.selectedStyle
+                                : item.textStyle
                         }`}
                         onClick={() => {
                             setSelected(item.label);
                         }}
                     >
                         {/* Icon placeholder - you can add actual icons here */}
-                        <div className="w-4 h-4 mb-1.5">item.icon</div>
+                        <div className="w-4 h-4 mb-1.5"><item.icon /></div>
                         <span className="text-xs font-medium">
                             {item.label}
                         </span>
@@ -664,31 +671,40 @@ const EventSelection: React.FC = () => {
 
             {/* Meeting Tab */}
             {selected === 'Meeting' && (
-                <div className="flex-1 px-5">
-                    <div className="bg-black px-5 pt-7.5 -mt-5">
-                        <h2 className="text-3xl font-bold text-white text-center my-5">
+                <div className="flex-1 ">
+                    <div className="h-full w-full bg-gradient-to-b from-sky-700 to-sky-950 pr-5 pl-5 ">
+                        <h2 className="text-3xl font-bold text-white text-center pt-5 ">
                             {editMode && editMode.type === 'meeting' ? 'Edit Meeting' : 'Set up a Meeting'}
                         </h2>
 
-                        <label className="text-lg text-white mb-0">Start Time:</label>
-                        <div className="bg-gray-800 rounded-xl self-start mt-2.5">
-                            <input
-                                type="datetime-local"
-                                value={formatDateTimeLocal(startDateTime)}
-                                onChange={(e) => setStartDateTime(new Date(e.target.value))}
-                                className="h-32 w-56 text-white bg-gray-600 rounded-2xl p-2"
-                            />
-                        </div>
+                        {/* Start & End Time Row */}
+            <div className="flex flex-wrap gap-5">
+                {/* Start Time */}
+                <div className="flex-1 min-w-[200px]">
+                    <label className="text-lg text-white mb-0 block">Start Time:</label>
+                    <div className="bg-sky-700 rounded-xl mt-2.5">
+                        <input
+                            type="datetime-local"
+                            value={formatDateTimeLocal(startDateTime)}
+                            onChange={(e) => setStartDateTime(new Date(e.target.value))}
+                            className="h-12 w-full text-white bg-sky-600 rounded-2xl p-2"
+                        />
+                    </div>
+                </div>
 
-                        <label className="text-lg text-white mt-7.5 mb-0">End Time:</label>
-                        <div className="bg-gray-800 rounded-xl self-start mt-2.5">
-                            <input
-                                type="datetime-local"
-                                value={formatDateTimeLocal(endDateTime)}
-                                onChange={(e) => setEndDateTime(new Date(e.target.value))}
-                                className="h-32 w-56 text-white bg-gray-600 rounded-2xl p-2"
-                            />
-                        </div>
+                {/* End Time */}
+                <div className="flex-1 min-w-[200px]">
+                    <label className="text-lg text-white mb-0 block">End Time:</label>
+                    <div className="bg-sky-700 rounded-xl mt-2.5">
+                        <input
+                            type="datetime-local"
+                            value={formatDateTimeLocal(endDateTime)}
+                            onChange={(e) => setEndDateTime(new Date(e.target.value))}
+                            className="h-12 w-full text-white bg-sky-600 rounded-2xl p-2"
+                        />
+                    </div>
+                </div>
+            </div>
 
                         {/* End Repeat Date Picker for recurring meetings */}
                         {(recurrence === "daily" || recurrence === "mon" || recurrence === "tue" 
@@ -697,12 +713,12 @@ const EventSelection: React.FC = () => {
                         ) && (
                             <>
                                 <label className="text-lg text-white mt-7.5 mb-0">End Repeat Date:</label>
-                                <div className="bg-gray-800 rounded-xl self-start mt-2.5">
+                                <div className="bg-sky-700 rounded-xl self-start mt-2.5">
                                     <input
                                         type="date"
                                         value={formatDateLocal(meetingRepeatEnd)}
                                         onChange={(e) => setMeetingRepeatEnd(new Date(e.target.value))}
-                                        className="h-32 w-56 text-white bg-gray-600 rounded-2xl p-2"
+                                        className="h-32 w-56 text-white bg-sky-600 rounded-2xl p-2"
                                     />
                                 </div>
                             </>
@@ -710,7 +726,7 @@ const EventSelection: React.FC = () => {
 
                         <label className="text-lg text-white mt-7.5 mb-2.5">Name:</label>
                         <input
-                            className="border border-gray-600 rounded-lg p-2.5 text-white bg-gray-800 w-full"
+                            className="border border-sky-600 rounded-lg p-2.5 text-white bg-sky-600 w-full"
                             placeholder="Meeting"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
@@ -718,18 +734,18 @@ const EventSelection: React.FC = () => {
 
                         <label className="text-lg text-white mt-7.5 mb-2.5">Link / Location:</label>
                         <input
-                            className="border border-gray-600 rounded-lg p-2.5 text-white bg-gray-800 w-full"
+                            className="border border-sky-600 rounded-lg p-2.5 text-white bg-sky-600 w-full"
                             placeholder="Link/location"
                             value={location}
                             onChange={(e) => setLocation(e.target.value)}
                         />
 
                         <label className="text-lg text-white mt-5 mb-2.5">Recurrence:</label>
-                        <div className="bg-gray-800 rounded-xl self-start mt-2.5">
+                        <div className="bg-sky-800 rounded-xl self-start mt-2.5">
                             <select
                                 value={recurrence || ''}
                                 onChange={(e) => setRecurrence(e.target.value || null)}
-                                className="h-32 w-56 text-white bg-gray-600 rounded-2xl p-2"
+                                className="h-32 w-56 text-white bg-sky-600 rounded-2xl p-2"
                             >
                                 <option value="">Select Frequency</option>
                                 <option value="once">Once</option>
@@ -743,158 +759,176 @@ const EventSelection: React.FC = () => {
                                 <option value="sun">Every Sun</option>
                             </select>
                         </div>
-
+                        <div className="flex flex-wrap gap-4 justify-center">
                         <button
-                            className="bg-white rounded-lg mt-15 py-3 w-full text-black font-bold text-base hover:bg-gray-100 transition-colors"
+                            className="flex-1 min-w-[150px] bg-sky-300 rounded-lg py-3 text-black mt-5 mb-5 font-bold text-base hover:bg-gray-100 transition-colors"
                             onClick={editMode && editMode.type === 'meeting' ? handleEditMeeting : handleMeeting}
                         >
                             {editMode && editMode.type === 'meeting' ? 'Update Meeting' : 'Add Event'}
                         </button>
 
-                        {editMode && editMode.type === 'meeting' && (
-                            <button
-                                className="bg-gray-400 rounded-lg py-3 w-full mt-2.5 text-gray-800 font-bold text-base hover:bg-gray-300 transition-colors"
-                                onClick={handleDiscardEdit}
-                            >
-                                Discard Changes
-                            </button>
-                        )}
+                        
 
-                        <button 
-                            className="bg-white rounded-lg py-3 w-full mt-2 text-black font-bold text-base hover:bg-gray-100 transition-colors"
+                        <button
+                            className="flex-1 min-w-[150px] bg-sky-300 rounded-lg py-3 mt-5 mb-5 text-black font-bold text-base hover:bg-gray-100 transition-colors"
                             onClick={handlePrev}
                         >
                             Go to Home
                         </button>
+                        </div>
+                        {editMode && editMode.type === 'meeting' && (
+                            <button
+                            className="flex-1 w-1/1 bg-sky-300 rounded-lg py-3 text-gray-800 mt-5 mb-5 font-bold text-base hover:bg-gray-300 transition-colors"
+                            onClick={handleDiscardEdit}
+                            >
+                            Discard Changes
+                            </button>
+                        )}
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
 
             {/* Assignment Tab */}
             {selected === "Assignment" && (
-                <div className="min-h-screen bg-black p-4">
+                <div className="min-h-screen bg-gradient-to-b from-amber-700 to-amber-950 p-4">
                     <h2 className="text-3xl font-bold text-white text-center my-5">
                         {editMode && editMode.type === 'assignment' ? 'Edit Assignment' : 'Set up an Assignment'}
                     </h2>
 
-                    <label className="text-xl text-white mb-2.5 ml-2.5">Name:</label>
+                    <label className="text-xl text-white mb-2.5 ml-2.5 ">Name:</label>
                     <input
-                        className="border border-gray-600 rounded-lg p-2.5 text-white bg-gray-800 ml-2.5 w-[90%]"
+                        className="border border-gray-600 rounded-lg p-2.5 text-white bg-amber-600 ml-2.5 w-[90%]"
                         placeholder="Assignment"
                         value={assignment}
                         onChange={(e) => setAssignment(e.target.value)}
                     />
 
-                    <label className="text-xl text-white mb-2.5 ml-2.5 mt-5">Effort (minutes):</label>
-                    <input
+                    <div className="flex gap-4 ml-2.5 mt-5">
+                    {/* Effort */}
+                    <div className="flex flex-col w-1/2">
+                        <label className="text-xl text-white mb-2.5">Effort (minutes):</label>
+                        <input
                         type="number"
-                        className="border border-gray-600 rounded-lg p-2.5 text-white bg-gray-800 ml-2.5 w-[90%]"
+                        className="border border-gray-600 rounded-lg p-2.5 text-white bg-amber-600 w-full"
                         placeholder="Effort in minutes"
                         value={assignmentEffort}
                         onChange={(e) => setAssignmentEffort(e.target.value)}
-                    />
+                        />
+                    </div>
 
-                    <label className="text-xl text-white mb-2.5 ml-2.5 mt-5">Deadline:</label>
-                    <div className="bg-gray-800 rounded-xl self-start mt-2.5 ml-2.5">
+                    {/* Deadline */}
+                    <div className="flex flex-col w-1/2">
+                        <label className="text-xl text-white mb-2.5">Deadline:</label>
+                        <div className="bg-amber-600 rounded-xl">
                         <input
                             type="datetime-local"
                             value={formatDateTimeLocal(date)}
                             onChange={(e) => setDate(new Date(e.target.value))}
-                            className="bg-gray-600 rounded-2xl p-2 text-white"
+                            className="bg-amber-600 rounded-2xl p-2 text-white w-full"
                         />
+                        </div>
                     </div>
+                    </div>
+                    <div className="flex gap-4 ml-2.5 mt-5">
+                        <button
+                            className="bg-amber-400 rounded-lg py-3 mt-5 w-2/5 self-center mx-auto block text-black font-bold text-base hover:bg-amber-200 transition-colors"
+                            onClick={editMode && editMode.type === 'assignment' ? handleEditAssignment : handleAssignment}
+                        >
+                            {editMode && editMode.type === 'assignment' ? 'Update Assignment' : 'Add Event'}
+                        </button>
 
-                    <button
-                        className="bg-white rounded-lg py-3 mt-35 w-4/5 self-center mx-auto block text-black font-bold text-base hover:bg-gray-100 transition-colors"
-                        onClick={editMode && editMode.type === 'assignment' ? handleEditAssignment : handleAssignment}
-                    >
-                        {editMode && editMode.type === 'assignment' ? 'Update Assignment' : 'Add Event'}
-                    </button>
+                    
 
+                        <button 
+                            className="bg-amber-400 rounded-lg py-3 w-2/5 mt-5 self-center mx-auto block text-black font-bold text-base hover:bg-amber-200 transition-colors"
+                            onClick={() => navigate('/requiresCurrentSchedule/Home')}
+                        >
+                            Go to home
+                        </button>
+                    </div>
                     {editMode && editMode.type === 'assignment' && (
                         <button
-                            className="bg-gray-400 rounded-lg py-3 mt-2.5 w-4/5 self-center mx-auto block text-gray-800 font-bold text-base hover:bg-gray-300 transition-colors"
+                            className="bg-amber-300 rounded-lg py-3 mt-5 w-4/5 self-center mx-auto block text-gray-800 font-bold text-base hover:bg-amber-500 transition-colors"
                             onClick={handleDiscardEdit}
                         >
                             Discard Changes
                         </button>
                     )}
-
-                    <button 
-                        className="bg-white rounded-lg py-3 mt-2 w-4/5 self-center mx-auto block text-black font-bold text-base hover:bg-gray-100 transition-colors"
-                        onClick={() => navigate('/requiresCurrentSchedule/Home')}
-                    >
-                        Go to home
-                    </button>
+            
                 </div>
+                
             )}
+                 
 
             {/* Chore/Study Tab */}
             {selected === "Chore/Study" && (
-                <div className="min-h-screen bg-black p-4">
+                <div className="min-h-screen bg-gradient-to-b from-green-700 to-green-950 p-4">
                     <h2 className="text-3xl font-bold text-white text-center my-5">
                         {editMode && editMode.type === 'chore' ? 'Edit Chore/Study' : 'Set up Chore/Study'}
                     </h2>
-
-                    <label className="text-xl text-white mb-2.5 ml-2.5">Name:</label>
+                    
+                    <label className="text-xl text-white mb-2.5 ml-2.5">Name:</label> 
                     <input
-                        className="border border-gray-600 rounded-lg p-2.5 text-white bg-gray-800 ml-2.5 w-[90%]"
+                        className="border border-gray-600 rounded-lg p-2.5 text-white bg-emerald-500 ml-2.5 w-[90%]"
                         placeholder="Chore"
                         value={chore}
                         onChange={(e) => setChore(e.target.value)}
                     />
 
-                    <label className="text-xl text-white mb-2.5 ml-2.5 mt-5">Effort (minutes):</label>
+                    <label className="text-xl text-white mb-2.5 ml-2.5 mt-10">Effort (minutes):</label>
                     <input
                         type="number"
-                        className="border border-gray-600 rounded-lg p-2.5 text-white bg-gray-800 ml-2.5 w-[90%]"
+                        className="border border-gray-600 rounded-lg p-2.5 text-white bg-emerald-500 ml-2.5 w-[90%]"
                         placeholder="Effort in minutes"
                         value={choreEffort}
                         onChange={(e) => setChoreEffort(e.target.value)}
                     />
-
+                    <div className="flex gap-4 ml-2.5 mt-5">
                     <label className="text-xl text-white mb-0 mt-5 ml-2.5">Window Start:</label>
-                    <div className="bg-gray-800 rounded-xl self-start mt-2.5 ml-2.5">
+                    <div className="bg-emerald-800 rounded-xl self-start mt-2.5 ml-2.5">
                         <input
                             type="datetime-local"
                             value={formatDateTimeLocal(choreWindowStart)}
                             onChange={(e) => setChoreWindowStart(new Date(e.target.value))}
-                            className="bg-gray-600 rounded-2xl p-2 text-white"
+                            className="bg-emerald-700 rounded-2xl p-2 text-white"
                         />
                     </div>
 
                     <label className="text-xl text-white mb-0 mt-5 ml-2.5">Window End:</label>
-                    <div className="bg-gray-800 rounded-xl self-start mt-2.5 ml-2.5">
+                    <div className="bg-emerald-800 rounded-xl self-start mt-2.5 ml-2.5">
                         <input
                             type="datetime-local"
                             value={formatDateTimeLocal(choreWindowEnd)}
                             onChange={(e) => setChoreWindowEnd(new Date(e.target.value))}
-                            className="bg-gray-600 rounded-2xl p-2 text-white"
+                            className="bg-emerald-700 rounded-2xl p-2 text-white"
                         />
                     </div>
-
+                    </div>
+                    <div className="flex gap-4 ml-2.5 mt-5">
                     <button
-                        className="bg-white rounded-lg py-3 mt-27 w-4/5 self-center mx-auto block text-black font-bold text-base hover:bg-gray-100 transition-colors"
+                        className="bg-emerald-400 rounded-lg py-3 mt-27 w-4/5 self-center mx-auto block text-black font-bold text-base hover:bg-emerald-200 transition-colors"
                         onClick={editMode && editMode.type === 'chore' ? handleEditChore : handleChore}
                     >
                         {editMode && editMode.type === 'chore' ? 'Update Chore' : 'Add Event'}
                     </button>
 
-                    {editMode && editMode.type === 'chore' && (
-                        <button
-                            className="bg-gray-400 rounded-lg py-3 mt-2.5 w-4/5 self-center mx-auto block text-gray-800 font-bold text-base hover:bg-gray-300 transition-colors"
-                            onClick={handleDiscardEdit}
-                        >
-                            Discard Changes
-                        </button>
-                    )}
+                    
 
                     <button 
-                        className="bg-white rounded-lg py-3 mt-2 w-4/5 self-center mx-auto block text-black font-bold text-base hover:bg-gray-100 transition-colors"
+                        className="bg-emerald-400 rounded-lg py-3 mt-2 w-4/5 self-center mx-auto block text-black font-bold text-base hover:bg-emerald-200 transition-colors"
                         onClick={() => navigate('/requiresCurrentSchedule/Home')}
                     >
                         Go to home
                     </button>
+                </div>
+                    {editMode && editMode.type === 'chore' && (
+                            <button
+                                className="bg-gray-400 rounded-lg py-3 mt-2.5 w-4/5 self-center mx-auto block text-gray-800 font-bold text-base hover:bg-gray-300 transition-colors"
+                                onClick={handleDiscardEdit}
+                            >
+                                Discard Changes
+                            </button>
+                        )}
                 </div>
             )}
 
