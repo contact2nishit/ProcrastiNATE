@@ -112,6 +112,7 @@ class ChoreInRequest(BaseModel):
     name: str
     window: List[datetime]  # start/end time; MUST HAVE exactly 2 elements
     effort: int
+    end_recur_date: datetime | None = None # can be at most 7 days from today
 
 
 class ScheduleRequest(BaseModel):

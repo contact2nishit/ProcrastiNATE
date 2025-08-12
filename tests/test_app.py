@@ -1262,7 +1262,7 @@ class TestEndpoints:
         mock_creds.expired = False
         mock_credentials.return_value = mock_creds
         headers = {"Authorization": "Bearer mock_token"}
-        response = self.client.post("/googleCalendar/sync", headers=headers)r
+        response = self.client.post("/googleCalendar/sync", headers=headers)
         call_args = mock_service.events().list.call_args
         assert 'timeMax' in call_args[1]
         assert response.status_code == 200
@@ -1552,3 +1552,225 @@ class TestEndpoints:
         assert "2 new occurrences" in response_data["message"] 
         # Verify API was called twice for pagination
         assert mock_service.events().list().execute.call_count == 2
+
+    @patch('app.get_current_user')
+    def test_schedule_chore_no_recurrence(self, mock_get_current_user, mock_user):
+        """Test schedule with chore without recurrence - just adds date to name"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetch.side_effect = [[], [], []]  # No existing meetings/assignments/chores
+        now = datetime.now(timezone.utc)
+        future_time = now + timedelta(days=2)
+        chore_without_recurrence = {
+            "name": "Clean kitchen",
+            "window": [future_time.isoformat(), (future_time + timedelta(hours=2)).isoformat()],
+            "effort": 60,
+            "end_recur_date": None
+        }
+        schedule_data = {
+            "assignments": [],
+            "meetings": [],
+            "chores": [chore_without_recurrence],
+            "tz_offset_minutes": 0
+        }
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/schedule", json=schedule_data, headers=headers)
+        assert response.status_code == 200
+        response_data = response.json()
+        assert len(response_data["schedules"]) > 0
+        first_schedule = response_data["schedules"][0]
+        assert len(first_schedule["chores"]) == 1
+        chore_name = first_schedule["chores"][0]["name"]
+        expected_date = future_time.strftime("%Y-%m-%d")
+        assert f"Clean kitchen for {expected_date}" == chore_name
+
+    @patch('app.get_current_user')
+    def test_schedule_chore_with_recurrence(self, mock_get_current_user, mock_user):
+        """Test schedule with chore with recurrence - creates multiple chores"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetch.side_effect = [[], [], []]  # No existing meetings/assignments/chores
+        now = datetime.now(timezone.utc)
+        start_time = now + timedelta(days=1)
+        end_time = start_time + timedelta(hours=2)
+        recur_end = start_time + timedelta(days=2)  # 3 days total
+        chore_with_recurrence = {
+            "name": "Daily exercise",
+            "window": [start_time.isoformat(), end_time.isoformat()],
+            "effort": 30,
+            "end_recur_date": recur_end.isoformat()
+        }
+        schedule_data = {
+            "assignments": [],
+            "meetings": [],
+            "chores": [chore_with_recurrence],
+            "tz_offset_minutes": 0
+        }
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/schedule", json=schedule_data, headers=headers)
+        assert response.status_code == 200
+        response_data = response.json()
+        # Should have schedules with 3 chores (one for each day)
+        assert len(response_data["schedules"]) > 0
+        first_schedule = response_data["schedules"][0]
+        assert len(first_schedule["chores"]) == 3
+        # Check that each chore has the correct date in the name
+        chore_names = [chore["name"] for chore in first_schedule["chores"]]
+        date1 = start_time.strftime("%Y-%m-%d")
+        date2 = (start_time + timedelta(days=1)).strftime("%Y-%m-%d")
+        date3 = (start_time + timedelta(days=2)).strftime("%Y-%m-%d")
+        assert f"Daily exercise for {date1}" in chore_names
+        assert f"Daily exercise for {date2}" in chore_names
+        assert f"Daily exercise for {date3}" in chore_names
+
+    @patch('app.get_current_user')
+    def test_schedule_chore_recurrence_too_many(self, mock_get_current_user, mock_user):
+        """Test schedule with chore with too many recurrences (>7) - should return 400"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetch.side_effect = [[], [], []]  # No existing meetings/assignments/chores
+        now = datetime.now(timezone.utc)
+        start_time = now + timedelta(days=1)
+        end_time = start_time + timedelta(hours=2)
+        recur_end = start_time + timedelta(days=7) 
+        chore_with_too_many_recurrences = {
+            "name": "Daily task",
+            "window": [start_time.isoformat(), end_time.isoformat()],
+            "effort": 30,
+            "end_recur_date": recur_end.isoformat()
+        }
+        schedule_data = {
+            "assignments": [],
+            "meetings": [],
+            "chores": [chore_with_too_many_recurrences],
+            "tz_offset_minutes": 0
+        }
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/schedule", json=schedule_data, headers=headers)
+        assert response.status_code == 400
+        response_data = response.json()
+        assert response_data["detail"] == "too many chore recurrences"
+
+    @patch('app.get_current_user')
+    def test_schedule_chore_recurrence_exactly_seven(self, mock_get_current_user, mock_user):
+        """Test schedule with chore with exactly 7 recurrences (maximum allowed)"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetch.side_effect = [[], [], []]  # No existing meetings/assignments/chores
+        now = datetime.now(timezone.utc)
+        start_time = now + timedelta(days=1)
+        end_time = start_time + timedelta(hours=2)
+        recur_end = start_time + timedelta(days=6)  # 7 days total (exactly at limit)
+        chore_with_seven_recurrences = {
+            "name": "Weekly task",
+            "window": [start_time.isoformat(), end_time.isoformat()],
+            "effort": 30,
+            "end_recur_date": recur_end.isoformat()
+        }
+        schedule_data = {
+            "assignments": [],
+            "meetings": [],
+            "chores": [chore_with_seven_recurrences],
+            "tz_offset_minutes": 0
+        }
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/schedule", json=schedule_data, headers=headers)
+        assert response.status_code == 200
+        response_data = response.json()
+        # Should have schedules with exactly 7 chores
+        assert len(response_data["schedules"]) > 0
+        first_schedule = response_data["schedules"][0]
+        assert len(first_schedule["chores"]) == 7
+
+    @patch('app.get_current_user')
+    def test_schedule_mixed_chores_with_and_without_recurrence(self, mock_get_current_user, mock_user):
+        """Test schedule with mix of recurring and non-recurring chores"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetch.side_effect = [[], [], []]  # No existing meetings/assignments/chores
+        now = datetime.now(timezone.utc)
+        start_time = now + timedelta(days=1)
+        chore_no_recur = {
+            "name": "One-time task",
+            "window": [start_time.isoformat(), (start_time + timedelta(hours=1)).isoformat()],
+            "effort": 60,
+            "end_recur_date": None
+        }
+        chore_with_recur = {
+            "name": "Daily task",
+            "window": [(start_time + timedelta(hours=2)).isoformat(), (start_time + timedelta(hours=3)).isoformat()],
+            "effort": 30,
+            "end_recur_date": (start_time + timedelta(days=1)).isoformat()  # 2 days total
+        }
+        schedule_data = {
+            "assignments": [],
+            "meetings": [],
+            "chores": [chore_no_recur, chore_with_recur],
+            "tz_offset_minutes": 0
+        }
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/schedule", json=schedule_data, headers=headers)
+        assert response.status_code == 200
+        response_data = response.json()
+        # Should have schedules with 3 chores total (1 non-recurring + 2 recurring)
+        assert len(response_data["schedules"]) > 0
+        first_schedule = response_data["schedules"][0]
+        assert len(first_schedule["chores"]) == 3
+        # Check that all chores have dates in their names
+        chore_names = [chore["name"] for chore in first_schedule["chores"]]
+        date1 = start_time.strftime("%Y-%m-%d")
+        date2 = (start_time + timedelta(days=1)).strftime("%Y-%m-%d")
+        # Should have one-time task for first date and daily task for both dates
+        assert f"One-time task for {date1}" in chore_names
+        assert f"Daily task for {date1}" in chore_names
+        assert f"Daily task for {date2}" in chore_names
+
+    @patch('app.get_current_user')
+    def test_schedule_chore_recurrence_end_before_start(self, mock_get_current_user, mock_user):
+        """Test schedule with chore where end_recur_date is before window start - should treat as non-recurring"""
+        mock_get_current_user.return_value = mock_user
+        mock_context = AsyncMock()
+        mock_connection = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        self.mock_pool.acquire.return_value = mock_context
+        mock_connection.fetch.side_effect = [[], [], []]  # No existing meetings/assignments/chores
+        now = datetime.now(timezone.utc)
+        start_time = now + timedelta(days=2)
+        end_time = start_time + timedelta(hours=2)
+        recur_end = start_time - timedelta(days=1)  # End recurrence is before window start
+        chore_with_invalid_recurrence = {
+            "name": "Invalid recurrence chore",
+            "window": [start_time.isoformat(), end_time.isoformat()],
+            "effort": 30,
+            "end_recur_date": recur_end.isoformat()
+        }
+        schedule_data = {
+            "assignments": [],
+            "meetings": [],
+            "chores": [chore_with_invalid_recurrence],
+            "tz_offset_minutes": 0
+        }
+        headers = {"Authorization": "Bearer mock_token"}
+        response = self.client.post("/schedule", json=schedule_data, headers=headers)
+        assert response.status_code == 400

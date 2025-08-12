@@ -518,11 +518,61 @@ async def schedule(
             start_end_times=already_scheduled_times,
             link_or_loc=None,
         )
+        
+        # generate recurrences for chores if requested
+        processed_chores = []
+        for chore in sched.chores:
+            window_start = enforce_timestamp_utc(chore.window[0])
+            window_end = enforce_timestamp_utc(chore.window[1])
+            if chore.end_recur_date is None:
+                # No recurrence, just add date to name and keep as is
+                window_start_date = chore.window[0].strftime("%Y-%m-%d")
+                updated_chore = ChoreInRequest(
+                    name=f"{chore.name} for {window_start_date}",
+                    window=chore.window,
+                    effort=chore.effort,
+                    end_recur_date=chore.end_recur_date
+                )
+                processed_chores.append(updated_chore)
+            else:
+                end_recur = enforce_timestamp_utc(chore.end_recur_date)
+                if end_recur.date() < window_start.date():
+                    raise HTTPException(status_code=400, detail="end recur before win start")
+                # Generate recurring chores
+                window_duration = window_end - window_start
+                # calculate number of recurrences and check if too many, then generate recurring chores
+                current_date = window_start.date()
+                end_date = end_recur.date()
+                recurrence_count = 0
+                temp_date = current_date
+                while temp_date <= end_date:
+                    recurrence_count += 1
+                    temp_date += timedelta(days=1)
+                if recurrence_count > 7:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="too many chore recurrences"
+                    )
+                current_date = window_start.date()
+                while current_date <= end_date:
+                    days_offset = (current_date - window_start.date()).days
+                    new_window_start = window_start + timedelta(days=days_offset)
+                    new_window_end = new_window_start + window_duration
+                    date_str = current_date.strftime("%Y-%m-%d")
+                    updated_chore = ChoreInRequest(
+                        name=f"{chore.name} for {date_str}",
+                        window=[new_window_start, new_window_end],
+                        effort=chore.effort,
+                        end_recur_date=None  # Individual occurrences don't have recurrence
+                    )
+                    processed_chores.append(updated_chore)
+                    current_date += timedelta(days=1)
+        
         if not already_scheduled_times:
             schedules = schedule_tasks(
                 sched.meetings,
                 sched.assignments,
-                sched.chores,
+                processed_chores,
                 num_schedules=11,
                 tz_offset_minutes=getattr(sched, "tz_offset_minutes", 0),
                 now=datetime.now(timezone.utc)
@@ -534,7 +584,7 @@ async def schedule(
             schedules = schedule_tasks(
                 sched.meetings + [scheduled_blocker],
                 sched.assignments,
-                sched.chores,
+                processed_chores,
                 num_schedules=11,
                 tz_offset_minutes=getattr(sched, "tz_offset_minutes", 0),
                 now=datetime.now(timezone.utc)
