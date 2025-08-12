@@ -75,6 +75,7 @@ const Signup = () => {
                             Email
                         </label>
                         <input
+                            data-testid="email-input"
                             type="email"
                             className="w-full border border-gray-300 rounded-md p-2.5 text-base text-gray-800 -ml-2.5 placeholder-gray-400"
                             placeholder="Email"
@@ -88,6 +89,7 @@ const Signup = () => {
                             Username
                         </label>
                         <input
+                            data-testid="username-input"
                             type="text"
                             className="w-full border border-gray-300 rounded-md p-2.5 text-base text-gray-800 -ml-2.5 placeholder-gray-400"
                             placeholder="Username"
@@ -102,6 +104,7 @@ const Signup = () => {
                         </label>
                         <div className="relative">
                             <input
+                                data-testid="password-input"
                                 type={showPassword ? "text" : "password"}
                                 className="w-full border border-gray-300 rounded-md p-2.5 text-base text-gray-800 -ml-2.5 placeholder-gray-400 pr-16"
                                 placeholder="Password"
@@ -109,6 +112,7 @@ const Signup = () => {
                                 onChange={(e) => setPassword(e.target.value)}
                             />
                             <button
+                                data-testid="toggle-password-visibility"
                                 type="button"
                                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm"
                                 onClick={() => setShowPassword(!showPassword)}
@@ -124,6 +128,7 @@ const Signup = () => {
                         </label>
                         <div className="relative">
                             <input
+                                data-testid="confirm-password-input"
                                 type={showConfirmPassword ? "text" : "password"}
                                 className="w-full border border-gray-300 rounded-md p-2.5 text-base text-gray-800 -ml-2.5 placeholder-gray-400 pr-16"
                                 placeholder="Confirm Password"
@@ -131,6 +136,7 @@ const Signup = () => {
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                             />
                             <button
+                                data-testid="toggle-confirm-password-visibility"
                                 type="button"
                                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 text-sm"
                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
