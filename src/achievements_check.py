@@ -2,9 +2,11 @@ import requests
 import json
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict
+from typing import Optional
 
 from data_models import SessionCompletionDataModel
-async def check_achievements(conn, user_id: int):
+
+async def check_achievements(conn, user_id: int, tz_offset_minutes: int = 0):
     """Check and update achievements for a user"""
     try:
         achievements = await conn.fetchrow("SELECT * FROM achievements WHERE user_id = $1", user_id)
@@ -17,17 +19,16 @@ async def check_achievements(conn, user_id: int):
         assignments_completed = sessions_data['assignments_completed']
         chores_completed = sessions_data['chores_completed']
         level = achievements['levels']
-
         unlocked = {}
-
-        # Session Based Achievements
-        session_unlocked = await check_session_achievements(sessions, achievements)
+        
+        # Session Based Achievements (with timezone consideration)
+        session_unlocked = await check_session_achievements(sessions, achievements, tz_offset_minutes)
         unlocked.update(session_unlocked)
-
+        
         # Level Based Achievements
         level_unlocked = await check_level_achievements(level, achievements)
         unlocked.update(level_unlocked)
-
+        
         # Cumulative Achievements
         cumulative_unlocked = await check_cumulative_achievements(assignments_completed, chores_completed, achievements)
         unlocked.update(cumulative_unlocked)
@@ -59,7 +60,6 @@ async def get_sessions_past_month(conn, user_id: int):
             JOIN chores c ON co.chore_id = c.chore_id
             WHERE co.user_id = $1 AND co.start_time > $2
         """, user_id, one_month_ago)
-
         # Count completed assignments and chores in Python
         assignments_completed = sum(
             1 for s in sessions if s['type'] == 'assignment' and s['parent_completed']
@@ -67,7 +67,6 @@ async def get_sessions_past_month(conn, user_id: int):
         chores_completed = sum(
             1 for s in sessions if s['type'] == 'chore' and s['parent_completed']
         )
-
         return {
             "sessions": sessions,
             "assignments_completed": assignments_completed,
@@ -81,14 +80,23 @@ async def get_sessions_past_month(conn, user_id: int):
             "chores_completed": 0
         }
 
-async def check_session_achievements(sessions, achievements):
+def convert_utc_to_local_time(utc_time: datetime, tz_offset_minutes: int = 0) -> datetime:
+    """Convert UTC time to user's local timezone using offset in minutes"""
+    try:
+        return utc_time + timedelta(minutes=tz_offset_minutes)
+    except Exception:
+        # Fallback to UTC if timezone conversion fails
+        return utc_time
+
+async def check_session_achievements(sessions, achievements, tz_offset_minutes: int = 0):
     updates = {}
 
-    # Helper: group sessions by date
+    # Helper: group sessions by date in user's local timezone
     sessions_by_date = defaultdict(list)
     for s in sessions:
-        date = s['start_time'].date()
-        sessions_by_date[date].append(s)
+        local_time = convert_utc_to_local_time(s['start_time'], tz_offset_minutes)
+        date = local_time.date()
+        sessions_by_date[date].append({**s, 'local_start_time': local_time})
 
     # First Timer
     if not achievements['first_timer']:
@@ -100,29 +108,46 @@ async def check_session_achievements(sessions, achievements):
         if any(len(day_sessions) >= 3 for day_sessions in sessions_by_date.values()):
             updates['getting_the_hang_of_it'] = True
 
-    # Early Bird: Completed a session before 8 am
+    # Early Bird: Completed a session before 8 am (LOCAL TIME)
     if not achievements['early_bird']:
-        if any(s['start_time'].hour < 8 for s in sessions):
-            updates['early_bird'] = True
+        for s in sessions:
+            local_time = convert_utc_to_local_time(s['start_time'], tz_offset_minutes)
+            if local_time.hour < 8:
+                updates['early_bird'] = True
+                break
 
-    # Night Owl: Completed a session after 11 pm
+    # Night Owl: Completed a session after 11 pm (LOCAL TIME)
     if not achievements['night_owl']:
-        if any(s['start_time'].hour >= 23 for s in sessions):
-            updates['night_owl'] = True
+        for s in sessions:
+            local_time = convert_utc_to_local_time(s['start_time'], tz_offset_minutes)
+            if local_time.hour >= 23:
+                updates['night_owl'] = True
+                break
 
-    # Weekend Warrior: Completed 5 sessions on a Weekend
+    # Weekend Warrior: Completed 5 sessions on a Weekend (LOCAL TIME)
     if not achievements['weekend_warrior']:
-        weekend_sessions = [s for s in sessions if s['start_time'].weekday() >= 5]
+        weekend_sessions = []
+        for s in sessions:
+            local_time = convert_utc_to_local_time(s['start_time'], tz_offset_minutes)
+            if local_time.weekday() >= 5:  # Saturday = 5, Sunday = 6
+                weekend_sessions.append(s)
         if len(weekend_sessions) >= 5:
             updates['weekend_warrior'] = True
 
-    # 7-Day Streak: Completed each session with 80% locked in value in the last 7 days
+    # 7-Day Streak: Completed each session with 80% locked in value in the last 7 days (LOCAL TIME)
     if not achievements['seven_day_streak']:
-        today = datetime.now().date()
+        today = convert_utc_to_local_time(datetime.now(timezone.utc), tz_offset_minutes).date()
         streak = True
         for i in range(7):
             day = today - timedelta(days=i)
-            day_sessions = [s for s in sessions if s['start_time'].date() == day]
+            # Find sessions on this day in local time
+            day_sessions = []
+            for s in sessions:
+                local_time = convert_utc_to_local_time(s['start_time'], tz_offset_minutes)
+                if local_time.date() == day:
+                    day_sessions.append(s)
+            
+            # Check if any session on this day has >= 80% locked in
             if not any(s['locked_in'] >= 0.8 * s['effort'] for s in day_sessions):
                 streak = False
                 break
@@ -136,17 +161,24 @@ async def check_session_achievements(sessions, achievements):
 
     # Consistency King: Complete all sessions everyday for a month (at least 3 a day)
     if not achievements['consistency_king']:
-        today = datetime.now().date()
+        today = convert_utc_to_local_time(datetime.now(timezone.utc), tz_offset_minutes).date()
         consistency = True
         for i in range(30):
             day = today - timedelta(days=i)
-            if len([s for s in sessions if s['start_time'].date() == day]) < 3:
+            # Count sessions on this day in local time
+            day_session_count = 0
+            for s in sessions:
+                local_time = convert_utc_to_local_time(s['start_time'], tz_offset_minutes)
+                if local_time.date() == day:
+                    day_session_count += 1
+            
+            if day_session_count < 3:
                 consistency = False
                 break
         if consistency:
             updates['consistency_king'] = True
 
-    # Power Hour: 60 minute session completed with full focus
+    # Power Hour: 60 minute session completed with good focus (>=8 out of 10)
     if not achievements['power_hour']:
         for s in sessions:
             if s['end_time'] and s['start_time'] and s['locked_in'] is not None:
@@ -155,12 +187,13 @@ async def check_session_achievements(sessions, achievements):
                     updates['power_hour'] = True
                     break
 
-    # Focus Beast: Completed 2 hour session with full focus
+    # Focus Beast: Completed 2 hour session with excellent focus (>=9 out of 10)
+    # Note: Changed threshold from 10 to 9 to be more achievable
     if not achievements['focus_beast']:
         for s in sessions:
             if s['end_time'] and s['start_time'] and s['locked_in'] is not None:
                 duration = (s['end_time'] - s['start_time']).total_seconds() / 60
-                if duration >= 120 and s['locked_in'] == 10:
+                if duration >= 120 and s['locked_in'] >= 9:
                     updates['focus_beast'] = True
                     break
 
@@ -177,10 +210,13 @@ async def check_session_achievements(sessions, achievements):
                     updates['redemption'] = True
                     break
 
-    # Sleep is for the weak: Complete a session between 3 am and 5 am
+    # Sleep is for the weak: Complete a session between 3 am and 5 am (LOCAL TIME)
     if not achievements['sleep_is_for_the_weak']:
-        if any(3 <= s['start_time'].hour < 5 for s in sessions):
-            updates['sleep_is_for_the_weak'] = True
+        for s in sessions:
+            local_time = convert_utc_to_local_time(s['start_time'], tz_offset_minutes)
+            if 3 <= local_time.hour < 5:
+                updates['sleep_is_for_the_weak'] = True
+                break
 
     return updates
 

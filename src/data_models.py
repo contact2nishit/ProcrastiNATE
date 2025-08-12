@@ -130,6 +130,7 @@ class SessionCompletionDataModel(BaseModel):
     completed: bool
     is_assignment: bool
     locked_in: int
+    tz_offset_minutes: int = 0  # NEW: timezone offset from UTC in minutes
 
 
 # Response data models
