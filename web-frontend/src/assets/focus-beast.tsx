@@ -23,15 +23,8 @@ const BadgeFocusBeast: React.FC = () => {
           <div className="particle-focus-beast">⚡</div>
         </div>
 
-        <div className="trophy-container-focus-beast">
-          <div className="trophy-focus-beast">
-            <div className="trophy-cup-focus-beast">
-              <div className="trophy-handle-focus-beast left"></div>
-              <div className="trophy-handle-focus-beast right"></div>
-            </div>
-            <div className="trophy-base-focus-beast"></div>
-            <div className="trophy-bottom-focus-beast"></div>
-          </div>
+        <div className="lion-container-focus-beast">
+          <div className="lion-focus-beast">🦁</div>
         </div>
 
         <div className="big-text-focus-beast">FOCUS</div>
