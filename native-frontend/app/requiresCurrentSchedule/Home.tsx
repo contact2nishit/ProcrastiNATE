@@ -206,6 +206,7 @@ export default function Home() {
                     completed: true,
                     is_assignment: isAssignmentFlag,
                     locked_in: locked_in,
+                    tz_offset_minutes: -new Date().getTimezoneOffset(),
                 }),
             });
             if (!response.ok) {

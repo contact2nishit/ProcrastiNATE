@@ -7,6 +7,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/lab": "^7.0.0-beta.14",
     "@mui/material": "^7.2.0",
+    "@mui/x-date-pickers": "^8.10.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.6.4",
     "@testing-library/react": "^16.3.0",
@@ -16,9 +17,10 @@
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
     "date-fns": "^4.1.0",
+    "dayjs": "^1.11.13",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.7.1",
+    "react-router-dom": "^6.28.0",
     "react-scripts": "5.0.1",
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
@@ -27,7 +29,10 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "test:ci": "react-scripts test --watchAll=false --coverage",
+    "eject": "react-scripts eject",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix"
   },
   "eslintConfig": {
     "extends": [
@@ -49,7 +54,12 @@
   },
   "devDependencies": {
     "@types/react-router-dom": "^5.3.3",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
     "autoprefixer": "^10.4.21",
+    "eslint": "^8.57.1",
+    "jest-environment-jsdom": "^30.0.5",
+    "msw": "^2.10.4",
     "postcss": "^8.5.6",
     "tailwind": "^4.0.0"
   }

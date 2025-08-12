@@ -1,0 +1,535 @@
+.badge-container-home-hero {
+    position: relative;
+    animation: float-home-hero 3s ease-in-out infinite;
+}
+
+@keyframes float-home-hero {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-12px) rotate(-1deg); }
+}
+
+.badge-home-hero {
+    width: 220px;
+    height: 220px;
+    position: relative;
+    border-radius: 50%;
+    background: 
+        radial-gradient(circle at 30% 30%, #FF1493 0%, #DC143C 30%, #B22222 60%, #8B0000 100%);
+    box-shadow: 
+        0 0 35px rgba(255, 20, 147, 0.7),
+        0 0 70px rgba(220, 20, 60, 0.5),
+        0 18px 40px rgba(0, 0, 0, 0.4),
+        inset 0 5px 15px rgba(255, 255, 255, 0.2),
+        inset 0 -5px 15px rgba(139, 0, 0, 0.4);
+    border: 6px solid #8B0000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: visible;
+    animation: glow-home-hero 2.5s ease-in-out infinite alternate;
+}
+
+/* Variant intensity styles */
+.badge-home-hero.variant-2 {
+    box-shadow: 
+        0 0 45px rgba(255, 20, 147, 0.8),
+        0 0 80px rgba(220, 20, 60, 0.6),
+        0 18px 40px rgba(0, 0, 0, 0.4),
+        inset 0 5px 15px rgba(255, 255, 255, 0.25),
+        inset 0 -5px 15px rgba(139, 0, 0, 0.4);
+}
+
+.badge-home-hero.variant-3 {
+    box-shadow: 
+        0 0 55px rgba(255, 20, 147, 0.9),
+        0 0 90px rgba(220, 20, 60, 0.7),
+        0 18px 40px rgba(0, 0, 0, 0.4),
+        inset 0 5px 15px rgba(255, 255, 255, 0.3),
+        inset 0 -5px 15px rgba(139, 0, 0, 0.4);
+}
+
+.badge-home-hero.variant-4 {
+    box-shadow: 
+        0 0 65px rgba(255, 20, 147, 1.0),
+        0 0 100px rgba(220, 20, 60, 0.8),
+        0 18px 40px rgba(0, 0, 0, 0.4),
+        inset 0 5px 15px rgba(255, 255, 255, 0.35),
+        inset 0 -5px 15px rgba(139, 0, 0, 0.4);
+}
+
+.badge-home-hero.variant-5 {
+    box-shadow: 
+        0 0 75px rgba(255, 20, 147, 1.2),
+        0 0 110px rgba(220, 20, 60, 0.9),
+        0 0 150px rgba(255, 215, 0, 0.3),
+        0 18px 40px rgba(0, 0, 0, 0.4),
+        inset 0 5px 15px rgba(255, 255, 255, 0.4),
+        inset 0 -5px 15px rgba(139, 0, 0, 0.4);
+    border-color: #FFD700;
+}
+
+@keyframes glow-home-hero {
+    from { 
+        box-shadow: 
+            0 0 35px rgba(255, 20, 147, 0.7),
+            0 0 70px rgba(220, 20, 60, 0.5),
+            0 18px 40px rgba(0, 0, 0, 0.4),
+            inset 0 5px 15px rgba(255, 255, 255, 0.2),
+            inset 0 -5px 15px rgba(139, 0, 0, 0.4);
+    }
+    to { 
+        box-shadow: 
+            0 0 50px rgba(255, 20, 147, 0.9),
+            0 0 90px rgba(220, 20, 60, 0.7),
+            0 18px 40px rgba(0, 0, 0, 0.4),
+            inset 0 5px 15px rgba(255, 255, 255, 0.3),
+            inset 0 -5px 15px rgba(139, 0, 0, 0.4);
+    }
+}
+
+.house-container-home-hero {
+    position: relative;
+    z-index: 3;
+    animation: hero-hover-home-hero 2.5s ease-in-out infinite;
+}
+
+@keyframes hero-hover-home-hero {
+    0%, 100% { transform: translateY(0px) scale(1) rotate(0deg); }
+    25% { transform: translateY(-3px) scale(1.02) rotate(-1deg); }
+    50% { transform: translateY(-8px) scale(1.05) rotate(0deg); }
+    75% { transform: translateY(-3px) scale(1.02) rotate(1deg); }
+}
+
+.house-home-hero {
+    width: 95px;
+    height: 100px;
+    position: relative;
+    margin-bottom: 15px;
+}
+
+/* House size variants */
+.house-home-hero.bigger {
+    width: 105px;
+    height: 110px;
+}
+
+.house-home-hero.large {
+    width: 115px;
+    height: 120px;
+}
+
+.house-home-hero.mansion {
+    width: 125px;
+    height: 130px;
+}
+
+.house-home-hero.super-mansion {
+    width: 135px;
+    height: 140px;
+}
+
+.house-roof-home-hero {
+    width: 0;
+    height: 0;
+    border-left: 42px solid transparent;
+    border-right: 42px solid transparent;
+    border-bottom: 30px solid #8B4513;
+    margin: 0 auto;
+    position: relative;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
+}
+
+.house-roof-home-hero::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: -30px;
+    width: 60px;
+    height: 15px;
+    background: linear-gradient(45deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+    border-radius: 50%;
+}
+
+.chimney-home-hero {
+    position: absolute;
+    top: -15px;
+    right: -25px;
+    width: 12px;
+    height: 20px;
+    background: linear-gradient(135deg, #A0522D 0%, #8B4513 50%, #654321 100%);
+    border-radius: 2px 2px 0 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    border: 1px solid #654321;
+}
+
+.chimney-home-hero::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    animation: smoke-puff-home-hero 2s ease-in-out infinite;
+}
+
+@keyframes smoke-puff-home-hero {
+    0% { opacity: 0; transform: translateX(-50%) translateY(0px) scale(0.5); }
+    50% { opacity: 1; transform: translateX(-50%) translateY(-10px) scale(1); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(1.5); }
+}
+
+.house-body-home-hero {
+    width: 70px;
+    height: 50px;
+    background: 
+        linear-gradient(135deg, 
+            #F5DEB3 0%, 
+            #DEB887 20%, 
+            #D2B48C 40%, 
+            #BC9A6A 60%, 
+            #A0825A 100%);
+    margin: 0 auto;
+    position: relative;
+    box-shadow: 
+        0 3px 10px rgba(0, 0, 0, 0.3),
+        inset 3px 0 8px rgba(255, 255, 255, 0.3),
+        inset -3px 0 8px rgba(160, 130, 90, 0.4);
+    border: 2px solid #8B7355;
+    z-index: 2;
+}
+
+.door-home-hero {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 30px;
+    background: linear-gradient(135deg, #8B4513 0%, #654321 50%, #4A2C1A 100%);
+    border-radius: 8px 8px 0 0;
+    box-shadow: 
+        0 2px 5px rgba(0, 0, 0, 0.3),
+        inset 1px 0 3px rgba(255, 255, 255, 0.2);
+    border: 1px solid #3E2A18;
+}
+
+.door-handle-home-hero {
+    position: absolute;
+    top: 12px;
+    right: 2px;
+    width: 3px;
+    height: 3px;
+    background: #FFD700;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.window-home-hero {
+    position: absolute;
+    top: 8px;
+    width: 12px;
+    height: 12px;
+    background: 
+        radial-gradient(circle, 
+            #87CEEB 0%, 
+            #4682B4 50%, 
+            #2F4F4F 100%);
+    border-radius: 2px;
+    border: 2px solid #2F4F4F;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        inset 1px 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.window-home-hero::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 1px;
+    height: 8px;
+    background: #2F4F4F;
+}
+
+.window-home-hero::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 1px;
+    background: #2F4F4F;
+}
+
+.window-left-home-hero {
+    left: 8px;
+}
+
+.window-right-home-hero {
+    right: 8px;
+}
+
+.window-center-home-hero {
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.window-upper-left-home-hero {
+    left: 15px;
+    top: 5px;
+}
+
+.window-upper-right-home-hero {
+    right: 15px;
+    top: 5px;
+}
+
+.hero-emblem-home-hero {
+    position: absolute;
+    top: 15px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    background: 
+        radial-gradient(circle, 
+            #FFD700 0%, 
+            #FFA500 50%, 
+            #FF8C00 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    color: #B22222;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    box-shadow: 
+        0 3px 6px rgba(0, 0, 0, 0.3),
+        inset 1px 1px 3px rgba(255, 255, 255, 0.5);
+    border: 2px solid #FF8C00;
+    z-index: 3;
+    animation: emblem-glow-home-hero 2s ease-in-out infinite alternate;
+}
+
+@keyframes emblem-glow-home-hero {
+    from { 
+        box-shadow: 
+            0 3px 6px rgba(0, 0, 0, 0.3),
+            inset 1px 1px 3px rgba(255, 255, 255, 0.5);
+    }
+    to { 
+        box-shadow: 
+            0 3px 6px rgba(0, 0, 0, 0.3),
+            inset 1px 1px 3px rgba(255, 255, 255, 0.5),
+            0 0 12px rgba(255, 215, 0, 0.8);
+    }
+}
+
+.roman-numeral-home-hero {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 45px;
+    height: 45px;
+    background: 
+        radial-gradient(circle, 
+            #FFD700 0%, 
+            #FF1493 50%, 
+            #DC143C 100%);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    font-weight: 900;
+    color: #FFFFFF;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    border: 3px solid #FFD700;
+    box-shadow: 
+        0 0 30px rgba(255, 215, 0, 0.9),
+        0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: numeral-glow-home-hero 2s ease-in-out infinite alternate;
+    z-index: 4;
+}
+
+@keyframes numeral-glow-home-hero {
+    from { 
+        box-shadow: 
+            0 0 30px rgba(255, 215, 0, 0.9),
+            0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    to { 
+        box-shadow: 
+            0 0 45px rgba(255, 215, 0, 1),
+            0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+}
+
+.big-text-home-hero {
+    font-size: 24px;
+    font-weight: 900;
+    color: #FFFFFF;
+    text-shadow: 
+        3px 3px 0px #8B0000,
+        -1px -1px 0px #8B0000,
+        1px -1px 0px #8B0000,
+        -1px 1px 0px #8B0000,
+        0 0 12px rgba(255, 20, 147, 0.8);
+    z-index: 3;
+    margin-top: 8px;
+    animation: textGlow-home-hero 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes textGlow-home-hero {
+    from { text-shadow: 
+        3px 3px 0px #8B0000,
+        -1px -1px 0px #8B0000,
+        1px -1px 0px #8B0000,
+        -1px 1px 0px #8B0000,
+        0 0 12px rgba(255, 20, 147, 0.8); }
+    to { text-shadow: 
+        3px 3px 0px #8B0000,
+        -1px -1px 0px #8B0000,
+        1px -1px 0px #8B0000,
+        -1px 1px 0px #8B0000,
+        0 0 25px rgba(255, 20, 147, 1); }
+}
+
+.label-home-hero {
+    position: absolute;
+    bottom: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #FFB6C1;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    letter-spacing: 2px;
+    z-index: 3;
+}
+
+.particles-home-hero {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.particle-home-hero {
+    position: absolute;
+    color: #FF1493;
+    font-size: 14px;
+    animation: particle-float-home-hero 3.5s infinite ease-in-out;
+    text-shadow: 0 0 4px rgba(255, 20, 147, 0.9);
+}
+
+.particle-home-hero:nth-child(1) { top: 8%; left: 12%; animation-delay: 0s; }
+.particle-home-hero:nth-child(2) { top: 15%; right: 8%; animation-delay: 0.6s; }
+.particle-home-hero:nth-child(3) { top: 65%; left: 3%; animation-delay: 1.2s; }
+.particle-home-hero:nth-child(4) { top: 75%; right: 12%; animation-delay: 1.8s; }
+.particle-home-hero:nth-child(5) { top: 40%; left: -8%; animation-delay: 2.4s; }
+.particle-home-hero:nth-child(6) { top: 50%; right: -8%; animation-delay: 3s; }
+
+@keyframes particle-float-home-hero {
+    0%, 100% { 
+        transform: translateY(0px) scale(0.9) rotate(0deg);
+        opacity: 0.7;
+    }
+    20% { 
+        transform: translateY(-18px) scale(1.3) rotate(72deg);
+        opacity: 1;
+    }
+    40% { 
+        transform: translateY(-10px) scale(1.0) rotate(144deg);
+        opacity: 0.9;
+    }
+    60% { 
+        transform: translateY(-25px) scale(1.2) rotate(216deg);
+        opacity: 1;
+    }
+    80% { 
+        transform: translateY(-5px) scale(0.95) rotate(288deg);
+        opacity: 0.8;
+    }
+}
+
+.mega-shine-home-hero {
+    position: absolute;
+    top: -15px;
+    left: -15px;
+    width: 90px;
+    height: 130px;
+    background: linear-gradient(45deg, 
+        rgba(255, 255, 255, 0.7) 0%, 
+        rgba(255, 20, 147, 0.3) 30%,
+        rgba(255, 255, 255, 0.2) 60%,
+        transparent 100%);
+    border-radius: 50%;
+    transform: rotate(-30deg);
+    z-index: 2;
+    animation: shine-pulse-home-hero 3.5s ease-in-out infinite;
+}
+
+@keyframes shine-pulse-home-hero {
+    0%, 100% { opacity: 0.7; }
+    33% { opacity: 0.4; }
+    66% { opacity: 0.9; }
+}
+
+.explosion-home-hero {
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.explosion-particle-home-hero {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    background: #FF1493;
+    border-radius: 50%;
+    animation: explode-home-hero 4.5s infinite ease-out;
+    box-shadow: 0 0 6px rgba(255, 20, 147, 0.8);
+}
+
+.explosion-particle-home-hero:nth-child(1) { animation-delay: 0s; }
+.explosion-particle-home-hero:nth-child(2) { animation-delay: 0.3s; }
+.explosion-particle-home-hero:nth-child(3) { animation-delay: 0.6s; }
+.explosion-particle-home-hero:nth-child(4) { animation-delay: 0.9s; }
+.explosion-particle-home-hero:nth-child(5) { animation-delay: 1.2s; }
+.explosion-particle-home-hero:nth-child(6) { animation-delay: 1.5s; }
+.explosion-particle-home-hero:nth-child(7) { animation-delay: 1.8s; }
+.explosion-particle-home-hero:nth-child(8) { animation-delay: 2.1s; }
+
+@keyframes explode-home-hero {
+    0% { 
+        transform: translate(0, 0) scale(0);
+        opacity: 1;
+    }
+    60% { 
+        transform: translate(var(--x, 120px), var(--y, -120px)) scale(1.2);
+        opacity: 0.9;
+    }
+    100% { 
+        transform: translate(var(--x, 180px), var(--y, -180px)) scale(0);
+        opacity: 0;
+    }
+}
+
+.explosion-particle-home-hero:nth-child(1) { --x: 130px; --y: -90px; }
+.explosion-particle-home-hero:nth-child(2) { --x: -110px; --y: -100px; }
+.explosion-particle-home-hero:nth-child(3) { --x: 90px; --y: 120px; }
+.explosion-particle-home-hero:nth-child(4) { --x: -130px; --y: 110px; }
+.explosion-particle-home-hero:nth-child(5) { --x: 150px; --y: 30px; }
+.explosion-particle-home-hero:nth-child(6) { --x: -100px; --y: -30px; }
+.explosion-particle-home-hero:nth-child(7) { --x: 70px; --y: -140px; }
+.explosion-particle-home-hero:nth-child(8) { --x: -80px; --y: 140px; }

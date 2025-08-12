@@ -9,11 +9,15 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
-    "lint": "expo lint"
+    "test:ci": "jest --watchAll=false --coverage",
+    "lint": "expo lint",
+    "lint:fix": "expo lint --fix"
   },
   "jest": {
     "preset": "jest-expo",
-    "setupFiles": ["./tests/setup.js"]
+    "setupFiles": [
+      "./tests/setup.js"
+    ]
   },
   "dependencies": {
     "@babel/runtime": "^7.27.4",
@@ -63,6 +67,9 @@
     "@types/react": "~19.0.10",
     "@types/react-native": "^0.72.8",
     "@types/react-test-renderer": "19.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.39.0",
+    "@typescript-eslint/parser": "^8.39.0",
+    "eslint": "^9.32.0",
     "jest": "^29.2.1",
     "jest-expo": "~53.0.5",
     "react-test-renderer": "19.0.0",

@@ -1,0 +1,405 @@
+/* Making Progress Badge Styles */
+
+.badge-container-making-progress {
+  position: relative;
+  animation: float-making-progress 3s ease-in-out infinite;
+}
+
+@keyframes float-making-progress {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+.badge-making-progress {
+  width: 220px;
+  height: 220px;
+  position: relative;
+  border-radius: 50%;
+  background: 
+    radial-gradient(circle at 30% 30%, #2196F3 0%, #1976D2 30%, #0D47A1 60%, #0A2E6B 100%);
+  box-shadow: 
+    0 0 30px rgba(33, 150, 243, 0.6),
+    0 0 60px rgba(25, 118, 210, 0.4),
+    0 15px 35px rgba(0, 0, 0, 0.3),
+    inset 0 5px 15px rgba(255, 255, 255, 0.2),
+    inset 0 -5px 15px rgba(10, 46, 107, 0.3);
+  border: 6px solid #1976D2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: visible;
+  animation: glow-making-progress 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow-making-progress {
+  from { 
+    box-shadow: 
+      0 0 30px rgba(33, 150, 243, 0.6),
+      0 0 60px rgba(25, 118, 210, 0.4),
+      0 15px 35px rgba(0, 0, 0, 0.3),
+      inset 0 5px 15px rgba(255, 255, 255, 0.2),
+      inset 0 -5px 15px rgba(10, 46, 107, 0.3);
+  }
+  to { 
+    box-shadow: 
+      0 0 40px rgba(33, 150, 243, 0.8),
+      0 0 80px rgba(25, 118, 210, 0.6),
+      0 15px 35px rgba(0, 0, 0, 0.3),
+      inset 0 5px 15px rgba(255, 255, 255, 0.3),
+      inset 0 -5px 15px rgba(10, 46, 107, 0.3);
+  }
+}
+
+.inner-ring-making-progress {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: rotate-making-progress 10s linear infinite;
+}
+
+@keyframes rotate-making-progress {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.rocket-container-making-progress {
+  position: relative;
+  z-index: 3;
+  animation: bounce-making-progress 2s ease-in-out infinite;
+}
+
+@keyframes bounce-making-progress {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-5px) scale(1.05); }
+}
+
+.rocket-making-progress {
+  width: 70px;
+  height: 90px;
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.rocket-body-making-progress {
+  width: 35px;
+  height: 60px;
+  background: linear-gradient(135deg, #F5F5F5 0%, #E0E0E0 50%, #BDBDBD 100%);
+  border-radius: 50px;
+  position: relative;
+  margin: 0 auto;
+  box-shadow: 
+    0 5px 15px rgba(0, 0, 0, 0.3),
+    inset 0 3px 8px rgba(255, 255, 255, 0.3),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.2);
+  border: 3px solid #424242;
+}
+
+.rocket-nose-making-progress {
+  width: 35px;
+  height: 30px;
+  background: linear-gradient(135deg, #FF1744 0%, #D50000 50%, #B71C1C 100%);
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  position: absolute;
+  top: -27px;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 
+    0 3px 8px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+  border-top: 3px solid #424242;
+  border-left: 3px solid #424242;
+  border-right: 3px solid #424242;
+}
+
+.rocket-window-making-progress {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #81D4FA 0%, #29B6F6 50%, #0277BD 100%);
+  border-radius: 50%;
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 3px rgba(255, 255, 255, 0.4),
+    inset 0 -1px 2px rgba(2, 119, 189, 0.3);
+  border: 2px solid #424242;
+}
+
+.rocket-window-making-progress::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 6px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+}
+
+.rocket-rivets-making-progress {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 35px;
+  height: 10px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.rocket-rivet-making-progress {
+  width: 3px;
+  height: 3px;
+  background: #424242;
+  border-radius: 50%;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+.rocket-fin-making-progress {
+  width: 20px;
+  height: 30px;
+  background: linear-gradient(135deg, #0288D1 0%, #0277BD 50%, #01579B 100%);
+  position: absolute;
+  bottom: 15px;
+  border-radius: 0 50% 50% 0;
+  box-shadow: 
+    0 3px 8px rgba(0, 0, 0, 0.3),
+    inset 0 2px 4px rgba(255, 255, 255, 0.2);
+  border: 2px solid #424242;
+}
+
+.rocket-fin-making-progress.left {
+  left: -18px;
+  border-radius: 50% 0 0 50%;
+}
+
+.rocket-fin-making-progress.right {
+  right: -18px;
+  border-radius: 0 50% 50% 0;
+}
+
+.rocket-base-making-progress {
+  width: 30px;
+  height: 8px;
+  background: linear-gradient(135deg, #616161 0%, #424242 100%);
+  border-radius: 4px;
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.rocket-flames-making-progress {
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 35px;
+  height: 25px;
+  animation: flame-flicker-making-progress 0.15s ease-in-out infinite alternate;
+}
+
+@keyframes flame-flicker-making-progress {
+  0% { 
+    transform: translateX(-50%) scale(1) rotate(-0.5deg);
+    filter: brightness(1);
+  }
+  100% { 
+    transform: translateX(-50%) scale(1.03) rotate(0.5deg);
+    filter: brightness(1.1);
+  }
+}
+
+.rocket-flame-making-progress {
+  position: absolute;
+  bottom: 0;
+  border-radius: 50% 50% 0 0;
+}
+
+.rocket-flame-making-progress.center {
+  width: 16px;
+  height: 22px;
+  background: linear-gradient(180deg, #FFC107 0%, #FF9800 40%, #FF5722 80%, #D84315 100%);
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 0 8px rgba(255, 152, 0, 0.6);
+}
+
+.rocket-flame-making-progress.left {
+  width: 12px;
+  height: 18px;
+  background: linear-gradient(180deg, #FF9800 0%, #FF5722 50%, #D84315 100%);
+  left: 4px;
+  box-shadow: 0 0 6px rgba(255, 87, 34, 0.5);
+}
+
+.rocket-flame-making-progress.right {
+  width: 12px;
+  height: 18px;
+  background: linear-gradient(180deg, #FF9800 0%, #FF5722 50%, #D84315 100%);
+  right: 4px;
+  box-shadow: 0 0 6px rgba(255, 87, 34, 0.5);
+}
+
+.big-text-making-progress {
+  font-size: 24px;
+  font-weight: 900;
+  color: #FFFFFF;
+  text-shadow: 
+    3px 3px 0px #0A2E6B,
+    -1px -1px 0px #0A2E6B,
+    1px -1px 0px #0A2E6B,
+    -1px 1px 0px #0A2E6B,
+    0 0 10px rgba(255, 255, 255, 0.5);
+  z-index: 3;
+  margin-top: 8px;
+  animation: textGlow-making-progress 2s ease-in-out infinite alternate;
+}
+
+@keyframes textGlow-making-progress {
+  from { text-shadow: 
+    3px 3px 0px #0A2E6B,
+    -1px -1px 0px #0A2E6B,
+    1px -1px 0px #0A2E6B,
+    -1px 1px 0px #0A2E6B,
+    0 0 10px rgba(255, 255, 255, 0.5); }
+  to { text-shadow: 
+    3px 3px 0px #0A2E6B,
+    -1px -1px 0px #0A2E6B,
+    1px -1px 0px #0A2E6B,
+    -1px 1px 0px #0A2E6B,
+    0 0 20px rgba(255, 255, 255, 0.8); }
+}
+
+.label-making-progress {
+  position: absolute;
+  bottom: 15px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #64B5F6;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  letter-spacing: 2px;
+  z-index: 3;
+}
+
+.particles-making-progress {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.particle-making-progress {
+  position: absolute;
+  color: #64B5F6;
+  font-size: 12px;
+  animation: particle-float-making-progress 3s infinite ease-in-out;
+  text-shadow: 0 0 3px rgba(100, 181, 246, 0.8);
+}
+
+.particle-making-progress:nth-child(1) { top: 10%; left: 15%; animation-delay: 0s; }
+.particle-making-progress:nth-child(2) { top: 20%; right: 10%; animation-delay: 0.5s; }
+.particle-making-progress:nth-child(3) { top: 60%; left: 5%; animation-delay: 1s; }
+.particle-making-progress:nth-child(4) { top: 70%; right: 15%; animation-delay: 1.5s; }
+.particle-making-progress:nth-child(5) { top: 35%; left: -5%; animation-delay: 2s; }
+.particle-making-progress:nth-child(6) { top: 45%; right: -5%; animation-delay: 2.5s; }
+
+@keyframes particle-float-making-progress {
+  0%, 100% { 
+    transform: translateY(0px) scale(0.8) rotate(0deg);
+    opacity: 0.6;
+  }
+  25% { 
+    transform: translateY(-15px) scale(1.2) rotate(90deg);
+    opacity: 1;
+  }
+  50% { 
+    transform: translateY(-8px) scale(0.9) rotate(180deg);
+    opacity: 0.8;
+  }
+  75% { 
+    transform: translateY(-20px) scale(1.1) rotate(270deg);
+    opacity: 0.9;
+  }
+}
+
+.mega-shine-making-progress {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  width: 80px;
+  height: 120px;
+  background: linear-gradient(45deg, 
+    rgba(255, 255, 255, 0.6) 0%, 
+    rgba(255, 255, 255, 0.3) 30%,
+    rgba(255, 255, 255, 0.1) 60%,
+    transparent 100%);
+  border-radius: 50%;
+  transform: rotate(-25deg);
+  z-index: 2;
+  animation: shine-pulse-making-progress 3s ease-in-out infinite;
+}
+
+@keyframes shine-pulse-making-progress {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.9; }
+}
+
+.explosion-making-progress {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.explosion-particle-making-progress {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #2196F3;
+  border-radius: 50%;
+  animation: explode-making-progress 4s infinite ease-out;
+}
+
+.explosion-particle-making-progress:nth-child(1) { animation-delay: 0s; }
+.explosion-particle-making-progress:nth-child(2) { animation-delay: 0.2s; }
+.explosion-particle-making-progress:nth-child(3) { animation-delay: 0.4s; }
+.explosion-particle-making-progress:nth-child(4) { animation-delay: 0.6s; }
+.explosion-particle-making-progress:nth-child(5) { animation-delay: 0.8s; }
+.explosion-particle-making-progress:nth-child(6) { animation-delay: 1s; }
+
+@keyframes explode-making-progress {
+  0% { 
+    transform: translate(0, 0) scale(0);
+    opacity: 1;
+  }
+  50% { 
+    transform: translate(var(--x, 100px), var(--y, -100px)) scale(1);
+    opacity: 0.8;
+  }
+  100% { 
+    transform: translate(var(--x, 150px), var(--y, -150px)) scale(0);
+    opacity: 0;
+  }
+}
+
+.explosion-particle-making-progress:nth-child(1) { --x: 120px; --y: -80px; }
+.explosion-particle-making-progress:nth-child(2) { --x: -100px; --y: -90px; }
+.explosion-particle-making-progress:nth-child(3) { --x: 80px; --y: 110px; }
+.explosion-particle-making-progress:nth-child(4) { --x: -120px; --y: 100px; }
+.explosion-particle-making-progress:nth-child(5) { --x: 140px; --y: 20px; }
+.explosion-particle-making-progress:nth-child(6) { --x: -90px; --y: -20px; }

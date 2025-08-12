@@ -1,0 +1,398 @@
+.badge-container-sleep-is-for-the-weak {
+    position: relative;
+    animation: float-sleep-is-for-the-weak 3s ease-in-out infinite;
+}
+
+@keyframes float-sleep-is-for-the-weak {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(2deg); }
+}
+
+.badge-sleep-is-for-the-weak {
+    width: 220px;
+    height: 220px;
+    position: relative;
+    border-radius: 50%;
+    background: 
+        radial-gradient(circle at 30% 30%, #8B4513 0%, #654321 30%, #3D2914 60%, #1A1A1A 100%);
+    box-shadow: 
+        0 0 30px rgba(139, 69, 19, 0.6),
+        0 0 60px rgba(101, 67, 33, 0.4),
+        0 15px 35px rgba(0, 0, 0, 0.3),
+        inset 0 5px 15px rgba(255, 255, 255, 0.1),
+        inset 0 -5px 15px rgba(0, 0, 0, 0.5);
+    border: 6px solid #8B4513;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: visible;
+    animation: glow-sleep-is-for-the-weak 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow-sleep-is-for-the-weak {
+    from { 
+        box-shadow: 
+            0 0 30px rgba(139, 69, 19, 0.6),
+            0 0 60px rgba(101, 67, 33, 0.4),
+            0 15px 35px rgba(0, 0, 0, 0.3),
+            inset 0 5px 15px rgba(255, 255, 255, 0.1),
+            inset 0 -5px 15px rgba(0, 0, 0, 0.5);
+    }
+    to { 
+        box-shadow: 
+            0 0 40px rgba(139, 69, 19, 0.8),
+            0 0 80px rgba(101, 67, 33, 0.6),
+            0 15px 35px rgba(0, 0, 0, 0.3),
+            inset 0 5px 15px rgba(255, 255, 255, 0.2),
+            inset 0 -5px 15px rgba(0, 0, 0, 0.5);
+    }
+}
+
+.inner-ring-sleep-is-for-the-weak {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border: 3px solid rgba(255, 215, 0, 0.3);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: rotate-sleep-is-for-the-weak 10s linear infinite;
+}
+
+@keyframes rotate-sleep-is-for-the-weak {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.trophy-container-sleep-is-for-the-weak {
+    position: relative;
+    z-index: 3;
+    animation: bounce-sleep-is-for-the-weak 2s ease-in-out infinite;
+}
+
+@keyframes bounce-sleep-is-for-the-weak {
+    0%, 100% { transform: translateY(0px) scale(1); }
+    50% { transform: translateY(-5px) scale(1.05); }
+}
+
+.coffee-cup-sleep-is-for-the-weak {
+    width: 80px;
+    height: 90px;
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.steam-sleep-is-for-the-weak {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 30px;
+    z-index: 4;
+}
+
+.steam-line-sleep-is-for-the-weak {
+    position: absolute;
+    width: 3px;
+    height: 25px;
+    background: linear-gradient(to top, transparent 0%, rgba(255, 255, 255, 0.6) 50%, transparent 100%);
+    border-radius: 50%;
+    animation: steam-rise-sleep-is-for-the-weak 2s ease-in-out infinite;
+}
+
+.steam-line-sleep-is-for-the-weak:nth-child(1) {
+    left: 15px;
+    animation-delay: 0s;
+}
+
+.steam-line-sleep-is-for-the-weak:nth-child(2) {
+    left: 25px;
+    animation-delay: 0.3s;
+}
+
+.steam-line-sleep-is-for-the-weak:nth-child(3) {
+    left: 35px;
+    animation-delay: 0.6s;
+}
+
+@keyframes steam-rise-sleep-is-for-the-weak {
+    0% { 
+        opacity: 0;
+        transform: translateY(10px) scaleX(1);
+    }
+    50% { 
+        opacity: 1;
+        transform: translateY(-15px) scaleX(1.5);
+    }
+    100% { 
+        opacity: 0;
+        transform: translateY(-30px) scaleX(0.5);
+    }
+}
+
+.cup-body-sleep-is-for-the-weak {
+    width: 55px;
+    height: 50px;
+    background: 
+        linear-gradient(135deg, 
+            #8B4513 0%, 
+            #D2691E 20%, 
+            #CD853F 40%, 
+            #8B4513 100%);
+    border-radius: 0 0 25px 25px;
+    position: relative;
+    margin: 0 auto;
+    box-shadow: 
+        0 5px 15px rgba(0, 0, 0, 0.5),
+        inset 0 3px 8px rgba(255, 255, 255, 0.2),
+        inset 0 -3px 8px rgba(0, 0, 0, 0.4);
+    border: 2px solid #654321;
+}
+
+.coffee-surface-sleep-is-for-the-weak {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    height: 8px;
+    background: 
+        radial-gradient(ellipse at center, 
+            #3D1A00 0%, 
+            #2F0F00 50%, 
+            #1A0800 100%);
+    border-radius: 50px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.energy-bolt-sleep-is-for-the-weak {
+    position: absolute;
+    width: 12px;
+    height: 20px;
+    background: 
+        linear-gradient(45deg, 
+            #FFD700 0%, 
+            #FFA500 50%, 
+            #FF6347 100%);
+    clip-path: polygon(50% 0%, 20% 40%, 40% 40%, 10% 100%, 80% 60%, 60% 60%, 90% 0%);
+    animation: energy-pulse-sleep-is-for-the-weak 1.5s ease-in-out infinite;
+    filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8));
+}
+
+.energy-bolt-sleep-is-for-the-weak.left {
+    top: 15px;
+    left: -8px;
+    animation-delay: 0s;
+}
+
+.energy-bolt-sleep-is-for-the-weak.right {
+    top: 20px;
+    right: -8px;
+    animation-delay: 0.75s;
+}
+
+@keyframes energy-pulse-sleep-is-for-the-weak {
+    0%, 100% { 
+        opacity: 0.7;
+        transform: scale(0.8);
+    }
+    50% { 
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+.cup-handle-sleep-is-for-the-weak {
+    position: absolute;
+    width: 18px;
+    height: 25px;
+    border: 4px solid #8B4513;
+    border-radius: 50%;
+    top: 15px;
+    right: -15px;
+    background: none;
+    border-left: none;
+    box-shadow: 
+        2px 0 5px rgba(139, 69, 19, 0.5),
+        inset -2px 0 3px rgba(255, 255, 255, 0.2);
+}
+
+.cup-saucer-sleep-is-for-the-weak {
+    width: 70px;
+    height: 6px;
+    background: linear-gradient(135deg, #8B4513 0%, #654321 100%);
+    margin: 8px auto 0;
+    border-radius: 50%;
+    box-shadow: 
+        0 3px 8px rgba(0, 0, 0, 0.5),
+        inset 0 1px 3px rgba(255, 255, 255, 0.2);
+    position: relative;
+}
+
+.cup-saucer-sleep-is-for-the-weak::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 4px;
+    background: linear-gradient(135deg, #A0522D 0%, #8B4513 100%);
+    border-radius: 50%;
+}
+
+.big-text-sleep-is-for-the-weak {
+    font-size: 28px;
+    font-weight: 900;
+    color: #FFD700;
+    text-shadow: 
+        3px 3px 0px #000000,
+        -1px -1px 0px #000000,
+        1px -1px 0px #000000,
+        -1px 1px 0px #000000,
+        0 0 10px rgba(255, 215, 0, 0.5);
+    z-index: 3;
+    margin-top: 8px;
+    animation: textGlow-sleep-is-for-the-weak 2s ease-in-out infinite alternate;
+}
+
+@keyframes textGlow-sleep-is-for-the-weak {
+    from { text-shadow: 
+        3px 3px 0px #000000,
+        -1px -1px 0px #000000,
+        1px -1px 0px #000000,
+        -1px 1px 0px #000000,
+        0 0 10px rgba(255, 215, 0, 0.5); }
+    to { text-shadow: 
+        3px 3px 0px #000000,
+        -1px -1px 0px #000000,
+        1px -1px 0px #000000,
+        -1px 1px 0px #000000,
+        0 0 20px rgba(255, 215, 0, 0.8); }
+}
+
+.label-sleep-is-for-the-weak {
+    position: absolute;
+    bottom: 15px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #FF6347;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    letter-spacing: 2px;
+    z-index: 3;
+}
+
+.particles-sleep-is-for-the-weak {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.particle-sleep-is-for-the-weak {
+    position: absolute;
+    color: #FF6347;
+    font-size: 14px;
+    animation: particle-float-sleep-is-for-the-weak 3s infinite ease-in-out;
+    text-shadow: 0 0 3px rgba(255, 99, 71, 0.8);
+}
+
+.particle-sleep-is-for-the-weak:nth-child(1) { top: 10%; left: 15%; animation-delay: 0s; }
+.particle-sleep-is-for-the-weak:nth-child(2) { top: 20%; right: 10%; animation-delay: 0.5s; }
+.particle-sleep-is-for-the-weak:nth-child(3) { top: 60%; left: 5%; animation-delay: 1s; }
+.particle-sleep-is-for-the-weak:nth-child(4) { top: 70%; right: 15%; animation-delay: 1.5s; }
+.particle-sleep-is-for-the-weak:nth-child(5) { top: 35%; left: -5%; animation-delay: 2s; }
+.particle-sleep-is-for-the-weak:nth-child(6) { top: 45%; right: -5%; animation-delay: 2.5s; }
+
+@keyframes particle-float-sleep-is-for-the-weak {
+    0%, 100% { 
+        transform: translateY(0px) scale(0.8) rotate(0deg);
+        opacity: 0.6;
+    }
+    25% { 
+        transform: translateY(-15px) scale(1.2) rotate(90deg);
+        opacity: 1;
+    }
+    50% { 
+        transform: translateY(-8px) scale(0.9) rotate(180deg);
+        opacity: 0.8;
+    }
+    75% { 
+        transform: translateY(-20px) scale(1.1) rotate(270deg);
+        opacity: 0.9;
+    }
+}
+
+.mega-shine-sleep-is-for-the-weak {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    width: 80px;
+    height: 120px;
+    background: linear-gradient(45deg, 
+        rgba(255, 215, 0, 0.4) 0%, 
+        rgba(255, 165, 0, 0.2) 30%,
+        rgba(255, 99, 71, 0.1) 60%,
+        transparent 100%);
+    border-radius: 50%;
+    transform: rotate(-25deg);
+    z-index: 2;
+    animation: shine-pulse-sleep-is-for-the-weak 3s ease-in-out infinite;
+}
+
+@keyframes shine-pulse-sleep-is-for-the-weak {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+
+.explosion-sleep-is-for-the-weak {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.explosion-particle-sleep-is-for-the-weak {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #FF6347;
+    border-radius: 50%;
+    animation: explode-sleep-is-for-the-weak 4s infinite ease-out;
+    box-shadow: 0 0 6px rgba(255, 99, 71, 0.8);
+}
+
+.explosion-particle-sleep-is-for-the-weak:nth-child(1) { animation-delay: 0s; }
+.explosion-particle-sleep-is-for-the-weak:nth-child(2) { animation-delay: 0.2s; }
+.explosion-particle-sleep-is-for-the-weak:nth-child(3) { animation-delay: 0.4s; }
+.explosion-particle-sleep-is-for-the-weak:nth-child(4) { animation-delay: 0.6s; }
+.explosion-particle-sleep-is-for-the-weak:nth-child(5) { animation-delay: 0.8s; }
+.explosion-particle-sleep-is-for-the-weak:nth-child(6) { animation-delay: 1s; }
+
+@keyframes explode-sleep-is-for-the-weak {
+    0% { 
+        transform: translate(0, 0) scale(0);
+        opacity: 1;
+    }
+    50% { 
+        transform: translate(var(--x, 100px), var(--y, -100px)) scale(1);
+        opacity: 0.8;
+    }
+    100% { 
+        transform: translate(var(--x, 150px), var(--y, -150px)) scale(0);
+        opacity: 0;
+    }
+}
+
+.explosion-particle-sleep-is-for-the-weak:nth-child(1) { --x: 120px; --y: -80px; }
+.explosion-particle-sleep-is-for-the-weak:nth-child(2) { --x: -100px; --y: -90px; }
+.explosion-particle-sleep-is-for-the-weak:nth-child(3) { --x: 80px; --y: 110px; }
+.explosion-particle-sleep-is-for-the-weak:nth-child(4) { --x: -120px; --y: 100px; }
+.explosion-particle-sleep-is-for-the-weak:nth-child(5) { --x: 140px; --y: 20px; }
+.explosion-particle-sleep-is-for-the-weak:nth-child(6) { --x: -90px; --y: -20px; }

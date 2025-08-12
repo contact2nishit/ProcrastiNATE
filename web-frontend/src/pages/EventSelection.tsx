@@ -209,7 +209,9 @@ const EventSelection: React.FC = () => {
             alert('End time must be after start time.');
             return;
         }
-        if ((recurrence === "daily" || recurrence === "weekly") && meetingRepeatEnd <= startDateTime) {
+        // Validate repeat end for recurring patterns (daily or specific weekdays)
+        const recurringCodes = ["daily","mon","tue","wed","thu","fri","sat","sun"]; 
+        if (recurringCodes.includes(recurrence) && meetingRepeatEnd <= startDateTime) {
             alert('Repeat end date must be after start date for recurring meetings.');
             return;
         }
@@ -221,13 +223,14 @@ const EventSelection: React.FC = () => {
         console.log("Location: " + location);
 
         const newMeeting = {
-            startTime: startDateTime.toString(),
-            endTime: endDateTime.toString(),
+            startTime: startDateTime.toISOString(),
+            endTime: endDateTime.toISOString(),
             name: name,
             recurrence: recurrence,
             link_or_loc: location,
             meetingID: Date.now(),
-            occurrenceID: Date.now()
+            occurrenceID: Date.now(),
+            meetingRepeatEnd: recurringCodes.includes(recurrence) ? meetingRepeatEnd.toISOString() : undefined,
         };
 
         setMeetings([...meetings, newMeeting]);
@@ -258,22 +261,36 @@ const EventSelection: React.FC = () => {
             return occurrences;
         }
 
-        let step: number;
+        const weekdayMap: Record<string, number> = { mon:1, tue:2, wed:3, thu:4, fri:5, sat:6, sun:0 };
+        const isWeekdayPattern = recurrence in weekdayMap;
+
         if (recurrence === "daily") {
-            step = 1;
-        } else if (recurrence === "weekly") {
-            step = 7;
+            while (currStart <= repeatEnd) {
+                occurrences.push([currStart.toISOString(), currEnd.toISOString()]);
+                currStart = new Date(currStart.getTime() + 24 * 60 * 60 * 1000);
+                currEnd = new Date(currEnd.getTime() + 24 * 60 * 60 * 1000);
+            }
+            return occurrences;
+        } else if (isWeekdayPattern) {
+            const targetDow = weekdayMap[recurrence];
+            const startDow = currStart.getUTCDay();
+            // Align first occurrence to the target weekday (keep duration)
+            let daysAhead = (targetDow - startDow + 7) % 7;
+            if (daysAhead !== 0) {
+                currStart = new Date(currStart.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+                currEnd = new Date(currEnd.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+            }
+            while (currStart <= repeatEnd) {
+                occurrences.push([currStart.toISOString(), currEnd.toISOString()]);
+                currStart = new Date(currStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+                currEnd = new Date(currEnd.getTime() + 7 * 24 * 60 * 60 * 1000);
+            }
+            return occurrences;
         } else {
+            // Fallback: treat as single occurrence
             occurrences.push([currStart.toISOString(), currEnd.toISOString()]);
             return occurrences;
         }
-
-        while (currStart <= repeatEnd) {
-            occurrences.push([currStart.toISOString(), currEnd.toISOString()]);
-            currStart = new Date(currStart.getTime() + step * 24 * 60 * 60 * 1000);
-            currEnd = new Date(currEnd.getTime() + step * 24 * 60 * 60 * 1000);
-        }
-        return occurrences;
     }
 
     const handleAssignment = () => {
@@ -427,15 +444,21 @@ const EventSelection: React.FC = () => {
                 alert('End time must be after start time.');
                 return;
             }
+            const recurringCodes = ["daily","mon","tue","wed","thu","fri","sat","sun"]; 
+            if (recurringCodes.includes(recurrence) && meetingRepeatEnd <= startDateTime) {
+                alert('Repeat end date must be after start date for recurring meetings.');
+                return;
+            }
             // Update meetings state
             const updatedMeeting = {
-                startTime: startDateTime.toString(),
-                endTime: endDateTime.toString(),
+                startTime: startDateTime.toISOString(),
+                endTime: endDateTime.toISOString(),
                 name,
                 recurrence,
                 link_or_loc: location,
                 meetingID: meetings[editMode.index].meetingID,
                 occurrenceID: meetings[editMode.index].occurrenceID,
+                meetingRepeatEnd: recurringCodes.includes(recurrence) ? meetingRepeatEnd.toISOString() : undefined,
             };
             setMeetings(meetings.map((m, i) => i === editMode.index ? updatedMeeting : m));
             const start_end_times = generateMeetingOccurrences(
@@ -651,6 +674,8 @@ const EventSelection: React.FC = () => {
                     
                     <button
                         key={item.label}
+                        // Add test id for Events tab to make it easy to navigate in tests
+                        data-testid={item.label === 'Events' ? 'nav-events' : undefined}
                         className={`py-2.5 px-3 rounded-lg flex flex-col items-center min-w-[85px] ${
                             selected === item.label 
                                 ? item.selectedStyle
@@ -1009,6 +1034,7 @@ const EventSelection: React.FC = () => {
                     </div>
 
                     <button
+                        data-testid="submit-schedule"
                         className="bg-white rounded-lg py-3 mt-5 w-4/5 self-center mx-auto block text-black font-bold text-base hover:bg-gray-100 transition-colors"
                         onClick={submitSchedule}
                     >
