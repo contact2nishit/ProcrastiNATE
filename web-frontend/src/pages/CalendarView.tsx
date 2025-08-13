@@ -156,107 +156,139 @@ const CalendarView = () => {
     const slots = currSchedule.slots.filter((slot: Slot) => slot.start >= startISO && slot.end <= endISO);
 
     return (
-        <div className="min-h-screen bg-gray-900 pt-8">
-            <h1 className="text-3xl font-bold text-white text-center mb-6 mt-5">Weekly Calendar</h1>
+        <div
+            className="min-h-screen relative overflow-hidden"
+            style={{
+                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 30%, #0f3460 60%, #1a1a2e 100%)',
+                fontFamily: 'Pixelify Sans, monospace',
+            }}
+        >
+            <div className="relative pt-8">
+                <h1 className="text-4xl font-bold text-teal-300 text-center mb-6 mt-5" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Weekly Calendar</h1>
 
-            <CalendarWeekView
-                slots={slots}
-                loading={loading}
-                showMeetingActions={true}
-                initialReferenceDate={getStartOfWeek(referenceDate)}
-                onReferenceDateChange={setReferenceDate}
-                onUpdateMeeting={(slot: Slot) => {
-                    setModalType('update');
-                    setSelectedMeeting(slot);
-                    setUpdateName('');
-                    setUpdateLoc('');
-                    setUpdateTime('');
-                    setModalVisible(true);
-                }}
-                onDeleteMeeting={(slot: Slot) => {
-                    setModalType('delete');
-                    setSelectedMeeting(slot);
-                    setModalVisible(true);
-                }}
-                onDeleteAssignment={(slot: Slot) => deleteAssignmentOrChore(slot, 'assignment')}
-                onRescheduleAssignment={(slot: Slot) => rescheduleAssignmentOrChore(slot, 'assignment')}
-                onDeleteChore={(slot: Slot) => deleteAssignmentOrChore(slot, 'chore')}
-                onRescheduleChore={(slot: Slot) => rescheduleAssignmentOrChore(slot, 'chore')}
-            />
+                <CalendarWeekView
+                    slots={slots}
+                    loading={loading}
+                    showMeetingActions={true}
+                    initialReferenceDate={getStartOfWeek(referenceDate)}
+                    onReferenceDateChange={setReferenceDate}
+                    onUpdateMeeting={(slot: Slot) => {
+                        setModalType('update');
+                        setSelectedMeeting(slot);
+                        setUpdateName('');
+                        setUpdateLoc('');
+                        setUpdateTime('');
+                        setModalVisible(true);
+                    }}
+                    onDeleteMeeting={(slot: Slot) => {
+                        setModalType('delete');
+                        setSelectedMeeting(slot);
+                        setModalVisible(true);
+                    }}
+                    onDeleteAssignment={(slot: Slot) => deleteAssignmentOrChore(slot, 'assignment')}
+                    onRescheduleAssignment={(slot: Slot) => rescheduleAssignmentOrChore(slot, 'assignment')}
+                    onDeleteChore={(slot: Slot) => deleteAssignmentOrChore(slot, 'chore')}
+                    onRescheduleChore={(slot: Slot) => rescheduleAssignmentOrChore(slot, 'chore')}
+                />
 
-            {/* Meeting Update/Delete Modal*/}
-            {modalVisible && (
-                <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-                    <div className="bg-gray-800 rounded-lg p-8 w-full max-w-md shadow-lg">
-                        {modalType === 'update' && (
-                            <>
-                                <h2 className="text-xl font-bold text-white mb-4">Update Meeting</h2>
-                                <input
-                                    className="bg-gray-700 text-white p-3 rounded mb-3 w-full"
-                                    placeholder="New Name"
-                                    value={updateName}
-                                    onChange={e => setUpdateName(e.target.value)}
-                                />
-                                <input
-                                    className="bg-gray-700 text-white p-3 rounded mb-3 w-full"
-                                    placeholder="New Location/Link"
-                                    value={updateLoc}
-                                    onChange={e => setUpdateLoc(e.target.value)}
-                                />
-                                <input
-                                    className="bg-gray-700 text-white p-3 rounded mb-3 w-full"
-                                    placeholder="New Start Time (YYYY-MM-DDTHH:MM:SS+00:00)"
-                                    value={updateTime}
-                                    onChange={e => setUpdateTime(e.target.value)}
-                                />
-                                <button
-                                    className="bg-green-500 text-gray-900 font-bold py-2 px-4 rounded w-full mt-2 hover:bg-green-600 transition"
-                                    onClick={handleUpdateMeeting}
-                                >
-                                    Submit Update
-                                </button>
-                            </>
-                        )}
-                        {modalType === 'delete' && (
-                            <>
-                                <h2 className="text-xl font-bold text-white mb-4">Delete Meeting</h2>
-                                <p className="text-gray-200 mb-4">Are you sure you want to delete this meeting occurrence?</p>
-                                <button
-                                    className="bg-red-600 text-white font-bold py-2 px-4 rounded w-full mb-2 hover:bg-red-700 transition"
-                                    onClick={() => handleDeleteMeeting(false)}
-                                >
-                                    Delete This Occurrence
-                                </button>
-                                <button
-                                    className="bg-red-600 text-white font-bold py-2 px-4 rounded w-full mb-2 hover:bg-red-700 transition"
-                                    onClick={() => handleDeleteMeeting(true)}
-                                >
-                                    Delete All Future Occurrences
-                                </button>
-                            </>
-                        )}
-                        <button
-                            className="bg-gray-500 text-white font-bold py-2 px-4 rounded w-full mt-2 hover:bg-gray-600 transition"
-                            onClick={() => setModalVisible(false)}
-                        >
-                            Cancel
-                        </button>
+                {/* Meeting Update/Delete Modal*/}
+                {modalVisible && (
+                    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+                        <div className="bg-gray-800 rounded-lg p-8 w-full max-w-md shadow-lg border-4 border-orange-400" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
+                            {modalType === 'update' && (
+                                <>
+                                    <h2 className="text-xl font-bold text-teal-300 mb-4" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Update Meeting</h2>
+                                    <input
+                                        className="bg-gray-700 text-white p-3 rounded mb-3 w-full border-2 border-teal-400" style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                        placeholder="New Name"
+                                        value={updateName}
+                                        onChange={e => setUpdateName(e.target.value)}
+                                    />
+                                    <input
+                                        className="bg-gray-700 text-white p-3 rounded mb-3 w-full border-2 border-teal-400" style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                        placeholder="New Location/Link"
+                                        value={updateLoc}
+                                        onChange={e => setUpdateLoc(e.target.value)}
+                                    />
+                                    <input
+                                        className="bg-gray-700 text-white p-3 rounded mb-3 w-full border-2 border-teal-400" style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                        placeholder="New Start Time (YYYY-MM-DDTHH:MM:SS+00:00)"
+                                        value={updateTime}
+                                        onChange={e => setUpdateTime(e.target.value)}
+                                    />
+                                    <button
+                                        className="w-full mt-2 px-4 py-2 rounded font-bold transition border-4 border-orange-400 hover:border-orange-300"
+                                        style={{ 
+                                            background: 'linear-gradient(135deg, #14b8a6 0%, #0891b2 100%)', 
+                                            fontFamily: 'Pixelify Sans, monospace',
+                                            color: 'white'
+                                        }}
+                                        onClick={handleUpdateMeeting}
+                                    >
+                                        Submit Update
+                                    </button>
+                                </>
+                            )}
+                            {modalType === 'delete' && (
+                                <>
+                                    <h2 className="text-xl font-bold text-teal-300 mb-4" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Delete Meeting</h2>
+                                    <p className="text-gray-200 mb-4" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Are you sure you want to delete this meeting occurrence?</p>
+                                    <button
+                                        className="w-full mb-2 px-4 py-2 rounded font-bold transition border-4 border-orange-400 hover:border-orange-300"
+                                        style={{ 
+                                            background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', 
+                                            fontFamily: 'Pixelify Sans, monospace',
+                                            color: 'white'
+                                        }}
+                                        onClick={() => handleDeleteMeeting(false)}
+                                    >
+                                        Delete This Occurrence
+                                    </button>
+                                    <button
+                                        className="w-full mb-2 px-4 py-2 rounded font-bold transition border-4 border-orange-400 hover:border-orange-300"
+                                        style={{ 
+                                            background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)', 
+                                            fontFamily: 'Pixelify Sans, monospace',
+                                            color: 'white'
+                                        }}
+                                        onClick={() => handleDeleteMeeting(true)}
+                                    >
+                                        Delete All Future Occurrences
+                                    </button>
+                                </>
+                            )}
+                            <button
+                                className="w-full mt-2 px-4 py-2 rounded font-bold transition border-4 border-orange-400 hover:border-orange-300"
+                                style={{ 
+                                    background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)', 
+                                    fontFamily: 'Pixelify Sans, monospace',
+                                    color: 'white'
+                                }}
+                                onClick={() => setModalVisible(false)}
+                            >
+                                Cancel
+                            </button>
+                        </div>
                     </div>
-                </div>
-            )}
-            <div className="flex-1" />
-            <button
-                onClick={() => window.location.href = '/requiresCurrentSchedule/Home'}
-                className="bg-white w-44 h-10 flex items-center justify-center rounded-lg mt-8 mb-12 mx-auto font-semibold text-lg"
-            >
-                Back to Home
-            </button>
+                )}
+                <div className="flex-1" />
+                <button
+                    onClick={() => window.location.href = '/requiresCurrentSchedule/Home'}
+                    className="w-44 h-10 flex items-center justify-center rounded-lg mt-8 mb-12 mx-auto font-semibold text-lg border-4 border-orange-400 hover:border-orange-300 transition"
+                    style={{ 
+                        background: 'linear-gradient(135deg, #14b8a6 0%, #0891b2 100%)', 
+                        fontFamily: 'Pixelify Sans, monospace',
+                        color: 'white'
+                    }}
+                >
+                    Back to Home
+                </button>
+            </div>
         </div>
     );
 };
 
 export default CalendarView;
 
-// Stylesheet removed; all styling is now done via Tailwind CSS classes
 
 export {};

@@ -50,21 +50,34 @@ const CalendarViewPotential = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 pt-8">
-            <h1 className="text-3xl font-bold text-white text-center mb-6 mt-5">Schedule #{scheduleIdx}</h1>
-            <CalendarWeekView
-                slots={extractSlots(Number(scheduleIdx))}
-                showMeetingActions={false}
-                initialReferenceDate={getStartOfWeek(referenceDate)}
-                onReferenceDateChange={setReferenceDate}
-            />
-            <div className="flex-1" />
-            <button
-                className="bg-white w-44 h-10 flex items-center justify-center rounded-lg mt-8 mb-12 mx-auto font-semibold text-lg"
-                onClick={() => window.history.back()}
-            >
-                Back
-            </button>
+        <div
+            className="min-h-screen relative overflow-hidden"
+            style={{
+                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 30%, #0f3460 60%, #1a1a2e 100%)',
+                fontFamily: 'Pixelify Sans, monospace',
+            }}
+        >
+            <div className="relative pt-8">
+                <h1 className="text-4xl font-bold text-teal-300 text-center mb-6 mt-5" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Schedule #{scheduleIdx}</h1>
+                <CalendarWeekView
+                    slots={extractSlots(Number(scheduleIdx))}
+                    showMeetingActions={false}
+                    initialReferenceDate={getStartOfWeek(referenceDate)}
+                    onReferenceDateChange={setReferenceDate}
+                />
+                <div className="flex-1" />
+                <button
+                    className="w-44 h-10 flex items-center justify-center rounded-lg mt-8 mb-12 mx-auto font-semibold text-lg border-4 border-orange-400 hover:border-orange-300 transition"
+                    style={{ 
+                        background: 'linear-gradient(135deg, #14b8a6 0%, #0891b2 100%)', 
+                        fontFamily: 'Pixelify Sans, monospace',
+                        color: 'white'
+                    }}
+                    onClick={() => window.history.back()}
+                >
+                    Back
+                </button>
+            </div>
         </div>
     );
 };
