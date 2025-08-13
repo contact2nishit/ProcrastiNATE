@@ -112,6 +112,42 @@ const CalendarView = () => {
         }
     };
 
+    // Assignment / Chore helpers
+    const deleteAssignmentOrChore = async (slot: Slot, type: 'assignment' | 'chore') => {
+        try {
+            const url = config.backendURL;
+            const token = localStorage.getItem('token');
+            if (!url || !token) return;
+            const body = {
+                occurence_id: slot.occurence_id ?? (() => { const parts = (slot.id as any)?.toString().split('_'); return Number(parts[parts.length - 1]); })(),
+                remove_all_future: false,
+                event_type: type,
+            };
+            const response = await fetch(`${url}/delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(body),
+            });
+            if (!response.ok) {
+                const err = await response.text();
+                window.alert(`Failed to delete ${type}: ` + err);
+                return;
+            }
+            window.alert(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted!`);
+            await refetchSchedule();
+            await fetchSchedule();
+        } catch (e) {
+            window.alert('Delete error: ' + e);
+        }
+    };
+
+    const rescheduleAssignmentOrChore = (slot: Slot, type: 'assignment' | 'chore') => {
+        const idParts = (slot.id as any).toString().split('_');
+        const entityId = Number(idParts[1]);
+        const label = type === 'assignment' ? 'Reschedule Assignment' : 'Reschedule Chore';
+        navigate(`/requiresCurrentSchedule/requiresPotentialSchedule/RescheduleScreen?id=${entityId}&type=${type}&effort=${(slot as any).effort ?? ''}&start=${slot.start}&end=${slot.end}&label=${label}`);
+    };
+
     // Filter slots for the current week from context
     const weekStart = getStartOfWeek(referenceDate);
     const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -142,6 +178,10 @@ const CalendarView = () => {
                     setSelectedMeeting(slot);
                     setModalVisible(true);
                 }}
+                onDeleteAssignment={(slot: Slot) => deleteAssignmentOrChore(slot, 'assignment')}
+                onRescheduleAssignment={(slot: Slot) => rescheduleAssignmentOrChore(slot, 'assignment')}
+                onDeleteChore={(slot: Slot) => deleteAssignmentOrChore(slot, 'chore')}
+                onRescheduleChore={(slot: Slot) => rescheduleAssignmentOrChore(slot, 'chore')}
             />
 
             {/* Meeting Update/Delete Modal*/}
