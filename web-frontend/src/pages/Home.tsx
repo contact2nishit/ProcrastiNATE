@@ -92,7 +92,7 @@ const theme = createTheme({
 
 const Home = () => {
     const [loading, setLoading] = useState(false);
-    const { currSchedule, setCurrSchedule, ensureScheduleRange, refetchSchedule } = useCurrentScheduleContext();
+    const { currSchedule, setCurrSchedule, ensureScheduleRange, refetchSchedule, levelInfo, refreshLevelInfo } = useCurrentScheduleContext();
     const navigate = useNavigate();
     const handleSyncGoogleCalendar = async () => {
         try {
@@ -140,9 +140,6 @@ const Home = () => {
     const [updateAllOccurrences, setUpdateAllOccurrences] = useState(false);
     const [selectedSessionToComplete, setSelectedSessionToComplete] = useState<SessionToMaybeComplete>({occurence_id: "A", is_assignment: false});
     const [lockedInValue, setLockedInValue] = useState(5);
-
-    const [levelInfo, setLevelInfo] = useState<{xp: number; level: number; user_name: string } | null>(null);
-    const [xpForNextLevel, setXpForNextLevel] = useState<number>(100);
     const [achievements, setAchievements] = useState<Achievement[]>([]);
     const todoList = useMemo(() => {
         const now = new Date();
@@ -150,68 +147,19 @@ const Home = () => {
         const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
         const startISO = start.toISOString().replace('Z', '+00:00');
         const endISO = end.toISOString().replace('Z', '+00:00');
-        
         return currSchedule.slots.filter((slot: any) => slot.start >= startISO && slot.end <= endISO);
     }, [currSchedule.slots]);
-    const fetchLevelInfo = async () => {
-        try {
-            const url = config.backendURL;
-            const token = localStorage.getItem('token');
-            if (!url || !token) {
-                alert("Backend URL or token not set.");
-                return;
-            }
-            const response = await fetch(`${url}/getLevel`, {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                alert(`Server error: ${response.status} - ${errorText.substring(0, 100)}`);
-                return;
-            }
-        
-            const contentType = response.headers.get('content-type');
-            console.log('Content-Type:', contentType);
-            
-            if (!contentType || !contentType.includes('application/json')) {
-                const responseText = await response.text();
-                console.error('Response is not JSON. Content-Type:', contentType);
-                console.error('Response body:', responseText.substring(0, 500));
-                alert('Server returned non-JSON response. Check console for details.');
-                return;
-            }
-            const data = await response.json();
-            setLevelInfo({
-                xp: data.xp,
-                level: data.level,
-                user_name: data.user_name
-            })
-            setXpForNextLevel(Math.floor(100 * Math.pow(1.5, data.level)));
-        } catch (e) {
-            alert('Failed to fetch level info: ' + ((e as Error)?.message || e));
-        }
-    }
-
+    const ensureSchedule = async () => {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+        const startISO = start.toISOString().replace('Z', '+00:00');
+        const endISO = end.toISOString().replace('Z', '+00:00');
+        await ensureScheduleRange(startISO, endISO);
+    };
     useEffect(() => {
-        fetchLevelInfo();
-    }, []);
-    useEffect(() => {
-        const ensureSchedule = async () => {
-            const now = new Date();
-            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-            const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-            const startISO = start.toISOString().replace('Z', '+00:00');
-            const endISO = end.toISOString().replace('Z', '+00:00');
-            await ensureScheduleRange(startISO, endISO);
-        };
         ensureSchedule();
-    }, [ensureScheduleRange]);
+    }, []);
 
     const handleBack = () => {
         localStorage.removeItem("token");
@@ -294,7 +242,7 @@ const Home = () => {
             }));
             setModalVisible(false);
             await refetchSchedule();
-            await fetchLevelInfo();
+            await refreshLevelInfo();
             const data = await response.json();
             const achievement = Object.keys(data.achievements);
             console.log('Achievements:', achievement);
@@ -606,7 +554,7 @@ const Home = () => {
                 
                 <div className="text-center mt-5">
                     <h1 className="text-xl font-bold text-teal-800" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
-                        {levelInfo ? `Welcome, ${levelInfo.user_name}!` : `Welcome!`}
+                        {levelInfo ? `Welcome, ${levelInfo.username}!` : `Welcome!`}
                     </h1>
                 </div>
                 
@@ -616,16 +564,16 @@ const Home = () => {
                             Level: {levelInfo.level}
                         </p>
                         <p className="text-base mt-1 text-teal-700" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
-                            XP: {levelInfo.xp} / {xpForNextLevel}
+                            XP: {levelInfo.xp} / {levelInfo.xpForNextLevel}
                         </p>
                         <Box sx={{ width: '250px', margin: '8px auto' }}>
                             <LinearProgress 
                                 variant="determinate" 
-                                value={Math.min((levelInfo.xp / xpForNextLevel) * 100, 100)} 
+                                value={Math.min((levelInfo.xp / levelInfo.xpForNextLevel) * 100, 100)} 
                             />
                         </Box>
                         <p className="text-sm mt-1 text-teal-700" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
-                            {xpForNextLevel - levelInfo.xp} XP to next level
+                            {levelInfo.xpForNextLevel - levelInfo.xp} XP to next level
                         </p>
                     </div>
                 )}

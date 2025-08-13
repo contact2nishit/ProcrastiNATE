@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { Slot } from '../calendarUtils';
 import config from '../config';
 
@@ -117,13 +117,33 @@ export const CurrentScheduleProvider = ({ children }: { children: ReactNode }) =
 	 */
 	const refreshLevelInfo = async () => {
 		try {
-			const resp = await fetch(`${config.backendURL}/getLevel`);
+			const resp = await fetch(`${config.backendURL}/getLevel`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem("token")}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+			if(!resp.ok) {
+				alert("Server returned invalid response");
+				return;
+			}
 			const jason = await resp.json();
+			setLevelInfo({
+				achievements: jason.achievements,
+				level: jason.level,
+				xpForNextLevel: jason.xp_for_next_level,
+				username: jason.user_name,
+				xp: jason.xp,
+			});
 		} catch(e) {
 			console.error(`Failed to refresh level info: ${e}`)
 		}
 	};
-
+	useEffect(() => { 
+		refreshLevelInfo()
+	}, []);
     // Ensures the context covers at least [start, end] (expands if needed)
     const ensureScheduleRange = async (start: string, end: string) => {
 		if (!currentSchedule.startTime || !currentSchedule.endTime) {
@@ -161,7 +181,7 @@ export const CurrentScheduleProvider = ({ children }: { children: ReactNode }) =
     };
 
     return (
-		<CurrentScheduleContext.Provider value={{ currSchedule: currentSchedule, setCurrSchedule: setCurrentSchedule, ensureScheduleRange, refetchSchedule,  }}>
+		<CurrentScheduleContext.Provider value={{ currSchedule: currentSchedule, setCurrSchedule: setCurrentSchedule, ensureScheduleRange, refetchSchedule, levelInfo, refreshLevelInfo }}>
 			{children}
 		</CurrentScheduleContext.Provider>
     );
