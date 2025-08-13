@@ -12,17 +12,7 @@ import config from '../config';
 import { useCurrentScheduleContext } from '../context/CurrentScheduleContext';
 import { Achievement } from '../utils';
 import { set } from 'date-fns';
-import BadgeFirstTimer from '../assets/first-timer';
-import BadgeWeekendWarrior from '../assets/weekend-warrior';
-import BadgeConsistencyKing from '../assets/consistency-king';
-import BadgeNightOwl from '../assets/night-owl';
-import TaskSlayerBadge from '../assets/task-slayer';
-import LegendOfGrindingBadge from '../assets/legend-of-grinding';
-import MotivatedBadge from '../assets/motivated';
-import HardWorkerBadge from '../assets/hard-worker';
-import GrinderExpertBadge from '../assets/grinder-expert';
-import HomeHeroBadge from '../assets/home-hero';
-import RedemptionBadge from '../assets/redemption';
+// Badge rendering now centralized in context
 
 // Create a custom theme for MUI components
 const theme = createTheme({
@@ -92,7 +82,7 @@ const theme = createTheme({
 
 const Home = () => {
     const [loading, setLoading] = useState(false);
-    const { currSchedule, setCurrSchedule, ensureScheduleRange, refetchSchedule, levelInfo, refreshLevelInfo } = useCurrentScheduleContext();
+    const { currSchedule, setCurrSchedule, ensureScheduleRange, refetchSchedule, levelInfo, refreshLevelInfo, getBadgeComponent } = useCurrentScheduleContext();
     const navigate = useNavigate();
     const handleSyncGoogleCalendar = async () => {
         try {
@@ -161,9 +151,8 @@ const Home = () => {
         ensureSchedule();
     }, []);
 
-    const handleBack = () => {
-        localStorage.removeItem("token");
-        navigate('/');
+    const handleProfile = () => {
+        navigate('/requiresCurrentSchedule/Profile');
     };
 
     const calendarProceed = async () => {
@@ -404,53 +393,11 @@ const Home = () => {
 
         navigate(`/requiresCurrentSchedule/requiresPotentialSchedule/RescheduleScreen?id=${idToSend}&type=${item.type}&effort=${item.effort}&start=${item.start}&end=${item.end}&label=${label}`);
     };
-    const getBadgeComponent = (achievementName: string) => {
-        switch (achievementName) {
-            case 'first_timer':
-                return <BadgeFirstTimer />;
-            // Add more cases for other achievement badges
-            case 'weekend_warrior':
-                return <BadgeWeekendWarrior />;
-            case 'consistency_king':
-                return <BadgeConsistencyKing />;
-            case 'night_owl':
-                return <BadgeNightOwl />;
-            case 'task_slayer':
-            case 'task_slayer_1':
-                return <TaskSlayerBadge variant={1} />;
-            case 'task_slayer_2':
-                return <TaskSlayerBadge variant={2} />;
-            case 'task_slayer_3':
-                return <TaskSlayerBadge variant={3} />;
-            case 'task_slayer_4':
-                return <TaskSlayerBadge variant={4} />;
-            case 'task_slayer_5':
-                return <TaskSlayerBadge variant={5} />;
-            case 'home_hero':
-            case 'home_hero_1':
-                return <HomeHeroBadge variant={1} />;
-            case 'home_hero_2':
-                return <HomeHeroBadge variant={2} />;
-            case 'home_hero_3':
-                return <HomeHeroBadge variant={3} />;
-            case 'home_hero_4':
-                return <HomeHeroBadge variant={4} />;
-            case 'home_hero_5':
-                return <HomeHeroBadge variant={5} />;
-            case 'legend_of_grinding':
-                return <LegendOfGrindingBadge />;
-            case 'motivated':
-                return <MotivatedBadge />;
-            case 'hard_worker':
-                return <HardWorkerBadge />;
-            case 'grinder_expert':
-                return <GrinderExpertBadge />;
-            case 'redemption':
-                return <RedemptionBadge />;
-            default:
-                return null;
-        }
-    }
+    const handleBack = () => {
+        localStorage.removeItem("token");
+        navigate('/');
+    };
+    // getBadgeComponent provided by context
     return (
         <ThemeProvider theme={theme}>
             <div className="min-h-screen flex flex-col" style={{ 
@@ -531,13 +478,13 @@ const Home = () => {
                 
                 <div className="flex justify-between items-center mt-5 mx-4">
                     <button 
-                        onClick={handleBack}
+                        onClick={handleProfile}
                         className="bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-2xl w-12 h-12 flex items-center justify-center shadow-lg hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200"
-                        data-testid="logout-button"
+                        data-testid="profile-button"
                         style={{ fontFamily: 'Pixelify Sans, monospace' }}
                     >
                         <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
+                            <path fillRule="evenodd" d="M4 10l6-6 6 6-1.414 1.414L11 7.828V16h-2V7.828L5.414 11.414 4 10z" clipRule="evenodd" />
                         </svg>
                     </button>
                     <button 

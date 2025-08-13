@@ -221,19 +221,16 @@ describe('Home Component', () => {
     });
   });
 
-  test('handles logout correctly', async () => {
+  test('navigates to profile on profile button click', async () => {
     mockFetch(mockLevelResponse);
     mockFetch(mockScheduleResponse);
     renderWithProviders(<Home />, { 
       withRouter: false, 
       withCurrentSchedule: true 
     });
-    const logoutButton = screen.getByTestId('logout-button');
-    userEvent.click(logoutButton);
-    await waitFor(() => {
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('token');
-      expect(mockNavigate).toHaveBeenCalledWith('/');
-    });
+    const profileButton = screen.getByTestId('profile-button');
+    userEvent.click(profileButton);
+    expect(mockNavigate).toHaveBeenCalledWith('/requiresCurrentSchedule/Profile');
   });
 
   test('navigates to calendar view', async () => {
