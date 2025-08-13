@@ -28,6 +28,7 @@ class User(BaseModel):
     username: str
     user_id: int
     email: str | None = None
+    xp: int
 
 
 class UserInDB(User):
@@ -264,11 +265,11 @@ class FetchResponse(BaseModel):
 
 
 class LevelResponse(BaseModel):
-    "Response containing the user's details and level"
-
+    """Response containing the user's details and level"""
     user_name: str
     xp: int
     level: int
+    achievements : dict
 
 class SessionCompletionResponse(MessageResponseDataModel):
     """Response for marking a session as completed"""
