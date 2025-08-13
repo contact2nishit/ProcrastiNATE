@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, ReactElement } from 'react';
 import { FaCalendarAlt, FaBookOpen, FaTasks, FaCalendarCheck } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
@@ -701,23 +702,26 @@ const EventSelection: React.FC = () => {
 
             {renderModal()}
             
-            {/* Navigation Bar */}
-            <div className="flex justify-around py-4 bg-transparent relative z-10 mt-4">
-                {navItems.map((item) => (
-                    <button
-                        key={item.label}
-                        className={`flex flex-col items-center p-4 rounded-2xl transition-all duration-200 ${
-                            selected === item.label 
-                                ? item.selectedStyle 
-                                : item.textStyle
-                        }`}
-                        style={{ fontFamily: 'Pixelify Sans, monospace' }}
-                        onClick={() => setSelected(item.label)}
-                    >
-                        <item.icon className="text-2xl mb-2" />
-                        <span className="text-sm font-bold">{item.label}</span>
-                    </button>
-                ))}
+            {/* Tab Navigation */}
+            <div className="relative z-10 px-4 pt-6">
+                <div className="flex bg-white bg-opacity-20 rounded-3xl p-2 backdrop-blur-sm border-4 border-orange-400">
+                    {navItems.map((item) => (
+                        <button
+                            key={item.label}
+                            data-testid={item.label === 'Events' ? 'nav-events' : undefined}
+                            className={`flex-1 py-3 px-4 rounded-2xl font-bold text-teal-800 flex items-center justify-center gap-2 transition-all duration-200 ${
+                                selected === item.label
+                                    ? 'bg-white shadow-lg transform scale-105'
+                                    : 'hover:bg-white hover:bg-opacity-30'
+                            }`}
+                            style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                            onClick={() => setSelected(item.label)}
+                        >
+                            <item.icon className="text-lg" />
+                            <span className="hidden sm:inline">{item.label}</span>
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Meeting Tab */}
@@ -725,9 +729,9 @@ const EventSelection: React.FC = () => {
                 <div className="flex-1 relative z-10 px-4 pb-4">
                     <div className="bg-gradient-to-br from-blue-200 to-blue-300 rounded-3xl p-6 border-4 border-orange-400 shadow-lg">
                         <h2 className="text-3xl font-bold text-teal-800 text-center mb-6" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
-                            {editMode && editMode.type === 'meeting' ? 'Edit Meeting' : 'Set up a Meeting'}
+                            {editMode && editMode.type === 'meeting' ? 'Edit Meeting' : 'Set up Meeting'}
                         </h2>
-
+                        
                         <input
                             className="border-4 border-blue-400 rounded-2xl p-3 text-teal-800 bg-blue-100 w-full mb-4 font-bold"
                             style={{ fontFamily: 'Pixelify Sans, monospace' }}
@@ -735,18 +739,16 @@ const EventSelection: React.FC = () => {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                         />
-                        
+
                         <input
                             className="border-4 border-blue-400 rounded-2xl p-3 text-teal-800 bg-blue-100 w-full mb-4 font-bold"
                             style={{ fontFamily: 'Pixelify Sans, monospace' }}
-                            placeholder="Link/Location"
+                            placeholder="Location/Link"
                             value={location}
                             onChange={(e) => setLocation(e.target.value)}
                         />
 
-                        {/* Start & End Time Row */}
                         <div className="flex gap-4 mb-4">
-                            {/* Start Time */}
                             <div className="flex-1">
                                 <label className="text-lg text-teal-800 mb-2 block font-bold" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Start Time:</label>
                                 <input
@@ -758,7 +760,6 @@ const EventSelection: React.FC = () => {
                                 />
                             </div>
 
-                            {/* End Time */}
                             <div className="flex-1">
                                 <label className="text-lg text-teal-800 mb-2 block font-bold" style={{ fontFamily: 'Pixelify Sans, monospace' }}>End Time:</label>
                                 <input
@@ -771,46 +772,13 @@ const EventSelection: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* End Repeat Date Picker for recurring meetings */}
-                        {(recurrence === "daily" || recurrence === "mon" || recurrence === "tue" 
-                            || recurrence === "wed" || recurrence === "thu" || recurrence === "fri" ||
-                            recurrence === "sat" || recurrence === "sun" 
-                        ) && (
-                            <>
-                                <label className="text-lg text-white mt-7.5 mb-0">End Repeat Date:</label>
-                                <div className="bg-sky-700 rounded-xl self-start mt-2.5">
-                                    <input
-                                        type="date"
-                                        value={formatDateLocal(meetingRepeatEnd)}
-                                        onChange={(e) => setMeetingRepeatEnd(new Date(e.target.value))}
-                                        className="h-32 w-56 text-white bg-sky-600 rounded-2xl p-2"
-                                    />
-                                </div>
-                            </>
-                        )}
-
-                        <label className="text-lg text-white mt-7.5 mb-2.5">Name:</label>
-                        <input
-                            className="border border-sky-600 rounded-lg p-2.5 text-white bg-sky-600 w-full"
-                            placeholder="Meeting"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                        />
-
-                        <label className="text-lg text-white mt-7.5 mb-2.5">Link / Location:</label>
-                        <input
-                            className="border border-sky-600 rounded-lg p-2.5 text-white bg-sky-600 w-full"
-                            placeholder="Link/location"
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                        />
-
-                        <label className="text-lg text-white mt-5 mb-2.5">Recurrence:</label>
-                        <div className="bg-sky-800 rounded-xl self-start mt-2.5">
+                        <div className="mb-4">
+                            <label className="text-lg text-teal-800 mb-2 block font-bold" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Recurrence:</label>
                             <select
                                 value={recurrence || ''}
                                 onChange={(e) => setRecurrence(e.target.value || null)}
-                                className="h-32 w-56 text-white bg-sky-600 rounded-2xl p-2"
+                                className="border-4 border-blue-400 rounded-2xl p-3 text-teal-800 bg-blue-100 w-full font-bold"
+                                style={{ fontFamily: 'Pixelify Sans, monospace' }}
                             >
                                 <option value="">Select Frequency</option>
                                 <option value="once">Once</option>
@@ -824,29 +792,48 @@ const EventSelection: React.FC = () => {
                                 <option value="sun">Every Sun</option>
                             </select>
                         </div>
-                        <div className="flex flex-wrap gap-5 justify-center">
-                        <button
-                            className="w-2/5 bg-sky-300 rounded-lg py-3 text-black mt-5 mb-5 font-bold text-base hover:bg-gray-100 transition-colors hover:scale-105 border-4 border-sky-400"
-                            onClick={editMode && editMode.type === 'meeting' ? handleEditMeeting : handleMeeting}
-                        >
-                            {editMode && editMode.type === 'meeting' ? 'Update Meeting' : 'Add Event'}
-                        </button>
 
-                        
+                        {(recurrence === "daily" || recurrence === "mon" || recurrence === "tue" 
+                            || recurrence === "wed" || recurrence === "thu" || recurrence === "fri" ||
+                            recurrence === "sat" || recurrence === "sun" 
+                        ) && (
+                            <div className="mb-4">
+                                <label className="text-lg text-teal-800 mb-2 block font-bold" style={{ fontFamily: 'Pixelify Sans, monospace' }}>End Repeat Date:</label>
+                                <input
+                                    type="date"
+                                    value={formatDateLocal(meetingRepeatEnd)}
+                                    onChange={(e) => setMeetingRepeatEnd(new Date(e.target.value))}
+                                    className="border-4 border-blue-400 rounded-2xl p-3 text-teal-800 bg-blue-100 w-full font-bold"
+                                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                />
+                            </div>
+                        )}
 
-                        <button
-                            className="w-2/5 bg-sky-300 rounded-lg py-3 mt-5 mb-5 text-black font-bold text-base hover:bg-gray-100 transition-colors hover:scale-105 border-4 border-sky-400"
-                            onClick={handlePrev}
-                        >
-                            Go to Home
-                        </button>
+                        <div className="flex gap-4 justify-center">
+                            <button
+                                className="flex-1 bg-gradient-to-r from-teal-500 to-blue-500 rounded-2xl py-3 text-white font-bold hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                                style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                onClick={editMode && editMode.type === 'meeting' ? handleEditMeeting : handleMeeting}
+                            >
+                                {editMode && editMode.type === 'meeting' ? 'Update Meeting' : 'Add Meeting'}
+                            </button>
+
+                            <button
+                                className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl py-3 text-white font-bold hover:from-orange-600 hover:to-red-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                                style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                onClick={handlePrev}
+                            >
+                                Go to Home
+                            </button>
                         </div>
+
                         {editMode && editMode.type === 'meeting' && (
                             <button
-                            className="flex-1 w-1/1 bg-sky-300 rounded-lg py-3 text-gray-800 mt-5 mb-5 font-bold text-base hover:bg-gray-300 transition-colors"
-                            onClick={handleDiscardEdit}
+                                className="w-full bg-gradient-to-r from-gray-400 to-gray-500 rounded-2xl py-3 text-white font-bold hover:from-gray-500 hover:to-gray-600 transform hover:scale-105 transition-all duration-200 shadow-lg mt-4"
+                                style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                onClick={handleDiscardEdit}
                             >
-                            Discard Changes
+                                Discard Changes
                             </button>
                         )}
                     </div>
@@ -858,9 +845,9 @@ const EventSelection: React.FC = () => {
                 <div className="flex-1 relative z-10 px-4 pb-4">
                     <div className="bg-gradient-to-br from-yellow-200 to-yellow-300 rounded-3xl p-6 border-4 border-orange-400 shadow-lg">
                         <h2 className="text-3xl font-bold text-teal-800 text-center mb-6" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
-                            {editMode && editMode.type === 'assignment' ? 'Edit Assignment' : 'Set up an Assignment'}
+                            {editMode && editMode.type === 'assignment' ? 'Edit Assignment' : 'Set up Assignment'}
                         </h2>
-
+                        
                         <input
                             className="border-4 border-yellow-400 rounded-2xl p-3 text-teal-800 bg-yellow-100 w-full mb-4 font-bold"
                             style={{ fontFamily: 'Pixelify Sans, monospace' }}
@@ -870,7 +857,6 @@ const EventSelection: React.FC = () => {
                         />
 
                         <div className="flex gap-4 mb-4">
-                            {/* Effort */}
                             <div className="flex-1">
                                 <label className="text-lg text-teal-800 mb-2 block font-bold" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Effort (minutes):</label>
                                 <input
@@ -883,7 +869,6 @@ const EventSelection: React.FC = () => {
                                 />
                             </div>
 
-                            {/* Deadline */}
                             <div className="flex-1">
                                 <label className="text-lg text-teal-800 mb-2 block font-bold" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Deadline:</label>
                                 <input
@@ -925,9 +910,6 @@ const EventSelection: React.FC = () => {
                         )}
                     </div>
                 </div>
-            )}
-                </div>
-                
             )}
                  
 
@@ -1015,76 +997,80 @@ const EventSelection: React.FC = () => {
             )}
 
 
+            {/* Events Tab */}
             {selected === "Events" && (
-                <div className="min-h-screen bg-gradient-to-b from-stone-700 to-stone-900">
-                    <h2 className="text-3xl font-bold text-white text-center pt-6 pb-5">Events</h2>
+                <div className="flex-1 relative z-10 px-4 pb-4">
+                    <h2 className="text-3xl font-bold text-teal-800 text-center mb-6 pt-4" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Events</h2>
 
                     {/* Meetings section */}
-                    <h3 className="text-2xl font-semibold text-white ml-4 mb-4">Meetings:</h3>
+                    <h3 className="text-2xl font-semibold text-teal-800 mb-4" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Meetings:</h3>
                     <div className="overflow-x-auto whitespace-nowrap pb-4">
-                        <div className="flex gap-4 pl-4 pr-4">
+                        <div className="flex gap-4">
                             {meetings.map((meeting, index) => (
                                 <button 
                                     key={index} 
-                                    className="bg-sky-600 border-4 border-sky-700 rounded-lg p-4 min-w-48 flex-shrink-0 hover:bg-gray-700 transition-colors" 
+                                    className="bg-gradient-to-br from-blue-200 to-blue-300 border-4 border-orange-400 rounded-2xl p-4 min-w-48 flex-shrink-0 hover:from-blue-300 hover:to-blue-400 transition-all duration-200 transform hover:scale-105 shadow-lg" 
+                                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
                                     onClick={() => editDeleteMeeting(index)}
                                 >
-                                    <div className="text-lg font-semibold text-white mb-1">
+                                    <div className="text-lg font-semibold text-teal-800 mb-1">
                                         {format(new Date(meeting.startTime), "MMM dd, yyyy - h:mm a")}
                                     </div>
-                                    <div className="text-lg text-white mb-1">
+                                    <div className="text-lg text-teal-800 mb-1">
                                         {format(new Date(meeting.endTime), "MMM dd, yyyy - h:mm a")}
                                     </div>
-                                    <div className="text-xl text-white font-medium mb-2">{meeting.name}</div>
-                                    <div className="text-base text-gray-300 mb-1">{meeting.link_or_loc}</div>
-                                    <div className="text-base text-gray-300">{meeting.recurrence}</div>
+                                    <div className="text-xl text-teal-800 font-bold mb-2">{meeting.name}</div>
+                                    <div className="text-base text-teal-700 mb-1">{meeting.link_or_loc}</div>
+                                    <div className="text-base text-teal-700">{meeting.recurrence}</div>
                                 </button>
                             ))}
                         </div>
                     </div>
 
                     {/* Assignments section */}
-                    <h3 className="text-2xl font-semibold text-white ml-4 mb-4">Assignments:</h3>
+                    <h3 className="text-2xl font-semibold text-teal-800 mb-4" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Assignments:</h3>
                     <div className="overflow-x-auto whitespace-nowrap pb-4">
-                        <div className="flex gap-4 pl-4 pr-4">
+                        <div className="flex gap-4">
                             {assignments.map((assignment, index) => (
                                 <button 
                                     key={index} 
-                                    className="bg-amber-600 border-4 border-amber-700 rounded-lg p-4 min-w-48 flex-shrink-0 hover:bg-gray-700 transition-colors" 
+                                    className="bg-gradient-to-br from-yellow-200 to-yellow-300 border-4 border-orange-400 rounded-2xl p-4 min-w-48 flex-shrink-0 hover:from-yellow-300 hover:to-yellow-400 transition-all duration-200 transform hover:scale-105 shadow-lg" 
+                                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
                                     onClick={() => editDeleteAssignment(index)}
                                 >
-                                    <div className="text-lg font-semibold text-white mb-1">
+                                    <div className="text-lg font-semibold text-teal-800 mb-1">
                                         {format(new Date(assignment.deadline), "MMM dd, yyyy - h:mm a")}
                                     </div>
-                                    <div className="text-base text-gray-300 mb-1">
+                                    <div className="text-base text-teal-700 mb-1">
                                         {assignment.effort} min
                                     </div>
-                                    <div className="text-xl text-white font-medium">{assignment.name}</div>
+                                    <div className="text-xl text-teal-800 font-bold">{assignment.name}</div>
                                 </button>
                             ))}
                         </div>
                     </div>
 
                     {/* Chores section */}
-                    <h3 className="text-2xl font-semibold text-white ml-4 mb-4">Chores/Studies:</h3>
+                    <h3 className="text-2xl font-semibold text-teal-800 mb-4" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Chores/Studies:</h3>
                     <div className="overflow-x-auto whitespace-nowrap pb-4">
-                        <div className="flex gap-4 pl-4 pr-4">
+                        <div className="flex gap-4">
                             {chores.map((chore, index) => (
                                 <button 
                                     key={index} 
-                                    className="bg-emerald-600 border-4 border-emerald-700 rounded-lg p-4 min-w-48 flex-shrink-0 hover:bg-gray-700 transition-colors" 
+                                    className="bg-gradient-to-br from-green-200 to-green-300 border-4 border-orange-400 rounded-2xl p-4 min-w-48 flex-shrink-0 hover:from-green-300 hover:to-green-400 transition-all duration-200 transform hover:scale-105 shadow-lg" 
+                                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
                                     onClick={() => editDeleteChore(index)}
                                 >
-                                    <div className="text-lg font-semibold text-white mb-1">
+                                    <div className="text-lg font-semibold text-teal-800 mb-1">
                                         {format(new Date(chore.windowStart), "MMM dd, yyyy - h:mm a")}
                                     </div>
-                                    <div className="text-lg text-white mb-1">
+                                    <div className="text-lg text-teal-800 mb-1">
                                         {format(new Date(chore.windowEnd), "MMM dd, yyyy - h:mm a")}
                                     </div>
-                                    <div className="text-base text-gray-300 mb-1">
+                                    <div className="text-base text-teal-700 mb-1">
                                         {chore.effort} min
                                     </div>
-                                    <div className="text-xl text-white font-medium">{chore.name}</div>
+                                    <div className="text-xl text-teal-800 font-bold">{chore.name}</div>
                                 </button>
                             ))}
                         </div>
@@ -1092,7 +1078,8 @@ const EventSelection: React.FC = () => {
 
                     <button
                         data-testid="submit-schedule"
-                        className="bg-stone-300 rounded-lg py-3 mt-5 w-4/5 self-center mx-auto block text-black font-bold text-base hover:bg-gray-100 hover:scale-105 border-4 border-stone-400 transition-colors"
+                        className="w-full bg-gradient-to-r from-teal-500 to-blue-500 rounded-2xl py-3 text-white font-bold hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg mt-6"
+                        style={{ fontFamily: 'Pixelify Sans, monospace' }}
                         onClick={submitSchedule}
                     >
                         Submit Schedule
