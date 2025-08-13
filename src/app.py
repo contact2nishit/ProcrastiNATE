@@ -15,13 +15,14 @@ from urllib.parse import urlencode, parse_qs, urlparse
 from fastapi.responses import RedirectResponse
 from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+import google_auth_oauthlib
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from achievements_check import check_achievements
 import base64
 import secrets
 import time
+import json
 
 
 
