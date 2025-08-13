@@ -12,8 +12,9 @@ export type CurrentSchedule = {
 type LevelInfo = { 
 	xp: number; 
 	level: number; 
-	user_name: string;
+	username: string;
 	xpForNextLevel: number;
+	achievements: any; 
 };
 
 type CurrentScheduleContextType = {
@@ -36,8 +37,9 @@ export const CurrentScheduleProvider = ({ children }: { children: ReactNode }) =
 	const [levelInfo, setLevelInfo] = useState<LevelInfo>({
 		xp: 0,
 		level: 0,
-		user_name: "unknown",
+		username: "unknown",
 		xpForNextLevel: 0,
+		achievements: {},
 	});
     const fetchScheduleForRange = async (start: string, end: string): Promise<Slot[]> => {
 		const url = config.backendURL;
@@ -114,7 +116,12 @@ export const CurrentScheduleProvider = ({ children }: { children: ReactNode }) =
 	 * Refresh the user's level info with a call to the backend
 	 */
 	const refreshLevelInfo = async () => {
-		
+		try {
+			const resp = await fetch(`${config.backendURL}/getLevel`);
+			const jason = await resp.json();
+		} catch(e) {
+			console.error(`Failed to refresh level info: ${e}`)
+		}
 	};
 
     // Ensures the context covers at least [start, end] (expands if needed)

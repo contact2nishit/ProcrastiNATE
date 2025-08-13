@@ -269,7 +269,8 @@ class LevelResponse(BaseModel):
     user_name: str
     xp: int
     level: int
-    achievements : dict
+    achievements: dict
+    xp_for_next_level: int
 
 class SessionCompletionResponse(MessageResponseDataModel):
     """Response for marking a session as completed"""

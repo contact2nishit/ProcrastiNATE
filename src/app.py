@@ -1440,7 +1440,8 @@ async def get_level(token: Annotated[str, Depends(oauth2_scheme)]) -> LevelRespo
                 user_name=user.username,
                 xp=user.xp,
                 level=achievements["levels"],
-                achievements=achievements
+                achievements=achievements,
+                xp_for_next_level=get_xp_for_next_level(achievements["levels"])
             )
     except HTTPException as e:
         raise e
