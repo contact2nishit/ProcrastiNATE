@@ -1,12 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import config from '../config';
+import LoadingScreen from '../components/LoadingScreen';
 
 const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const backendURL = config.backendURL;
     const navigate = useNavigate();
+
+    const showLoadingAndNavigate = () => {
+        setIsLoading(true);
+        setTimeout(() => {
+            navigate('/requiresCurrentSchedule/Home');
+        }, 4000); // 4 seconds
+    };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -30,7 +39,7 @@ const Login = () => {
             if (data.access_token) {
                 localStorage.setItem('token', data.access_token);
             }
-            navigate('/requiresCurrentSchedule/Home');
+            showLoadingAndNavigate();
         } catch (e) {
             alert('Login error: ' + e);
         }
@@ -62,7 +71,7 @@ const Login = () => {
                     localStorage.setItem('token', event.data.token);
                     popup?.close();
                     window.removeEventListener('message', messageHandler);
-                    navigate('/requiresCurrentSchedule/Home');
+                    showLoadingAndNavigate();
                 } else if (event.data.type === 'OAUTH_ERROR') {
                     popup?.close();
                     window.removeEventListener('message', messageHandler);
@@ -89,6 +98,11 @@ const Login = () => {
             alert('Google login error: ' + e);
         }
     };
+
+    // Show loading screen when logging in
+    if (isLoading) {
+        return <LoadingScreen />;
+    }
 
     return (
         <div className="min-h-screen w-full flex flex-col justify-center items-center p-5 relative overflow-hidden" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
