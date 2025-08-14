@@ -53,12 +53,12 @@ async def authenticate_user(username: str, password: str, pool):
     try:
         async with pool.acquire() as conn:
             user_data = await conn.fetchrow(
-                "SELECT username, user_id, email, password_hash FROM users WHERE username = $1",
+                "SELECT username, user_id, email, password_hash, xp FROM users WHERE username = $1",
                 username,
             )
             if not user_data:
                 return False
-            username_db, id, email_db, hashed_password = user_data
+            username_db, id, email_db, hashed_password, xp = user_data
             if not verify_password(password, hashed_password):
                 return False
             return UserInDB(
@@ -66,6 +66,7 @@ async def authenticate_user(username: str, password: str, pool):
                 user_id=id,
                 email=email_db,
                 hashed_password=hashed_password,
+                xp=xp
             )
     except Exception as e:
         # Log the error for debugging
@@ -116,13 +117,17 @@ async def get_current_user(token: str, pool):
     try:
         async with pool.acquire() as conn:
             # print(f"here {user_id}")
-            nom, id, mail = await conn.fetchrow(
-                "SELECT username, user_id, email FROM users WHERE user_id = $1", user_id
+            nom, id, mail, xp = await conn.fetchrow(
+                "SELECT username, user_id, email, xp FROM users WHERE user_id = $1", user_id
             )
             if nom is None:
                 # print("here2")
-                raise credentials_exception
-            return User(username=nom, user_id=id, email=mail)
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Could not validate credentials",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            return User(username=nom, user_id=id, email=mail, xp=xp)
     except Exception as e:
         print(e)
         raise credentials_exception

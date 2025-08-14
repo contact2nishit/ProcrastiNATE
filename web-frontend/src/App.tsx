@@ -11,6 +11,7 @@ import SchedulePicker from './pages/SchedulePicker';
 import EventSelection from './pages/EventSelection';
 import CalendarViewPotential from './pages/CalendarViewPotential';
 import RescheduleScreen from './pages/RescheduleScreen';
+import Profile from './pages/Profile';
 
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -75,6 +76,13 @@ const App: React.FC = () => {
             </CurrentScheduleProvider>
           </ProtectedRoute>
         } />
+				<Route path='/requiresCurrentSchedule/Profile' element={
+					<ProtectedRoute>
+						<CurrentScheduleProvider>
+							<Profile />
+						</CurrentScheduleProvider>
+					</ProtectedRoute>
+				} />
 			</Routes>
 		</Router>
 	);

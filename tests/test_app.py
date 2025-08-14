@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from fastapi import status
 from googleapiclient.errors import HttpError
 from datetime import datetime, timezone, timedelta, time, date
+from asyncpg import Record
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from app import app
 from data_models import (
@@ -61,12 +62,7 @@ class TestEndpoints:
     
     @pytest.fixture
     def mock_user(self):
-        return UserInDB(
-            username="testuser",
-            user_id=123,
-            email="test@example.com",
-            hashed_password="hashed"
-        )
+        return UserInDB(username="testuser", user_id=123, email="test@example.com", hashed_password="hashed", xp=0)
     
     @pytest.fixture
     def sample_meetings(self):
@@ -289,12 +285,7 @@ class TestEndpoints:
     @patch('app.create_access_token')
     def test_login_success(self, mock_create_token, mock_auth):
         """Test successful user login"""
-        mock_user = UserInDB(
-            username="testuser",
-            user_id=123,
-            email="test@example.com",
-            hashed_password="hashed_password"
-        )
+        mock_user = UserInDB(username="testuser", user_id=123, email="test@example.com", hashed_password="hashed_password", xp=100)
         mock_auth.return_value = mock_user
         mock_create_token.return_value = "jwt_token_123"
         form_data = {
@@ -402,12 +393,7 @@ class TestEndpoints:
     @patch('app.create_access_token')
     def test_login_token_creation_error(self, mock_create_token, mock_auth):
         """Test login when JWT token creation fails"""
-        mock_user = UserInDB(
-            username="testuser", 
-            user_id=123,
-            email="test@example.com",
-            hashed_password="hashed"
-        )
+        mock_user = UserInDB(username="testuser", user_id=123, email="test@example.com", hashed_password="hashed", xp=0)
         mock_auth.return_value = mock_user
         mock_create_token.side_effect = Exception("Token creation failed")
         form_data = {
@@ -435,12 +421,7 @@ class TestEndpoints:
     @patch('app.create_access_token')
     def test_login_special_characters(self, mock_create_token, mock_auth):
         """Test login with special characters"""
-        mock_user = UserInDB(
-            username="test@user#2024",
-            user_id=123, 
-            email="test@example.com",
-            hashed_password="hashed"
-        )
+        mock_user = UserInDB(username="test@user#2024", user_id=123, email="test@example.com", hashed_password="hashed", xp=0)
         mock_auth.return_value = mock_user
         mock_create_token.return_value = "jwt_token"
         form_data = {
@@ -459,12 +440,7 @@ class TestEndpoints:
     @patch('app.create_access_token')  
     def test_login_token_expiry_setup(self, mock_create_token, mock_auth):
         """Test that login sets up token with correct expiry"""
-        mock_user = UserInDB(
-            username="testuser",
-            user_id=123,
-            email="test@example.com", 
-            hashed_password="hashed"
-        )
+        mock_user = UserInDB(username="testuser", user_id=123, email="test@example.com", hashed_password="hashed", xp=0)
         mock_auth.return_value = mock_user
         mock_create_token.return_value = "jwt_token"
         form_data = {
@@ -500,15 +476,9 @@ class TestEndpoints:
     @patch('app.get_current_user')
     def test_get_level_success(self, mock_get_current_user):
         """Test successful level retrieval"""
-        mock_user = UserInDB(
-            username="testuser",
-            user_id=123,
-            email="test@example.com",
-            hashed_password="hashed"
-        )
+        mock_user = UserInDB(username="testuser", user_id=123, email="test@example.com", hashed_password="hashed", xp=150)
         mock_get_current_user.return_value = mock_user
-        self.mock_pool.fetchrow = AsyncMock(return_value={"username": "testuser", "xp": 150})
-        self.mock_pool.fetchval = AsyncMock(return_value=3)
+        self.mock_pool.fetchrow = AsyncMock(return_value={"ach1": True, "ach2": False})
         headers = {"Authorization": "Bearer fake_token_123"}
         response = self.client.get("/getLevel", headers=headers)
         assert response.status_code == status.HTTP_200_OK
@@ -516,6 +486,11 @@ class TestEndpoints:
         assert response_data["user_name"] == "testuser"
         assert response_data["xp"] == 150
         assert response_data["level"] == 3
+        assert "achievements" in response_data
+        assert isinstance(response_data["achievements"], dict)
+        for k, v in response_data["achievements"].items():
+            assert isinstance(k, str)
+            assert isinstance(v, bool) or isinstance(v, int)
 
     
     @patch('app.get_current_user')
@@ -531,12 +506,7 @@ class TestEndpoints:
     @patch('app.get_current_user')
     def test_get_level_database_error(self, mock_get_current_user):
         """Test level retrieval when database query fails"""
-        mock_user = UserInDB(
-            username="testuser",
-            user_id=123,
-            email="test@example.com", 
-            hashed_password="hashed"
-        )
+        mock_user = UserInDB(username="testuser", user_id=123, email="test@example.com", hashed_password="hashed", xp=0)
         mock_get_current_user.return_value = mock_user
         self.mock_pool.fetchrow = AsyncMock(side_effect=Exception("Database connection failed"))
         headers = {"Authorization": "Bearer valid_token"}
@@ -1262,7 +1232,7 @@ class TestEndpoints:
         mock_creds.expired = False
         mock_credentials.return_value = mock_creds
         headers = {"Authorization": "Bearer mock_token"}
-        response = self.client.post("/googleCalendar/sync", headers=headers)r
+        response = self.client.post("/googleCalendar/sync", headers=headers)
         call_args = mock_service.events().list.call_args
         assert 'timeMax' in call_args[1]
         assert response.status_code == 200
