@@ -11,73 +11,105 @@ import SchedulePicker from './pages/SchedulePicker';
 import EventSelection from './pages/EventSelection';
 import CalendarViewPotential from './pages/CalendarViewPotential';
 import RescheduleScreen from './pages/RescheduleScreen';
+// New: time-of-day context & background components
+import { TimeOfDayThemeProvider, useTimeOfDayTheme } from './context/TimeOfDayThemeContext';
+import DayBackground from './components/backgrounds/DayBackground';
+import NightBackground from './components/backgrounds/NightBackground';
+import TransitionBackground from './components/backgrounds/TransitionBackground';
 
+// Removed getTimeOfDayPhase and internal interval logic; now handled by context provider
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-	const token = localStorage.getItem("token");
-	return token ? <>{children}</> : <Navigate to="/" replace />;
+    const token = localStorage.getItem("token");
+    return token ? <>{children}</> : <Navigate to="/" replace />;
+};
+
+// Background layer that reacts to context phase
+const BackgroundLayers: React.FC = () => {
+    const { phase } = useTimeOfDayTheme();
+    return (
+        <>
+            {phase === 'day' && <DayBackground />}
+            {phase === 'night' && <NightBackground />}
+            {phase === 'transition' && <TransitionBackground />}
+        </>
+    );
+};
+
+// Shell containing previous routing/content, still applying legacy class names for existing CSS
+const AppShell: React.FC = () => {
+    const { phase } = useTimeOfDayTheme();
+    return (
+        <div className={`app-bg phase-${phase}`}>
+            <BackgroundLayers />
+            <div className="app-content-wrapper">
+                <Router>
+                    <Routes>
+                        <Route path="/" element={<Login />} />
+                        <Route path="/signup" element={<Signup />} />
+                        <Route path='/requiresCurrentSchedule/Home' element={
+                            <ProtectedRoute>
+                                <CurrentScheduleProvider>
+                                    <Home />
+                                </CurrentScheduleProvider>
+                            </ProtectedRoute>
+                        } />
+                        <Route path='requiresCurrentSchedule/requiresPotentialSchedule/EventSelection' element={
+                            <ProtectedRoute>
+                                <CurrentScheduleProvider>
+                                    <PotentialScheduleProvider>
+                                        <EventSelection />
+                                    </PotentialScheduleProvider>
+                                </CurrentScheduleProvider>
+                            </ProtectedRoute>
+                        } />
+                        <Route path='requiresCurrentSchedule/requiresPotentialSchedule/SchedulePicker' element={
+                            <ProtectedRoute>
+                                <CurrentScheduleProvider>
+                                    <PotentialScheduleProvider>
+                                        <SchedulePicker />
+                                    </PotentialScheduleProvider>
+                                </CurrentScheduleProvider>
+                            </ProtectedRoute>
+                        } />
+                        <Route path='requiresCurrentSchedule/requiresPotentialSchedule/RescheduleScreen' element={
+                            <ProtectedRoute>
+                                <CurrentScheduleProvider>
+                                    <PotentialScheduleProvider>
+                                        <RescheduleScreen />
+                                    </PotentialScheduleProvider>
+                                </CurrentScheduleProvider>
+                            </ProtectedRoute>
+                        } />
+                        <Route path='/requiresCurrentSchedule/CalendarView' element={
+                            <ProtectedRoute>
+                                <CurrentScheduleProvider>
+                                    <CalendarView />
+                                </CurrentScheduleProvider>
+                            </ProtectedRoute>
+                        } />
+                        <Route path='requiresCurrentSchedule/requiresPotentialSchedule/CalendarViewPotential' element={
+                            <ProtectedRoute>
+                                <CurrentScheduleProvider>
+                                    <PotentialScheduleProvider>
+                                        <CalendarViewPotential />
+                                    </PotentialScheduleProvider>
+                                </CurrentScheduleProvider>
+                            </ProtectedRoute>
+                        } />
+                    </Routes>
+                </Router>
+            </div>
+        </div>
+    );
 };
 
 const App: React.FC = () => {
-	return (
-		<Router>
-			<Routes>
-				<Route path="/" element={<Login />} />
-				<Route path="/signup" element={<Signup />} />
-				<Route path='/requiresCurrentSchedule/Home' element={
-					<ProtectedRoute>
-						<CurrentScheduleProvider>
-							<Home />
-						</CurrentScheduleProvider>
-					</ProtectedRoute>
-					}
-				/>
-				<Route path='requiresCurrentSchedule/requiresPotentialSchedule/EventSelection' element={
-					<ProtectedRoute>
-						<CurrentScheduleProvider>
-						<PotentialScheduleProvider>
-							<EventSelection />
-						</PotentialScheduleProvider>
-						</CurrentScheduleProvider>
-					</ProtectedRoute>
-				} />
-				<Route path='requiresCurrentSchedule/requiresPotentialSchedule/SchedulePicker' element={
-					<ProtectedRoute>
-						<CurrentScheduleProvider>
-							<PotentialScheduleProvider>
-								<SchedulePicker />
-							</PotentialScheduleProvider>
-						</CurrentScheduleProvider>
-					</ProtectedRoute>
-				} />
-				<Route path='requiresCurrentSchedule/requiresPotentialSchedule/RescheduleScreen' element={
-					<ProtectedRoute>
-						<CurrentScheduleProvider>
-							<PotentialScheduleProvider>
-								<RescheduleScreen />
-							</PotentialScheduleProvider>
-						</CurrentScheduleProvider>
-					</ProtectedRoute>
-        		} />
-				<Route path='/requiresCurrentSchedule/CalendarView' element={
-					<ProtectedRoute>
-						<CurrentScheduleProvider>
-							<CalendarView />
-						</CurrentScheduleProvider>
-					</ProtectedRoute>
-				} />      
-        <Route path='requiresCurrentSchedule/requiresPotentialSchedule/CalendarViewPotential' element={
-          <ProtectedRoute>
-            <CurrentScheduleProvider>
-              <PotentialScheduleProvider>
-                <CalendarViewPotential />
-              </PotentialScheduleProvider>
-            </CurrentScheduleProvider>
-          </ProtectedRoute>
-        } />
-			</Routes>
-		</Router>
-	);
+    return (
+        <TimeOfDayThemeProvider>
+            <AppShell />
+        </TimeOfDayThemeProvider>
+    );
 };
 
 export default App;

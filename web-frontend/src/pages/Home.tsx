@@ -505,76 +505,6 @@ const Home = () => {
     }
     return (
         <ThemeProvider theme={theme}>
-            <div className="min-h-screen flex flex-col" style={{ 
-                background: 'linear-gradient(135deg, #87CEEB 0%, #E0F6FF 30%, #B8E6FF 60%, #87CEEB 100%)',
-                fontFamily: 'Pixelify Sans, monospace'
-            }}>
-                {/* Floating Clouds - Pixelated Style */}
-                <div className="absolute inset-0 pointer-events-none">
-                    {/* Large Pixelated Clouds */}
-                    <div className="absolute top-20 right-12 w-26 h-18 bg-white opacity-80 animate-pulse" style={{ animationDelay: '0.5s', animationDuration: '5s', clipPath: 'polygon(0 0, 8% 0, 8% 22%, 23% 22%, 23% 0, 69% 0, 69% 17%, 85% 17%, 85% 44%, 92% 44%, 92% 67%, 77% 67%, 77% 83%, 46% 83%, 46% 100%, 15% 100%, 15% 78%, 0 78%)' }}>
-                        <div className="absolute top-2 left-6 w-18 h-14 bg-white" style={{ clipPath: 'polygon(0 0, 11% 0, 11% 29%, 33% 29%, 33% 0, 72% 0, 72% 21%, 89% 21%, 89% 64%, 67% 64%, 67% 100%, 22% 100%, 22% 71%, 0 71%)' }}></div>
-                        <div className="absolute top-4 left-2 w-14 h-10 bg-white" style={{ clipPath: 'polygon(0 0, 14% 0, 14% 30%, 29% 30%, 29% 0, 79% 0, 79% 20%, 93% 20%, 93% 70%, 64% 70%, 64% 100%, 21% 100%, 21% 60%, 0 60%)' }}></div>
-                    </div>
-                    
-                    <div className="absolute top-36 left-16 w-22 h-14 bg-white opacity-75 animate-pulse" style={{ animationDelay: '2.5s', animationDuration: '4.5s', clipPath: 'polygon(0 0, 14% 0, 14% 29%, 27% 29%, 27% 0, 73% 0, 73% 21%, 86% 21%, 86% 57%, 100% 57%, 100% 79%, 73% 79%, 73% 100%, 27% 100%, 27% 71%, 0 71%)' }}>
-                        <div className="absolute top-1 left-4 w-14 h-10 bg-white" style={{ clipPath: 'polygon(0 0, 14% 0, 14% 30%, 36% 30%, 36% 0, 79% 0, 79% 20%, 100% 20%, 100% 70%, 57% 70%, 57% 100%, 21% 100%, 21% 60%, 0 60%)' }}></div>
-                    </div>
-                    
-                    {/* Additional Large Clouds */}
-                    <div className="absolute top-16 left-1/2 w-24 h-16 bg-white opacity-70 animate-pulse" style={{ animationDelay: '3.2s', animationDuration: '6.2s', clipPath: 'polygon(0 0, 12% 0, 12% 25%, 25% 25%, 25% 0, 75% 0, 75% 19%, 88% 19%, 88% 56%, 100% 56%, 100% 81%, 75% 81%, 75% 100%, 25% 100%, 25% 69%, 0 69%)' }}>
-                        <div className="absolute top-2 left-3 w-16 h-12 bg-white" style={{ clipPath: 'polygon(0 0, 13% 0, 13% 33%, 31% 33%, 31% 0, 75% 0, 75% 25%, 88% 25%, 88% 67%, 63% 67%, 63% 100%, 25% 100%, 25% 75%, 0 75%)' }}></div>
-                    </div>
-                    
-                    <div className="absolute top-44 right-8 w-20 h-12 bg-white opacity-65 animate-pulse" style={{ animationDelay: '4.1s', animationDuration: '5.4s', clipPath: 'polygon(0 0, 15% 0, 15% 33%, 30% 33%, 30% 0, 70% 0, 70% 25%, 85% 25%, 85% 58%, 100% 58%, 100% 83%, 70% 83%, 70% 100%, 30% 100%, 30% 67%, 0 67%)' }}>
-                        <div className="absolute top-1 left-2 w-14 h-8 bg-white" style={{ clipPath: 'polygon(0 0, 18% 0, 18% 38%, 36% 38%, 36% 0, 82% 0, 82% 25%, 100% 25%, 100% 75%, 64% 75%, 64% 100%, 18% 100%, 18% 63%, 0 63%)' }}></div>
-                    </div>
-                    
-                    {/* Medium Pixelated Clouds */}
-                    <div className="absolute top-52 left-28 w-16 h-10 bg-white opacity-60 animate-pulse" style={{ animationDelay: '1.8s', animationDuration: '5.8s', clipPath: 'polygon(0 0, 13% 0, 13% 30%, 31% 30%, 31% 0, 69% 0, 69% 20%, 88% 20%, 88% 60%, 100% 60%, 100% 80%, 69% 80%, 69% 100%, 31% 100%, 31% 70%, 0 70%)' }}>
-                        <div className="absolute top-1 left-2 w-10 h-6 bg-white" style={{ clipPath: 'polygon(0 0, 20% 0, 20% 33%, 40% 33%, 40% 0, 80% 0, 80% 17%, 100% 17%, 100% 67%, 60% 67%, 60% 100%, 20% 100%, 20% 67%, 0 67%)' }}></div>
-                    </div>
-                    
-                    <div className="absolute top-24 right-24 w-14 h-8 bg-white opacity-55 animate-pulse" style={{ animationDelay: '2.8s', animationDuration: '4.3s', clipPath: 'polygon(0 0, 14% 0, 14% 38%, 29% 38%, 29% 0, 71% 0, 71% 25%, 86% 25%, 86% 63%, 100% 63%, 100% 88%, 71% 88%, 71% 100%, 29% 100%, 29% 75%, 0 75%)' }}>
-                        <div className="absolute top-1 left-1 w-8 h-4 bg-white" style={{ clipPath: 'polygon(0 0, 25% 0, 25% 50%, 50% 50%, 50% 0, 100% 0, 100% 75%, 50% 75%, 50% 100%, 0 100%)' }}></div>
-                    </div>
-                    
-                    {/* Additional Medium Clouds */}
-                    <div className="absolute top-60 right-20 w-18 h-12 bg-white opacity-55 animate-pulse" style={{ animationDelay: '1.5s', animationDuration: '4.8s', clipPath: 'polygon(0 0, 17% 0, 17% 33%, 33% 33%, 33% 0, 67% 0, 67% 25%, 83% 25%, 83% 58%, 100% 58%, 100% 83%, 67% 83%, 67% 100%, 33% 100%, 33% 67%, 0 67%)' }}>
-                        <div className="absolute top-1 left-2 w-12 h-8 bg-white" style={{ clipPath: 'polygon(0 0, 17% 0, 17% 38%, 33% 38%, 33% 0, 75% 0, 75% 25%, 92% 25%, 92% 75%, 58% 75%, 58% 100%, 25% 100%, 25% 63%, 0 63%)' }}></div>
-                    </div>
-                    
-                    <div className="absolute top-8 left-8 w-16 h-10 bg-white opacity-50 animate-pulse" style={{ animationDelay: '3.8s', animationDuration: '5.3s', clipPath: 'polygon(0 0, 13% 0, 13% 30%, 31% 30%, 31% 0, 69% 0, 69% 20%, 88% 20%, 88% 60%, 100% 60%, 100% 80%, 69% 80%, 69% 100%, 31% 100%, 31% 70%, 0 70%)' }}>
-                        <div className="absolute top-1 left-2 w-10 h-6 bg-white" style={{ clipPath: 'polygon(0 0, 20% 0, 20% 33%, 40% 33%, 40% 0, 80% 0, 80% 17%, 100% 17%, 100% 67%, 60% 67%, 60% 100%, 20% 100%, 20% 67%, 0 67%)' }}></div>
-                    </div>
-                    
-                    {/* Small Pixelated Clouds */}
-                    <div className="absolute top-32 left-2/3 w-10 h-5 bg-white opacity-45 animate-pulse" style={{ animationDelay: '2.1s', animationDuration: '6.8s', clipPath: 'polygon(0 0, 20% 0, 20% 40%, 40% 40%, 40% 0, 80% 0, 80% 20%, 100% 20%, 100% 80%, 60% 80%, 60% 100%, 20% 100%, 20% 60%, 0 60%)' }}>
-                        <div className="absolute top-0 left-1 w-5 h-3 bg-white" style={{ clipPath: 'polygon(0 0, 40% 0, 40% 67%, 60% 67%, 60% 0, 100% 0, 100% 100%, 40% 100%, 40% 67%, 0 67%)' }}></div>
-                    </div>
-                    
-                    <div className="absolute top-12 right-1/3 w-8 h-4 bg-white opacity-48 animate-pulse" style={{ animationDelay: '1.2s', animationDuration: '5.1s', clipPath: 'polygon(0 0, 25% 0, 25% 50%, 50% 50%, 50% 0, 75% 0, 75% 25%, 100% 25%, 100% 75%, 75% 75%, 75% 100%, 25% 100%, 25% 75%, 0 75%)' }}>
-                        <div className="absolute top-0 left-1 w-4 h-2 bg-white" style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 100% 100%, 100% 50%, 50% 50%, 50% 0, 0 0)' }}></div>
-                    </div>
-                    
-                    <div className="absolute top-8 left-1/4 w-6 h-3 bg-white opacity-40 animate-pulse" style={{ animationDelay: '3.3s', animationDuration: '4.7s', clipPath: 'polygon(0 0, 33% 0, 33% 67%, 67% 67%, 67% 0, 100% 0, 100% 100%, 67% 100%, 67% 67%, 0 67%)' }}>
-                        <div className="absolute top-0 left-1 w-4 h-2 bg-white" style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 100% 100%, 100% 50%, 50% 50%, 50% 0, 0 0)' }}></div>
-                    </div>
-                    
-                    {/* Additional Small Clouds */}
-                    <div className="absolute top-48 left-8 w-12 h-6 bg-white opacity-42 animate-pulse" style={{ animationDelay: '2.9s', animationDuration: '5.7s', clipPath: 'polygon(0 0, 17% 0, 17% 33%, 33% 33%, 33% 0, 67% 0, 67% 17%, 83% 17%, 83% 67%, 100% 67%, 100% 83%, 67% 83%, 67% 100%, 33% 100%, 33% 67%, 0 67%)' }}>
-                        <div className="absolute top-0 left-1 w-8 h-4 bg-white" style={{ clipPath: 'polygon(0 0, 25% 0, 25% 50%, 50% 50%, 50% 0, 75% 0, 75% 25%, 100% 25%, 100% 75%, 50% 75%, 50% 100%, 25% 100%, 25% 75%, 0 75%)' }}></div>
-                    </div>
-                    
-                    <div className="absolute top-72 right-16 w-10 h-5 bg-white opacity-38 animate-pulse" style={{ animationDelay: '4.5s', animationDuration: '6.1s', clipPath: 'polygon(0 0, 20% 0, 20% 40%, 40% 40%, 40% 0, 80% 0, 80% 20%, 100% 20%, 100% 80%, 60% 80%, 60% 100%, 20% 100%, 20% 60%, 0 60%)' }}>
-                        <div className="absolute top-0 left-1 w-6 h-3 bg-white" style={{ clipPath: 'polygon(0 0, 33% 0, 33% 67%, 67% 67%, 67% 0, 100% 0, 100% 100%, 67% 100%, 67% 67%, 0 67%)' }}></div>
-                    </div>
-                    
-                    <div className="absolute top-4 right-2 w-8 h-4 bg-white opacity-35 animate-pulse" style={{ animationDelay: '1.7s', animationDuration: '4.4s', clipPath: 'polygon(0 0, 25% 0, 25% 50%, 50% 50%, 50% 0, 75% 0, 75% 25%, 100% 25%, 100% 75%, 75% 75%, 75% 100%, 25% 100%, 25% 75%, 0 75%)' }}>
-                        <div className="absolute top-0 left-1 w-4 h-2 bg-white" style={{ clipPath: 'polygon(0 0, 50% 0, 50% 100%, 100% 100%, 100% 50%, 50% 50%, 50% 0, 0 0)' }}></div>
-                    </div>
-                </div>
-
                 {loading && (
                     <div className="text-center py-4">
                         <p className="text-gray-600" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Loading...</p>
@@ -942,7 +872,6 @@ const Home = () => {
                 >
                     Back to Login
                 </button>
-            </div>
         </ThemeProvider>
     );
 }
