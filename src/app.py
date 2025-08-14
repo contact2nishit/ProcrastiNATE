@@ -21,8 +21,8 @@ from googleapiclient.errors import HttpError
 from achievements_check import check_achievements
 import base64
 import secrets
-import time
 import json
+import uvicorn
 
 
 
@@ -1447,3 +1447,13 @@ async def get_level(token: Annotated[str, Depends(oauth2_scheme)]) -> LevelRespo
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{e}")
+
+if __name__ == "__main__":
+    # DO NOT USE THIS FOR RUNNING A DEV SERVER LOCALLY
+    uvicorn.run(
+        "app:app",
+        host="0.0.0.0",
+        port=8000,
+        ssl_certfile="/certs/fullchain.pem",
+        ssl_keyfile="/certs/privkey.pem"
+    )
