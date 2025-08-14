@@ -159,7 +159,7 @@ const CalendarView = () => {
         <div
             className="min-h-screen relative overflow-hidden"
             style={{
-                background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 30%, #0f3460 60%, #1a1a2e 100%)',
+                // Removed page-specific background; using global App background
                 fontFamily: 'Pixelify Sans, monospace',
             }}
         >
