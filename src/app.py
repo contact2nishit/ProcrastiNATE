@@ -15,13 +15,14 @@ from urllib.parse import urlencode, parse_qs, urlparse
 from fastapi.responses import RedirectResponse
 from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+import google_auth_oauthlib
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from achievements_check import check_achievements
 import base64
 import secrets
 import time
+import json
 
 
 
@@ -1409,15 +1410,6 @@ async def fetch(
                         completed=c_complete,
                     )
                     chores_responses.append(chore_response)
-            print(
-                (
-                    FetchResponse(
-                        meetings=meetings_responses,
-                        assignments=assignments_responses,
-                        chores=chores_responses,
-                    )
-                ).json()
-            )
             return FetchResponse(
                 meetings=meetings_responses,
                 assignments=assignments_responses,
@@ -1436,22 +1428,21 @@ async def fetch(
 @app.get("/getLevel")
 async def get_level(token: Annotated[str, Depends(oauth2_scheme)]) -> LevelResponse:
     try:
-        user = await get_current_user(token, app.state.pool)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authentication credentials",
+        async with app.state.pool.acquire() as conn:
+            user = await get_current_user(token, app.state.pool)
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid authentication credentials",
+                )
+            achievements = dict(await conn.fetchrow("SELECT * FROM achievements WHERE user_id = $1", user.user_id))
+            return LevelResponse(
+                user_name=user.username,
+                xp=user.xp,
+                level=achievements["levels"],
+                achievements=achievements,
+                xp_for_next_level=get_xp_for_next_level(achievements["levels"])
             )
-        user_details = await app.state.pool.fetchrow(
-            "SELECT username, xp FROM users WHERE user_id = $1", user.user_id
-        )
-        return LevelResponse(
-            user_name=user_details["username"],
-            xp=int(user_details["xp"]),
-            level=await app.state.pool.fetchval(
-                "SELECT levels FROM achievements WHERE user_id = $1", user.user_id
-            ),
-        )
     except HTTPException as e:
         raise e
     except Exception as e:

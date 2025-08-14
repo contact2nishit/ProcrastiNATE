@@ -17,6 +17,7 @@ import DayBackground from './components/backgrounds/DayBackground';
 import NightBackground from './components/backgrounds/NightBackground';
 import TransitionBackground from './components/backgrounds/TransitionBackground';
 
+
 // Removed getTimeOfDayPhase and internal interval logic; now handled by context provider
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -110,6 +111,6 @@ const App: React.FC = () => {
             <AppShell />
         </TimeOfDayThemeProvider>
     );
-};
+}
 
 export default App;

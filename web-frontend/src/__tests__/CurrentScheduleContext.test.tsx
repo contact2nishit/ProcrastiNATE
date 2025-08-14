@@ -11,6 +11,13 @@ jest.mock('../config', () => ({
 
 describe('CurrentScheduleContext', () => {
   const mockToken = 'test_token_123';
+  const mockLevelResponse = {
+    user_name: 'ContextUser',
+    xp: 200,
+    level: 3,
+    xp_for_next_level: 400,
+    achievements: { first_timer: true, motivated: true }
+  };
   
   beforeEach(() => {
     cleanupMocks();
@@ -69,6 +76,7 @@ describe('CurrentScheduleContext', () => {
   };
 
   test('initializes with empty schedule', () => {
+  mockFetch(mockLevelResponse);
     const { result } = renderHook(() => useCurrentScheduleContext(), { wrapper });
     expect(result.current.currSchedule).toEqual({
       slots: [],
@@ -78,8 +86,9 @@ describe('CurrentScheduleContext', () => {
   });
 
   test('ensureScheduleRange fetches schedule for empty context', async () => {
-    mockFetch(mockScheduleApiResponse);
+  mockFetch(mockLevelResponse); // consumed by /getLevel on mount
     const { result } = renderHook(() => useCurrentScheduleContext(), { wrapper });
+  mockFetch(mockScheduleApiResponse); // consumed by /fetch in ensureScheduleRange
     const startTime = '2025-08-08T00:00:00+00:00';
     const endTime = '2025-08-08T23:59:59+00:00';
     await act(async () => {
@@ -118,33 +127,38 @@ describe('CurrentScheduleContext', () => {
     });
   });
   test('ensureScheduleRange does not fetch when range is already covered', async () => {
-    mockFetch(mockScheduleApiResponse);
+  mockFetch(mockLevelResponse);
     const { result } = renderHook(() => useCurrentScheduleContext(), { wrapper });
+  mockFetch(mockScheduleApiResponse);
     const startTime = '2025-08-08T00:00:00+00:00';
     const endTime = '2025-08-08T23:59:59+00:00';
     await act(async () => {
       await result.current.ensureScheduleRange(startTime, endTime);
     });
-    expect(fetch).toHaveBeenCalledTimes(1);
+  // 1 for /getLevel + 1 for /fetch
+  expect(fetch).toHaveBeenCalledTimes(2);
     await act(async () => {
       await result.current.ensureScheduleRange('2025-08-08T10:00:00+00:00', '2025-08-08T20:00:00+00:00');
     });
     // Should not make another API call
-    expect(fetch).toHaveBeenCalledTimes(1);
+  expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   test('ensureScheduleRange expands range when needed', async () => {
-    mockFetch(mockScheduleApiResponse);
+  mockFetch(mockLevelResponse);
     const { result } = renderHook(() => useCurrentScheduleContext(), { wrapper });
+  mockFetch(mockScheduleApiResponse);
     await act(async () => {
       await result.current.ensureScheduleRange('2025-08-08T10:00:00+00:00', '2025-08-08T20:00:00+00:00');
     });
-    expect(fetch).toHaveBeenCalledTimes(1);
+  // /getLevel + first /fetch
+  expect(fetch).toHaveBeenCalledTimes(2);
     // second call that extends the range
+  mockFetch(mockScheduleApiResponse);
     await act(async () => {
       await result.current.ensureScheduleRange('2025-08-08T00:00:00+00:00', '2025-08-09T23:59:59+00:00');
     });
-    expect(fetch).toHaveBeenCalledTimes(2);
+  expect(fetch).toHaveBeenCalledTimes(3);
     // should use expanded range
     expect(fetch).toHaveBeenLastCalledWith(
       expect.stringContaining('start_time=2025-08-08T00%3A00%3A00%2B00%3A00'),
@@ -160,18 +174,20 @@ describe('CurrentScheduleContext', () => {
   });
 
   test('refetchSchedule refetches current range', async () => {
-    mockFetch(mockScheduleApiResponse);
+  mockFetch(mockLevelResponse);
     const { result } = renderHook(() => useCurrentScheduleContext(), { wrapper });
+  mockFetch(mockScheduleApiResponse);
     const startTime = '2025-08-08T00:00:00+00:00';
     const endTime = '2025-08-08T23:59:59+00:00';
     await act(async () => {
       await result.current.ensureScheduleRange(startTime, endTime);
     });
-    expect(fetch).toHaveBeenCalledTimes(1);
+  expect(fetch).toHaveBeenCalledTimes(2); // /getLevel + /fetch
+  mockFetch(mockScheduleApiResponse);
     await act(async () => {
       await result.current.refetchSchedule();
     });
-    expect(fetch).toHaveBeenCalledTimes(2);
+  expect(fetch).toHaveBeenCalledTimes(3);
     expect(fetch).toHaveBeenLastCalledWith(
       expect.stringContaining(`start_time=${encodeURIComponent(startTime)}`),
       expect.anything()
@@ -183,11 +199,14 @@ describe('CurrentScheduleContext', () => {
   });
 
   test('refetchSchedule does nothing when no range is set', async () => {
-    const { result } = renderHook(() => useCurrentScheduleContext(), { wrapper });
+  mockFetch(mockLevelResponse);
+  const { result } = renderHook(() => useCurrentScheduleContext(), { wrapper });
     await act(async () => {
       await result.current.refetchSchedule();
     });
-    expect(fetch).not.toHaveBeenCalled();
+  // Should not call /fetch when no range is set
+  const calls = (fetch as jest.Mock).mock.calls as Array<[string, any]>;
+  expect(calls.some(([u]) => String(u).includes('/fetch'))).toBe(false);
   });
 
   test('handles API errors gracefully', async () => {
@@ -207,11 +226,14 @@ describe('CurrentScheduleContext', () => {
 
   test('handles missing token gracefully', async () => {
     localStorageMock.getItem.mockReturnValue(null);
+  mockFetch(mockLevelResponse);
     const { result } = renderHook(() => useCurrentScheduleContext(), { wrapper });
     await act(async () => {
       await result.current.ensureScheduleRange('2025-08-08T00:00:00+00:00', '2025-08-08T23:59:59+00:00');
     });
-    expect(fetch).not.toHaveBeenCalled();
+  // /getLevel is called, but no /fetch should occur due to missing token
+  const calls = (fetch as jest.Mock).mock.calls as Array<[string, any]>;
+  expect(calls.some(([u]) => String(u).includes('/fetch'))).toBe(false);
     expect(result.current.currSchedule.slots).toHaveLength(0);
   });
 
@@ -238,8 +260,9 @@ describe('CurrentScheduleContext', () => {
       ],
       chores: []
     };
-    mockFetch(unsortedResponse);
+  mockFetch(mockLevelResponse);
     const { result } = renderHook(() => useCurrentScheduleContext(), { wrapper });
+  mockFetch(unsortedResponse);
     await act(async () => {
       await result.current.ensureScheduleRange('2025-08-08T00:00:00+00:00', '2025-08-08T23:59:59+00:00');
     });
@@ -270,11 +293,39 @@ describe('CurrentScheduleContext', () => {
         }
       ]
     };
-    mockFetch(partialResponse);    
+    mockFetch(mockLevelResponse);
     const { result } = renderHook(() => useCurrentScheduleContext(), { wrapper });
+    mockFetch(partialResponse);    
     await act(async () => {
       await result.current.ensureScheduleRange('2025-08-08T00:00:00+00:00', '2025-08-08T23:59:59+00:00');
     });
     expect(result.current.currSchedule.slots).toHaveLength(0);
+  });
+
+  test('refreshLevelInfo fetches and stores level info on mount', async () => {
+    mockFetch(mockLevelResponse);
+    const { result } = renderHook(() => useCurrentScheduleContext(), { wrapper });
+    // Wait for levelInfo to be populated by the async refreshLevelInfo on mount
+    await waitFor(() => {
+      expect(result.current.levelInfo.username).toBe(mockLevelResponse.user_name);
+    });
+    // Sanity check the fetch call shape
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/getLevel'),
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({
+          'Authorization': `Bearer ${mockToken}`
+        })
+      })
+    );
+    // And the mapped fields
+    expect(result.current.levelInfo).toEqual({
+      achievements: mockLevelResponse.achievements,
+      level: mockLevelResponse.level,
+      xpForNextLevel: mockLevelResponse.xp_for_next_level,
+      username: mockLevelResponse.user_name,
+      xp: mockLevelResponse.xp,
+    });
   });
 });
