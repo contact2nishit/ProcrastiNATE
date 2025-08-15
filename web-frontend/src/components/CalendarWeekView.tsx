@@ -139,17 +139,30 @@ export default function CalendarWeekView({
                 ) : (
                     <div className="flex flex-col">
                         {/* Combined Day Headers and Calendar Grid */}
+                        {/* Day headers row with left spacer for time labels */}
                         <div className="flex">
                             <div className="w-14" />
-                            <div className="flex-1 overflow-x-auto" style={{
-                                scrollbarWidth: 'thin',
-                                scrollbarColor: '#f97316 #374151'
-                            }}>
+                            <div className="flex-1 overflow-x-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#f97316 #374151' }}>
                                 <div className="flex min-w-max">
                                     {weekDays.map((day, index) => (
                                         <div key={index} className="min-w-[14rem] text-center py-2 font-bold text-teal-300 border-r border-teal-700" style={{ fontFamily: 'Pixelify Sans, monospace' }}>{day.label}</div>
                                     ))}
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Grid row: left time labels and right scrollable calendar grid aligned */}
+                        <div className="flex">
+                            {/* Time Labels aligned with grid rows */}
+                            <div className="w-14 border-r border-teal-700 bg-transparent flex flex-col select-none">
+                                {HOURS.map(h => (
+                                    <div key={h} className="relative text-right pr-1 border-t border-dashed border-teal-700 opacity-50" style={{ height: HOUR_HEIGHT, fontFamily: 'Pixelify Sans, monospace' }}>
+                                        <span className="absolute top-0 right-1 -translate-y-1/2 text-xs text-teal-300 tracking-wide font-bold">{h.toString().padStart(2,'0')}:00</span>
+                                    </div>
+                                ))}
+                            </div>
+                            {/* Scrollable days grid */}
+                            <div className="flex-1 overflow-x-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#f97316 #374151' }}>
                                 <div className="flex relative border-t border-teal-700">
                                     {weekDays.map((day, index) => {
                                         const events = groupedSlots[day.iso] || [];
@@ -166,14 +179,6 @@ export default function CalendarWeekView({
                                     })}
                                 </div>
                             </div>
-                        </div>
-                        {/* Time Labels */}
-                        <div className="absolute left-0 top-20 w-14 border-r border-teal-700 bg-transparent flex flex-col select-none z-20">
-                            {HOURS.map(h => (
-                                <div key={h} className="relative text-right pr-1" style={{ height: HOUR_HEIGHT, fontFamily: 'Pixelify Sans, monospace' }}>
-                                    <span className="absolute top-0 right-1 -translate-y-1/2 text-xs text-teal-300 tracking-wide font-bold">{h.toString().padStart(2,'0')}:00</span>
-                                </div>
-                            ))}
                         </div>
                     </div>
                 )}

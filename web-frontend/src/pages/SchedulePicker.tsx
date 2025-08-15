@@ -212,7 +212,7 @@ const SchedulePicker = () => {
             <div className="relative z-10 flex justify-center pb-10">
                 <button
                     data-testid="go-back-button"
-                    onClick={() => navigate(-1)}
+                    onClick={() => navigate("/requiresCurrentSchedule/Home")}
                     className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl py-3 px-8 text-white font-bold hover:from-orange-600 hover:to-red-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
                     style={{ fontFamily: 'Pixelify Sans, monospace' }}
                 >
