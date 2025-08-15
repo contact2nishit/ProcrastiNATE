@@ -12,13 +12,11 @@ const RescheduleScreen = () => {
     const startParam = searchParams.get('start');
     const endParam = searchParams.get('end');
     const { setPotentialSchedules } = usePotentialScheduleContext();
-
     const [newEffort, setNewEffort] = useState<number>(effortParam ? Number(effortParam) : 0);
     const [windowStart, setWindowStart] = useState<string>(startParam || new Date().toISOString().slice(0, 16));
     const [windowEnd, setWindowEnd] = useState<string>(endParam || new Date().toISOString().slice(0, 16));
     const [allowOverlaps, setAllowOverlaps] = useState(false);
     const [loading, setLoading] = useState(false);
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -29,23 +27,20 @@ const RescheduleScreen = () => {
                 alert('Missing backend URL or token.');
                 return;
             }
-
             const tz_offset_minutes = -new Date().getTimezoneOffset();
             const body: any = {
                 event_type: type,
                 id,
                 allow_overlaps: allowOverlaps,
+                new_effort: newEffort,
                 tz_offset_minutes,
             };
-
             if (type === 'assignment') {
                 body.new_window_end = new Date(windowEnd).toISOString();
             } else if (type === 'chore') {
-                body.new_effort = newEffort;
                 body.new_window_start = new Date(windowStart).toISOString();
                 body.new_window_end = new Date(windowEnd).toISOString();
             }
-
             const response = await fetch(`${url}/reschedule`, {
                 method: 'POST',
                 headers: {
@@ -54,13 +49,11 @@ const RescheduleScreen = () => {
                 },
                 body: JSON.stringify(body),
             });
-
             if (!response.ok) {
                 const err = await response.text();
                 alert('Failed to reschedule: ' + err);
                 return;
             }
-
             const data = await response.json();
             setPotentialSchedules(data);
             alert('Rescheduled successfully!');

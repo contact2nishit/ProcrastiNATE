@@ -42,8 +42,11 @@ const Profile: React.FC = () => {
                             <path fillRule="evenodd" d="M10 3.172l5.657 5.657a1 1 0 01-1.414 1.414L11 7.414V17a1 1 0 11-2 0V7.414L5.757 10.243A1 1 0 014.343 8.83L10 3.172z" clipRule="evenodd" />
                         </svg>
                     </button>
-                    <button onClick={handleBack}  className="bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-2xl w-12 h-12 flex items-center justify-center shadow-lg hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200">
-                            Log out
+                    <button
+                        onClick={handleBack}
+                        className="bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-2xl px-4 py-2 whitespace-nowrap shadow-lg hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200"
+                    >
+                        Log out
                     </button>
                 </div>
                 <div className="text-center mt-5">
