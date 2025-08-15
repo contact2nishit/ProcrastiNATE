@@ -11,8 +11,6 @@ const EventSelection: React.FC = () => {
     const { potentialSchedules, setPotentialSchedules } = usePotentialScheduleContext();
     const [selected, setSelected] = useState('Meeting');
     const navigate = useNavigate();
-
-    // Use a useEffect state hook to reset all input fields when selected changes:
     useEffect(() => {
         setStartDateTime(new Date());
         setEndDateTime(new Date());
@@ -27,7 +25,6 @@ const EventSelection: React.FC = () => {
         setRecurrence(null);
         setDate(new Date());
     }, [selected]);
-
     type Meeting = {
         startTime: string;
         endTime: string;
@@ -38,85 +35,74 @@ const EventSelection: React.FC = () => {
         occurrenceID: number;
         meetingRepeatEnd?: string; // optional, for editing
     };
-
     type Assignment = {
         name: string;
         deadline: string;
         effort: number;
     };
-
     type Chore = {
         name: string;
         windowStart: string;
         windowEnd: string;
         effort: number;
+        // Optional number of additional days to recur (0..6). Used to compute end_recur_date at submission.
+        recurDays?: number;
     }
-
     const [recurrence, setRecurrence] = useState<string | null>(null);
-
     const [startDateTime, setStartDateTime] = useState(new Date());
     const [endDateTime, setEndDateTime] = useState(new Date());
     const [name, setName] = useState('');
     const [location, setLocation] = useState('');
-
     const [assignment, setAssignment] = useState('');
     const [chore, setChore] = useState('');
-
     // Assignment and Chore state for new fields
     const [assignmentEffort, setAssignmentEffort] = useState('');
     const [choreEffort, setChoreEffort] = useState('');
     const [choreWindowStart, setChoreWindowStart] = useState(new Date());
     const [choreWindowEnd, setChoreWindowEnd] = useState(new Date());
-
+    // Per-chore recurrence input (optional, 0..6). Stored as string for controlled input.
+    const [choreRecurDays, setChoreRecurDays] = useState('');
     // Add state for end repeat date for meetings
     const [meetingRepeatEnd, setMeetingRepeatEnd] = useState(new Date());
     interface NavItem {
-    label: string;
-    icon: IconType;
-    textStyle?: string;
-    selectedStyle?: string;
+        label: string;
+        icon: IconType;
+        textStyle?: string;
+        selectedStyle?: string;
     }
-
-   const navItems: NavItem[] = [
-  {
-    label: 'Meeting',
-    icon: FaCalendarAlt,
-    textStyle: ' bg-blue-500 text-black hover:scale-110',
-    selectedStyle:' bg-blue-600 text-white border border-white hover:scale-110',
-  },
-  {
-    label: 'Assignment',
-    icon: FaBookOpen,
-    textStyle: ' bg-yellow-500 text-black hover:scale-110',
-    selectedStyle: ' bg-yellow-600 text-white border border-white hover:scale-110',
-  },
-  {
-    label: 'Chore/Study',
-    icon: FaTasks,
-    textStyle: ' bg-green-500 text-black hover:scale-110',
-    selectedStyle: ' bg-green-600 text-white border border-white hover:scale-110 ',
-  },
-  {
-    label: 'Events',
-    icon: FaCalendarCheck,
-    textStyle: ' bg-stone-500 text-black hover:scale-110',
-    selectedStyle: 'bg-stone-600 text-white border border-white hover:scale-110 ',
-  },
-];
-
-    // const navigation = useNavigation();
+    const navItems: NavItem[] = [
+        {
+            label: 'Meeting',
+            icon: FaCalendarAlt,
+            textStyle: ' bg-blue-500 text-black hover:scale-110',
+            selectedStyle:' bg-blue-600 text-white border border-white hover:scale-110',
+        },
+        {
+            label: 'Assignment',
+            icon: FaBookOpen,
+            textStyle: ' bg-yellow-500 text-black hover:scale-110',
+            selectedStyle: ' bg-yellow-600 text-white border border-white hover:scale-110',
+        },
+        {
+            label: 'Chore/Study',
+            icon: FaTasks,
+            textStyle: ' bg-green-500 text-black hover:scale-110',
+            selectedStyle: ' bg-green-600 text-white border border-white hover:scale-110 ',
+        },
+        {
+            label: 'Events',
+            icon: FaCalendarCheck,
+            textStyle: ' bg-stone-500 text-black hover:scale-110',
+            selectedStyle: 'bg-stone-600 text-white border border-white hover:scale-110 ',
+        },
+    ];
     const [date, setDate] = useState(new Date());
-    // const [showDatePicker, setShowDatePicker] = useState(false);
-
     // Local state for meetings, assignments, and chores
     const [meetings, setMeetings] = useState<Meeting[]>([]);
     const [assignments, setAssignments] = useState<Assignment[]>([]);
-    //Will fix this one as well later using useChoreContext() function
     const [chores, setChores] = useState<Chore[]>([]);
-
     // Track if we're editing and which item is being edited
     const [editMode, setEditMode] = useState<null | { type: 'meeting' | 'assignment' | 'chore', index: number }> (null);
-
     // Modal state for edit/delete actions
     const [showModal, setShowModal] = useState(false);
     const [modalData, setModalData] = useState<{
@@ -124,12 +110,10 @@ const EventSelection: React.FC = () => {
         index: number;
         item: any;
     } | null>(null);
-
     const onDateChange = (_event: any, selectedDate: Date | undefined) => {
         const currDate = selectedDate || date;
         setDate(currDate);
     }
-
     const formatDate = (date: Date) => {
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
@@ -137,7 +121,6 @@ const EventSelection: React.FC = () => {
             day: 'numeric'
         });
     };
-
     const submitSchedule = async () => {
         try {
             const url = config.backendURL;
@@ -164,11 +147,20 @@ const EventSelection: React.FC = () => {
                     effort: a.effort,
                     due: a.deadline
                 })),
-                chores: chores.map(c => ({
-                    name: c.name,
-                    window: [c.windowStart, c.windowEnd],
-                    effort: c.effort
-                })),
+                chores: chores.map(c => {
+                    const base: any = {
+                        name: c.name,
+                        window: [c.windowStart, c.windowEnd],
+                        effort: c.effort,
+                    };
+                    if (typeof c.recurDays === 'number' && c.recurDays > 0) {
+                        // end_recur_date = windowStart + (recurDays * 24h)
+                        const start = new Date(c.windowStart);
+                        const ms = start.getTime() + c.recurDays * 24 * 60 * 60 * 1000;
+                        base.end_recur_date = new Date(ms).toISOString();
+                    }
+                    return base;
+                }),
                 tz_offset_minutes,
             };
             console.log('Submitting schedule:', reqBody);
@@ -198,9 +190,7 @@ const EventSelection: React.FC = () => {
         }
     };
 
-    const handleMeeting = () => 
-    {
-
+    const handleMeeting = () => {
         if (!name || !recurrence || !startDateTime || !endDateTime || !location) {
             alert('Please fill in all fields.');
             return;
@@ -221,7 +211,6 @@ const EventSelection: React.FC = () => {
         console.log("Meeting name: " + name);
         console.log("Recurrence: " + recurrence);
         console.log("Location: " + location);
-
         const newMeeting = {
             startTime: startDateTime.toISOString(),
             endTime: endDateTime.toISOString(),
@@ -232,38 +221,30 @@ const EventSelection: React.FC = () => {
             occurrenceID: Date.now(),
             meetingRepeatEnd: recurringCodes.includes(recurrence) ? meetingRepeatEnd.toISOString() : undefined,
         };
-
         setMeetings([...meetings, newMeeting]);
-
         setStartDateTime(new Date());
         setEndDateTime(new Date());
         setMeetingRepeatEnd(new Date());
         setName('');
         setRecurrence(null);
-        setLocation('');
-        
+        setLocation(''); 
     }
-
     // Helper to generate start_end_times for recurring meetings
     const generateMeetingOccurrences = (start: Date, end: Date, recurrence: string | null, repeatEnd: Date) => {
         const occurrences: [string, string][] = [];
         let currStart = new Date(start);
         let currEnd = new Date(end);
-
         if (!recurrence || recurrence === "once") {
             occurrences.push([currStart.toISOString(), currEnd.toISOString()]);
             return occurrences;
         }
-
         // Ensure repeatEnd is after start
         if (repeatEnd <= currStart) {
             occurrences.push([currStart.toISOString(), currEnd.toISOString()]);
             return occurrences;
         }
-
         const weekdayMap: Record<string, number> = { mon:1, tue:2, wed:3, thu:4, fri:5, sat:6, sun:0 };
         const isWeekdayPattern = recurrence in weekdayMap;
-
         if (recurrence === "daily") {
             while (currStart <= repeatEnd) {
                 occurrences.push([currStart.toISOString(), currEnd.toISOString()]);
@@ -292,7 +273,6 @@ const EventSelection: React.FC = () => {
             return occurrences;
         }
     }
-
     const handleAssignment = () => {
         if (assignment === '' || assignmentEffort === '' || date === null) {
             alert('Please fill in all fields.');
@@ -318,7 +298,6 @@ const EventSelection: React.FC = () => {
         setAssignmentEffort('');
         setDate(new Date());
     }
-
     const handleChore = () => {
         if (chore === '' || choreEffort === '' || !choreWindowStart || !choreWindowEnd) {
             alert('Please fill in all fields.');
@@ -332,33 +311,43 @@ const EventSelection: React.FC = () => {
             alert('Effort must be a positive number.');
             return;
         }
+        // Validate optional recurrence days (0..6). Negative not allowed; greater than 6 not allowed.
+        let recurDaysNum: number | undefined = undefined;
+        if (choreRecurDays !== '') {
+            const n = Math.floor(Number(choreRecurDays));
+            if (isNaN(n) || n < 0) {
+                alert('Recurrence days must be a non-negative integer (max 6).');
+                return;
+            }
+            if (n > 6) {
+                alert('Recurrence days cannot be greater than 6.');
+                return;
+            }
+            recurDaysNum = n;
+        }
         alert('Chore added successfully!');
         const newChore = {
             name: chore,
             windowStart: choreWindowStart.toISOString(),
             windowEnd: choreWindowEnd.toISOString(),
             effort: Number(choreEffort),
+            ...(recurDaysNum !== undefined ? { recurDays: recurDaysNum } : {}),
         };
         setChores([...chores, newChore]);
         setChore('');
         setChoreEffort('');
         setChoreWindowStart(new Date());
         setChoreWindowEnd(new Date());
+        setChoreRecurDays('');
     };
-
-
     const handlePrev = () => {
         navigate('/requiresCurrentSchedule/Home'); // Home screen
     }
-
-
     // Track the original values for discard functionality
     const [originalEditValues, setOriginalEditValues] = useState<any>(null);
-
     // When editMode changes, populate fields with the selected item's data and save originals
     useEffect(() => {
         if (!editMode) return;
-        
         if (editMode.type === 'meeting') {
             const m = meetings[editMode.index];
             setSelected('Meeting');
@@ -394,15 +383,18 @@ const EventSelection: React.FC = () => {
             setChoreEffort(String(c.effort));
             setChoreWindowStart(new Date(c.windowStart));
             setChoreWindowEnd(new Date(c.windowEnd));
+            setChoreRecurDays(
+                typeof c.recurDays === 'number' && !isNaN(c.recurDays) ? String(c.recurDays) : ''
+            );
             setOriginalEditValues({
                 name: c.name,
                 effort: String(c.effort),
                 windowStart: new Date(c.windowStart),
                 windowEnd: new Date(c.windowEnd),
+                recurDays: typeof c.recurDays === 'number' ? c.recurDays : undefined,
             });
         }
     }, [editMode, meetings, assignments, chores]);
-
     // Discard edit handler
     const handleDiscardEdit = () => {
         if (!editMode || !originalEditValues) {
@@ -410,7 +402,6 @@ const EventSelection: React.FC = () => {
             setOriginalEditValues(null);
             return;
         }
-        
         if (editMode.type === 'meeting') {
             setName(originalEditValues.name);
             setStartDateTime(originalEditValues.startDateTime);
@@ -427,12 +418,13 @@ const EventSelection: React.FC = () => {
             setChoreEffort(originalEditValues.effort);
             setChoreWindowStart(originalEditValues.windowStart);
             setChoreWindowEnd(originalEditValues.windowEnd);
+            setChoreRecurDays(
+                typeof originalEditValues.recurDays === 'number' ? String(originalEditValues.recurDays) : ''
+            );
         }
-        
         setEditMode(null);
         setOriginalEditValues(null);
     };
-
     // Edit handlers for each type
     const handleEditMeeting = () => {
         if (editMode && editMode.type === 'meeting') {
@@ -477,7 +469,6 @@ const EventSelection: React.FC = () => {
             alert('Meeting updated!');
         }
     };
-
     const handleEditAssignment = () => {
         if (editMode && editMode.type === 'assignment') {
             if (assignment === '' || assignmentEffort === '' || date === null) {
@@ -501,7 +492,6 @@ const EventSelection: React.FC = () => {
             alert('Assignment updated!');
         }
     };
-
     const handleEditChore = () => {
         if (editMode && editMode.type === 'chore') {
             if (chore === '' || choreEffort === '' || !choreWindowStart || !choreWindowEnd) {
@@ -516,11 +506,26 @@ const EventSelection: React.FC = () => {
                 alert('Effort must be a positive number.');
                 return;
             }
+            // Validate optional recurrence days for edit as well
+            let recurDaysNum: number | undefined = undefined;
+            if (choreRecurDays !== '') {
+                const n = Math.floor(Number(choreRecurDays));
+                if (isNaN(n) || n < 0) {
+                    alert('Recurrence days must be a non-negative integer (max 6).');
+                    return;
+                }
+                if (n > 6) {
+                    alert('Recurrence days cannot be greater than 6.');
+                    return;
+                }
+                recurDaysNum = n;
+            }
             const updatedChore = {
                 name: chore,
                 windowStart: choreWindowStart.toISOString(),
                 windowEnd: choreWindowEnd.toISOString(),
                 effort: Number(choreEffort),
+                ...(recurDaysNum !== undefined ? { recurDays: recurDaysNum } : { recurDays: undefined as any }),
             };
             setChores(chores.map((c, i) => i === editMode.index ? updatedChore : c));
             setEditMode(null);
@@ -528,10 +533,10 @@ const EventSelection: React.FC = () => {
             setChoreEffort('');
             setChoreWindowStart(new Date());
             setChoreWindowEnd(new Date());
+            setChoreRecurDays('');
             alert('Chore updated!');
         }
     };
-
     //Function to handle editing or deleting a meeting:
     const editDeleteMeeting = (index: number) => {
         const meeting = meetings[index];
@@ -542,7 +547,6 @@ const EventSelection: React.FC = () => {
         });
         setShowModal(true);
     }
-
     //Function to handle editing or deleting an assignment:
     const editDeleteAssignment = (index: number) => {
         const assignment = assignments[index];
@@ -553,7 +557,6 @@ const EventSelection: React.FC = () => {
         });
         setShowModal(true);
     }
-
     //Function to handle editing or deleting a chore:
     const editDeleteChore = (index: number) => {
         const chore = chores[index];
@@ -564,7 +567,6 @@ const EventSelection: React.FC = () => {
         });
         setShowModal(true);
     }
-
     // Modal action handlers
     const handleEdit = () => {
         if (!modalData) return;
@@ -572,7 +574,6 @@ const EventSelection: React.FC = () => {
         setShowModal(false);
         setModalData(null);
     };
-
     const handleDelete = () => {
         if (!modalData) return;
         
@@ -583,7 +584,6 @@ const EventSelection: React.FC = () => {
         } else if (modalData.type === 'chore') {
             setChores(chores.filter((_, i) => i !== modalData.index));
         }
-        
         setShowModal(false);
         setModalData(null);
     };
@@ -596,10 +596,8 @@ const EventSelection: React.FC = () => {
     // Modal component
     const renderModal = () => {
         if (!showModal || !modalData) return null;
-
         const { type, item } = modalData;
         let title, details;
-
         if (type === 'meeting') {
             title = 'Meeting Details';
             details = (
@@ -1002,6 +1000,35 @@ const EventSelection: React.FC = () => {
                                     style={{ fontFamily: 'Pixelify Sans, monospace' }}
                                 />
                             </div>
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="text-lg text-teal-800 mb-2 block font-bold" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
+                                Recur for how many of the next days? (optional, max 6)
+                            </label>
+                            <input
+                                type="number"
+                                min={0}
+                                max={6}
+                                step={1}
+                                value={choreRecurDays}
+                                onChange={(e) => {
+                                    // Clamp to [0,6] and ensure integers only
+                                    const raw = e.target.value;
+                                    if (raw === '') {
+                                        setChoreRecurDays('');
+                                        return;
+                                    }
+                                    let n = Math.floor(Number(raw));
+                                    if (isNaN(n)) n = 0;
+                                    if (n < 0) n = 0;
+                                    if (n > 6) n = 6;
+                                    setChoreRecurDays(String(n));
+                                }}
+                                className="border-4 border-green-400 rounded-2xl p-3 text-teal-800 bg-green-100 w-full font-bold"
+                                style={{ fontFamily: 'Pixelify Sans, monospace' }}
+                                placeholder="0 - 6"
+                            />
                         </div>
 
                         <div className="flex gap-4 justify-center">

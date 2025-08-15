@@ -128,7 +128,7 @@ const Signup = () => {
                                 {showPassword ? 'Hide' : 'Show'}
                             </button>
                         </div>
-                        {passwordTooShort && attemptedSubmit && (
+                        {passwordTooShort && (
                             <p className="text-red-500 text-sm mt-1" data-testid="password-error">Password must be at least 8 characters.</p>
                         )}
                     </div>

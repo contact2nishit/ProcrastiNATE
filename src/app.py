@@ -1256,6 +1256,7 @@ async def reschedule(
                     [],
                     tz_offset_minutes=tz_offset,
                     num_schedules=11,
+                    now=datetime.now()
                 )
             else:
                 schedules = schedule_tasks(
@@ -1264,6 +1265,7 @@ async def reschedule(
                     [chore_req],
                     tz_offset_minutes=tz_offset,
                     num_schedules=11,
+                    now=datetime.now()
                 )
             return ScheduleResponseFormat(
                 schedules=schedules, conflicting_meetings=[], meetings=[]

@@ -123,7 +123,8 @@ describe('Home Component', () => {
   // Welcome text may include username from context; skip exact match assertion
     expect(screen.getByTestId('today-schedule-title')).toBeInTheDocument();
     expect(screen.getByTestId('calendar-view-button')).toBeInTheDocument();
-    expect(screen.getByTestId('sync-button')).toBeInTheDocument();
+    // expect(screen.getByTestId('sync-button')).toBeInTheDocument();
+    // moved to calendar view
   });
 
   test('fetches schedule on mount for current day', async () => {
@@ -191,35 +192,7 @@ describe('Home Component', () => {
     expect(screen.getByText(/Update Documentation/)).toBeInTheDocument();
   });
 
-  test('handles sync Google Calendar', async () => {
-    const syncResponse = { message: 'Calendar synced successfully!' };
-  // Use a single mock so both initial mount calls and the sync call resolve; the button flow checks the sync message
-  mockFetch(syncResponse);
-    
-    renderWithProviders(<Home />, { 
-      withRouter: false, 
-      withCurrentSchedule: true 
-    });
-
-    const syncButton = screen.getByTestId('sync-button');
-    userEvent.click(syncButton);
-
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/googleCalendar/sync'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Authorization': `Bearer ${mockToken}`
-          })
-        })
-      );
-    });
-
-    await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Calendar synced successfully!');
-    });
-  });
+  // Sync Google Calendar button moved to CalendarView; Home no longer exposes it.
 
   test('navigates to profile on profile button click', async () => {
     mockFetch(mockLevelResponse);

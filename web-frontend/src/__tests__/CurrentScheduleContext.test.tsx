@@ -31,8 +31,9 @@ describe('CurrentScheduleContext', () => {
     cleanupMocks();
   });
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <CurrentScheduleProvider>{children}</CurrentScheduleProvider>
+  // Avoid TS annotations in test wrapper to keep Babel parser happy
+  const wrapper = (props) => (
+    <CurrentScheduleProvider>{props.children}</CurrentScheduleProvider>
   );
 
   const mockScheduleApiResponse = {
@@ -88,7 +89,7 @@ describe('CurrentScheduleContext', () => {
   test('ensureScheduleRange fetches schedule for empty context', async () => {
   mockFetch(mockLevelResponse); // consumed by /getLevel on mount
     const { result } = renderHook(() => useCurrentScheduleContext(), { wrapper });
-  mockFetch(mockScheduleApiResponse); // consumed by /fetch in ensureScheduleRange
+    mockFetch(mockScheduleApiResponse); // consumed by /fetch in ensureScheduleRange
     const startTime = '2025-08-08T00:00:00+00:00';
     const endTime = '2025-08-08T23:59:59+00:00';
     await act(async () => {

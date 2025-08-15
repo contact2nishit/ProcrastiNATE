@@ -11,13 +11,11 @@ const SchedulePicker = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedScheduleIdx, setSelectedScheduleIdx] = useState<number | null>(null);
     const [showInfo, setShowInfo] = useState(false);
-
     const mapStatus: { [key: string]: string } = {
         fully_scheduled: "Fully Scheduled",
         partially_scheduled: "Partially Scheduled",
         unschedulable: "Unschedulable",
     };
-
     // Use context for all data
     const parsedData: {
         conflicting_meetings?: string[];
@@ -32,13 +30,10 @@ const SchedulePicker = () => {
         }[];
         meetings?: { name: string; start_end_times: [string, string][] }[];
     } = potentialSchedules || {};
-
     const conflicting_meetings = parsedData.conflicting_meetings || [];
     const schedules = parsedData.schedules || [];
     const meetings = parsedData.meetings || [];
-
     const fmt = (iso: string) => new Date(iso).toLocaleString();
-
     const submitSchedule = async (schedule: any) => {
         try {
             const url = config.backendURL;
@@ -244,7 +239,7 @@ const SchedulePicker = () => {
             <div className="relative z-10 flex justify-center pb-10">
                 <button
                     data-testid="go-back-button"
-                    onClick={() => navigate(-1)}
+                    onClick={() => navigate("/requiresCurrentSchedule/Home")}
                     className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl py-3 px-8 text-white font-bold hover:from-orange-600 hover:to-red-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
                     style={{ fontFamily: 'Pixelify Sans, monospace' }}
                 >

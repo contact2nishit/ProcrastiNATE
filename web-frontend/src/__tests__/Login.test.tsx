@@ -27,7 +27,7 @@ describe('Login Component', () => {
   });
 
   test('renders login form elements', () => {
-    renderWithProviders(<Login />, { withRouter: false });
+  renderWithProviders(<Login />, { withRouter: false, withTheme: true });
     expect(screen.getByTestId('username-input')).toBeInTheDocument();
     expect(screen.getByTestId('password-input')).toBeInTheDocument();
     expect(screen.getByTestId('login-button')).toBeInTheDocument();
@@ -37,7 +37,7 @@ describe('Login Component', () => {
 
   test('handles successful login', async () => {
     mockFetch(mockApiResponse.login);
-    renderWithProviders(<Login />, { withRouter: false });
+  renderWithProviders(<Login />, { withRouter: false, withTheme: true });
     const usernameInput = screen.getByTestId('username-input');
     const passwordInput = screen.getByTestId('password-input');
     const loginButton = screen.getByTestId('login-button');
@@ -64,7 +64,7 @@ describe('Login Component', () => {
 
   test('displays error message on failed login', async () => {
     mockFetch(mockApiResponse.loginError, false, 401);
-    renderWithProviders(<Login />, { withRouter: false });
+  renderWithProviders(<Login />, { withRouter: false, withTheme: true });
     const usernameInput = screen.getByTestId('username-input');
     const passwordInput = screen.getByTestId('password-input');
     const loginButton = screen.getByTestId('login-button');
@@ -82,13 +82,13 @@ describe('Login Component', () => {
     const signupLink = screen.getByTestId('signup-link');
     userEvent.click(signupLink);
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/Signup');
+      expect(mockNavigate).toHaveBeenCalledWith('/signup');
     });
   });
 
   test('handles Google OAuth login', async () => {
     mockFetch(mockApiResponse.googleLogin);
-    renderWithProviders(<Login />, { withRouter: false });
+  renderWithProviders(<Login />, { withRouter: false, withTheme: true });
     const googleButton = screen.getByTestId('google-login-button');
     userEvent.click(googleButton);
     await waitFor(() => {

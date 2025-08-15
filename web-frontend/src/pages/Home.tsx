@@ -84,38 +84,6 @@ const Home = () => {
     const [loading, setLoading] = useState(false);
     const { currSchedule, setCurrSchedule, ensureScheduleRange, refetchSchedule, levelInfo, refreshLevelInfo, getBadgeComponent } = useCurrentScheduleContext();
     const navigate = useNavigate();
-    const handleSyncGoogleCalendar = async () => {
-        try {
-            setLoading(true);
-            const url = config.backendURL;
-            const token = localStorage.getItem('token');
-            if (!url || !token) {
-                alert('Backend URL or token not set.');
-                setLoading(false);
-                return;
-            }
-            const response = await fetch(`${url}/googleCalendar/sync`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-            if (!response.ok) {
-                const err = await response.text();
-                alert('Failed to sync Google Calendar: ' + err);
-                setLoading(false);
-                return;
-            }
-            const data = await response.json();
-            alert(data.message || 'Google Calendar synced!');
-            // Refetch the schedule after sync
-            await refetchSchedule();
-        } catch (e) {
-            alert('Failed to sync Google Calendar: ' + e);
-        } finally {
-            setLoading(false);
-        }
-    };
     type SessionToMaybeComplete = {
         occurence_id: string;
         is_assignment: boolean;
@@ -393,10 +361,7 @@ const Home = () => {
 
         navigate(`/requiresCurrentSchedule/requiresPotentialSchedule/RescheduleScreen?id=${idToSend}&type=${item.type}&effort=${item.effort}&start=${item.start}&end=${item.end}&label=${label}`);
     };
-    const handleBack = () => {
-        localStorage.removeItem("token");
-        navigate('/');
-    };
+
     // getBadgeComponent provided by context
     return (
         <ThemeProvider theme={theme}>
@@ -571,16 +536,6 @@ const Home = () => {
                         <p className="text-sm text-center mt-1 text-teal-800" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Add event</p>
                     </div>
                 </div>
-                
-                <button 
-                    onClick={handleSyncGoogleCalendar} 
-                    disabled={loading}
-                    className="bg-gradient-to-r from-orange-500 to-red-500 p-3 rounded-2xl mt-8 mx-4 mb-2 text-center text-white font-bold text-base hover:from-orange-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 transition-all duration-200 shadow-lg"
-                    data-testid="sync-button"
-                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
-                >
-                    {loading ? 'Syncing...' : 'Sync Google Calendar'}
-                </button>
                 
                 {/* Update/Delete/Session completion Modal */}
                 {modalVisible && modalType !== 'achievements' && (
@@ -760,13 +715,6 @@ const Home = () => {
                         </div>
                     </div>
                 )}
-                <button 
-                    onClick={handleBack}
-                    className="bg-gradient-to-r from-teal-500 to-blue-500 p-2 rounded-2xl mt-2 ml-2 mb-4 text-white w-36 text-base text-center hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
-                    style={{ fontFamily: 'Pixelify Sans, monospace' }}
-                >
-                    Back to Login
-                </button>
         </ThemeProvider>
     );
 }

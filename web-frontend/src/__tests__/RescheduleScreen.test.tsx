@@ -196,10 +196,21 @@ describe('RescheduleScreen Component', () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${mockToken}`
           }),
-          body: expect.stringContaining('"event_type":"assignment"')
+          body: expect.any(String)
         })
       );
     });
+
+    // Validate request payload has all required fields
+    const lastCall = (fetch as jest.Mock).mock.calls[(fetch as jest.Mock).mock.calls.length - 1];
+    const options = lastCall[1] as { body: string };
+    const sent = JSON.parse(options.body);
+    expect(sent.event_type).toBe('assignment');
+    expect(sent.id).toBe('123');
+    expect(sent.new_effort).toBe(60);
+    expect(sent.allow_overlaps).toBe(false);
+    expect(typeof sent.tz_offset_minutes).toBe('number');
+    expect(typeof sent.new_window_end).toBe('string');
 
     await waitFor(() => {
       expect(window.alert).toHaveBeenCalledWith('Rescheduled successfully!');
@@ -243,10 +254,21 @@ describe('RescheduleScreen Component', () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${mockToken}`
           }),
-          body: expect.stringMatching(/"event_type":"chore".*"new_effort":30.*"new_window_start".*"new_window_end"/)
+          body: expect.any(String)
         })
       );
     });
+
+    const lastCall = (fetch as jest.Mock).mock.calls[(fetch as jest.Mock).mock.calls.length - 1];
+    const options = lastCall[1] as { body: string };
+    const sent = JSON.parse(options.body);
+    expect(sent.event_type).toBe('chore');
+    expect(sent.id).toBe('456');
+    expect(sent.new_effort).toBe(30);
+    expect(sent.allow_overlaps).toBe(false);
+    expect(typeof sent.tz_offset_minutes).toBe('number');
+    expect(typeof sent.new_window_start).toBe('string');
+    expect(typeof sent.new_window_end).toBe('string');
   });
 
   test('handles API error during submission', async () => {
