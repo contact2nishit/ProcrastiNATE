@@ -713,7 +713,7 @@ const EventSelection: React.FC = () => {
                 show={showEventsInfo}
                 onClose={() => setShowEventsInfo(false)}
                 title="Events"
-                content={"All you selected events can be seen here. Submit this to generate the potential schedules you can pick from."}
+                content={"All you selected events can be seen here. Submit this to generate the potential schedules you can pick from. No events will be schedule between 11 pm and 5 am. You can also edit or delete events from here."}
                 gradient="bg-gradient-to-br from-stone-200 to-stone-300"
             />
             {/* Existing modal for edit/delete */}
