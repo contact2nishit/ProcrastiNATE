@@ -40,7 +40,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ message }) => {
                 <img 
                     src={require('../assets/Nate_walking.gif')} 
                     alt="Nate walking" 
-                    className="w-32 h-32 md:w-48 md:h-48 mb-6"
+                    className="w-16 h-16 md:w-24 md:h-24 mb-6"
                     style={{ 
                         mixBlendMode: 'screen',
                         filter: 'contrast(1.3) saturate(1.2)',

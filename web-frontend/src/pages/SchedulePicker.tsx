@@ -10,6 +10,7 @@ const SchedulePicker = () => {
     const { potentialSchedules, setPotentialSchedules } = usePotentialScheduleContext();
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedScheduleIdx, setSelectedScheduleIdx] = useState<number | null>(null);
+    const [showInfo, setShowInfo] = useState(false);
     const mapStatus: { [key: string]: string } = {
         fully_scheduled: "Fully Scheduled",
         partially_scheduled: "Partially Scheduled",
@@ -63,11 +64,37 @@ const SchedulePicker = () => {
         }
     };
 
+    const InfoModal: React.FC<{ show: boolean; onClose: () => void; }> = ({ show, onClose }) => {
+        if (!show) return null;
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="relative rounded-3xl p-6 w-full max-w-lg border-4 border-orange-400 shadow-xl bg-gradient-to-br from-white to-gray-100" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
+                    <h3 className="text-2xl font-bold text-teal-800 mb-4">Schedule Picker</h3>
+                    <p className="text-teal-800 text-lg leading-snug">Pick a schedule you like. The higher up a schedule in this list, the more likely it is to give you higher amounts of XP</p>
+                    <button
+                        onClick={onClose}
+                        className="mt-6 w-full bg-gradient-to-r from-teal-500 to-blue-500 text-white font-bold py-2 px-4 rounded-2xl hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                    >Close</button>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="min-h-screen flex flex-col relative" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
+            <InfoModal show={showInfo} onClose={() => setShowInfo(false)} />
             {/* Removed per-page background & clouds; using global App background */}
             <div className="relative z-10 flex-1 p-4">
-                <h1 data-testid="schedule-picker-title" className="text-3xl font-bold text-teal-800 text-center my-6" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Pick a Schedule</h1>
+                <h1 data-testid="schedule-picker-title" className="text-3xl font-bold text-teal-800 text-center my-6 relative" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
+                    <button
+                        type="button"
+                        aria-label="Schedule picker information"
+                        onClick={() => setShowInfo(true)}
+                        className="absolute left-0 -top-2 w-9 h-9 flex items-center justify-center rounded-full bg-gray-300 text-teal-900 font-extrabold border-2 border-gray-400 shadow hover:scale-110 hover:bg-gray-400 transition"
+                    >?
+                    </button>
+                    Pick a Schedule
+                </h1>
 
                 {conflicting_meetings.length > 0 && (
                     <div data-testid="conflicting-meetings-warning" className="bg-gradient-to-br from-red-200 to-red-300 rounded-3xl p-4 mb-4 border-4 border-orange-400 shadow-lg">
