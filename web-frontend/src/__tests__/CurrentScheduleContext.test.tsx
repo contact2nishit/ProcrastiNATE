@@ -1,6 +1,7 @@
 import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { CurrentScheduleProvider, useCurrentScheduleContext } from '../context/CurrentScheduleContext';
+import { PopupProvider } from '../context/PopupContext';
 import { mockFetch, mockApiResponse, cleanupMocks } from '../test-utils';
 import { localStorageMock } from '../setupTests';
 
@@ -32,8 +33,10 @@ describe('CurrentScheduleContext', () => {
   });
 
   // Avoid TS annotations in test wrapper to keep Babel parser happy
-  const wrapper = (props) => (
-    <CurrentScheduleProvider>{props.children}</CurrentScheduleProvider>
+  const wrapper = (props: any) => (
+    <PopupProvider>
+      <CurrentScheduleProvider>{props.children}</CurrentScheduleProvider>
+    </PopupProvider>
   );
 
   const mockScheduleApiResponse = {

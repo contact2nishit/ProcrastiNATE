@@ -66,7 +66,7 @@ describe('EventSelection submit flow', () => {
   expect(mockSetPotentialSchedulesLocal).toHaveBeenCalledWith(mockApiResponse.schedule);
   });
 
-  test('shows an alert when backend responds with error', async () => {
+  test('shows a popup when backend responds with error', async () => {
     // Arrange: mock error response
     mockFetch({ detail: 'Bad Request' }, false, 400);
 
@@ -81,8 +81,8 @@ describe('EventSelection submit flow', () => {
     await userEvent.click(submitBtn);
 
     // Assert
-    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
-    await waitFor(() => expect(window.alert).toHaveBeenCalled());
+  await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+  await waitFor(() => expect(screen.getByTestId('app-popup')).toBeInTheDocument());
   expect(mockSetPotentialSchedulesLocal).not.toHaveBeenCalled();
   });
 

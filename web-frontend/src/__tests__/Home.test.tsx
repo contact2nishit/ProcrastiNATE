@@ -293,8 +293,8 @@ describe('Home Component', () => {
     });
 
     await waitFor(() => {
-      // Alert contains earned XP message when no achievements are unlocked
-      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('You earned'));
+      const popup = screen.getByTestId('app-popup-message');
+      expect(popup).toHaveTextContent(/You earned/i);
     });
 
     // Should refetch schedule after completion
@@ -377,9 +377,7 @@ describe('Home Component', () => {
       );
     });
 
-    await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Meeting updated!');
-    });
+  await waitFor(() => expect(screen.getByTestId('app-popup-message')).toHaveTextContent('Meeting updated!'));
 
     // Should refetch schedule after update
     await waitFor(() => {
@@ -427,9 +425,7 @@ describe('Home Component', () => {
       );
     });
 
-    await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Meeting deleted!');
-    });
+  await waitFor(() => expect(screen.getByTestId('app-popup-message')).toHaveTextContent('Meeting deleted!'));
 
     // Should refetch schedule after deletion
     await waitFor(() => {

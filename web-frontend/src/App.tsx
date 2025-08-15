@@ -14,6 +14,7 @@ import RescheduleScreen from './pages/RescheduleScreen';
 import Profile from './pages/Profile';
 // New: time-of-day context & background components
 import { TimeOfDayThemeProvider, useTimeOfDayTheme } from './context/TimeOfDayThemeContext';
+import { PopupProvider } from './context/PopupContext';
 import DayBackground from './components/backgrounds/DayBackground';
 import NightBackground from './components/backgrounds/NightBackground';
 import TransitionBackground from './components/backgrounds/TransitionBackground';
@@ -128,7 +129,9 @@ const App: React.FC = () => {
     }, []);
     return (
         <TimeOfDayThemeProvider>
-            <AppShell />
+            <PopupProvider>
+                <AppShell />
+            </PopupProvider>
         </TimeOfDayThemeProvider>
     );
 }

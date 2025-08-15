@@ -7,12 +7,11 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs, { Dayjs } from 'dayjs';
+import { Dayjs } from 'dayjs';
 import config from '../config';
 import { useCurrentScheduleContext } from '../context/CurrentScheduleContext';
+import { usePopup } from '../context/PopupContext';
 import { Achievement } from '../utils';
-import { set } from 'date-fns';
-// Badge rendering now centralized in context
 
 // Create a custom theme for MUI components
 const theme = createTheme({
@@ -81,8 +80,8 @@ const theme = createTheme({
 });
 
 const Home = () => {
-    const [loading, setLoading] = useState(false);
-    const { currSchedule, setCurrSchedule, ensureScheduleRange, refetchSchedule, levelInfo, refreshLevelInfo, getBadgeComponent } = useCurrentScheduleContext();
+    const { showPopup } = usePopup();
+    const { currSchedule, ensureScheduleRange, refetchSchedule, levelInfo, refreshLevelInfo, getBadgeComponent } = useCurrentScheduleContext();
     const navigate = useNavigate();
     type SessionToMaybeComplete = {
         occurence_id: string;
@@ -132,7 +131,7 @@ const Home = () => {
             navigate('/requiresCurrentSchedule/CalendarView');
         }
         catch (error) {
-            alert('Failed to check schedule.');
+            showPopup('Failed to check schedule.');
             console.error('Error checking schedule in localStorage:', error);
         }
     }
@@ -163,7 +162,7 @@ const Home = () => {
             const url = config.backendURL;
             const token = localStorage.getItem('token');
             if (!url || !token) {
-                alert('Backend URL or token not set.');
+                showPopup('Backend URL or token not set.');
                 return;
             }
             // Extract numeric id from our string id
@@ -194,7 +193,7 @@ const Home = () => {
             });
             if (!response.ok) {
                 const err = await response.text();
-                alert('Failed to mark session as completed: ' + err);
+                showPopup('Failed to mark session as completed: ' + err);
                 return;
             }
             setCompletedMap(prev => ({
@@ -217,10 +216,10 @@ const Home = () => {
                 setModalType('achievements');
                 setModalVisible(true);
             } else {
-                alert(`Session marked as completed! You earned ${data.xp} points`)
+                showPopup(`Session marked as completed! You earned ${data.xp} points`)
             }
         } catch (e) {
-            alert('Failed to mark session as completed: ' + e);
+            showPopup('Failed to mark session as completed: ' + e);
         }
     };
 
@@ -241,12 +240,12 @@ const Home = () => {
             const hasStart = !!updateStartTime;
             const hasEnd = !!updateEndTime;
             if ((hasStart && !hasEnd) || (hasEnd && !hasStart)) {
-                alert('Please provide both start and end time for the meeting.');
+                showPopup('Please provide both start and end time for the meeting.');
                 return;
             }
             if (updateStartTime && updateEndTime) {
                 if (updateStartTime > updateEndTime) {
-                    alert('Start time cannot be after end time.');
+                    showPopup('Start time cannot be after end time.');
                     return;
                 }
                 const toIsoUtc = (d: Dayjs) => d.toDate().toISOString().replace('Z', '+00:00');
@@ -267,10 +266,10 @@ const Home = () => {
             });
             if (!response.ok) {
                 const err = await response.text();
-                alert('Failed to update meeting: ' + err);
+                showPopup('Failed to update meeting: ' + err);
                 return;
             }
-            alert('Meeting updated!');
+            showPopup('Meeting updated!');
             setModalVisible(false);
             setUpdateName('');
             setUpdateLoc('');
@@ -280,7 +279,7 @@ const Home = () => {
             setSelectedMeeting(null);
             await refetchSchedule();
         } catch (e) {
-            alert('Failed to update meeting: ' + e);
+            showPopup('Failed to update meeting: ' + e);
         }
     };
 
@@ -304,15 +303,15 @@ const Home = () => {
             });
             if (!response.ok) {
                 const err = await response.text();
-                alert('Failed to delete meeting: ' + err);
+                showPopup('Failed to delete meeting: ' + err);
                 return;
             }
-            alert(removeAllFuture ? 'All future occurrences deleted!' : 'Meeting deleted!');
+            showPopup(removeAllFuture ? 'All future occurrences deleted!' : 'Meeting deleted!');
             setModalVisible(false);
             setSelectedMeeting(null);
             await refetchSchedule();
         } catch (e) {
-            alert('Failed to delete meeting: ' + e);
+            showPopup('Failed to delete meeting: ' + e);
         }
     };
 
@@ -338,14 +337,14 @@ const Home = () => {
             });
             if (!response.ok) {
                 const err = await response.text();
-                alert('Failed to delete: ' + err);
+                showPopup('Failed to delete: ' + err);
                 return;
             }
-            alert(`${event_type.charAt(0).toUpperCase() + event_type.slice(1)} deleted!`);
+            showPopup(`${event_type.charAt(0).toUpperCase() + event_type.slice(1)} deleted!`);
             setModalVisible(false);
             await refetchSchedule();
         } catch (e) {
-            alert('Failed to delete: ' + e);
+            showPopup('Failed to delete: ' + e);
         }
     };
 
@@ -369,12 +368,6 @@ const Home = () => {
     // getBadgeComponent provided by context
     return (
         <ThemeProvider theme={theme}>
-                {loading && (
-                    <div className="text-center py-4">
-                        <p className="text-gray-600" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Loading...</p>
-                    </div>
-                )}
-                
                 <div className="flex justify-between items-center mt-5 mx-4">
                     <button 
                         onClick={handleProfile}
@@ -451,7 +444,7 @@ const Home = () => {
                                                         const now = new Date();
                                                         const startTime = new Date(item.start);
                                                         if (startTime > now) {
-                                                            alert(
+                                                            showPopup(
                                                                 "This session hasn't started yet. You can only mark it completed after its start time. If you don't need this assignment or chore on your calendar any longer, you can delete it using the Delete button."
                                                             );
                                                             return;
@@ -711,7 +704,7 @@ const Home = () => {
                                 onClick={() => {
                                     setModalVisible(false);
                                     setAchievements([]);
-                                    alert('Session marked as completed!');
+                                    showPopup('Session marked as completed!');
                                 }}
                             >
                                 Awesome!

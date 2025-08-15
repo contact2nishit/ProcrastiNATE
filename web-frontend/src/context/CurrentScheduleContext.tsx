@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { Slot } from '../calendarUtils';
 import config from '../config';
+import { usePopup } from './PopupContext';
 // Badge components
 import BadgeFirstTimer from '../assets/first-timer';
 import BadgeGettingTheHangOfIt from '../assets/getting-the-hang-of-it';
@@ -52,6 +53,7 @@ type CurrentScheduleContextType = {
 const CurrentScheduleContext = createContext<CurrentScheduleContextType | undefined>(undefined);
 
 export const CurrentScheduleProvider = ({ children }: { children: ReactNode }) => {
+	const { showPopup } = usePopup();
     const [currentSchedule, setCurrentSchedule] = useState<CurrentSchedule>({
 		slots: [],
 		startTime: "",
@@ -246,7 +248,7 @@ export const CurrentScheduleProvider = ({ children }: { children: ReactNode }) =
                 },
             });
 			if(!resp.ok) {
-				alert("Server returned invalid response");
+				showPopup("Server returned invalid response");
 				return;
 			}
 			const jason = await resp.json();

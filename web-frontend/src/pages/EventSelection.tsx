@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ReactElement } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaCalendarAlt, FaBookOpen, FaTasks, FaCalendarCheck } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -6,11 +6,13 @@ import config from '../config';
 import { usePotentialScheduleContext } from '../context/PotentialScheduleContext';
 import { formatDateTimeLocal, formatDateLocal } from '../calendarUtils';
 import { IconType } from 'react-icons';
+import { usePopup } from '../context/PopupContext';
 
 const EventSelection: React.FC = () => {
-    const { potentialSchedules, setPotentialSchedules } = usePotentialScheduleContext();
+    const { setPotentialSchedules } = usePotentialScheduleContext();
     const [selected, setSelected] = useState('Meeting');
     const navigate = useNavigate();
+    const { showPopup } = usePopup();
     useEffect(() => {
         setStartDateTime(new Date());
         setEndDateTime(new Date());
@@ -110,23 +112,12 @@ const EventSelection: React.FC = () => {
         index: number;
         item: any;
     } | null>(null);
-    const onDateChange = (_event: any, selectedDate: Date | undefined) => {
-        const currDate = selectedDate || date;
-        setDate(currDate);
-    }
-    const formatDate = (date: Date) => {
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    };
     const submitSchedule = async () => {
         try {
             const url = config.backendURL;
             const token = localStorage.getItem('token');
             if (!url) {
-                alert('Backend URL not set.');
+                showPopup('Backend URL not set.');
                 return;
             }
             // Get device timezone offset in minutes (JavaScript: getTimezoneOffset returns minutes behind UTC, so invert sign)
@@ -174,7 +165,7 @@ const EventSelection: React.FC = () => {
             });
             if (!response.ok) {
                 const err = await response.text();
-                alert('Failed to submit schedule: ' + err);
+                showPopup('Failed to submit schedule: ' + err);
                 return;
             }
             const data = await response.json();
@@ -186,26 +177,26 @@ const EventSelection: React.FC = () => {
             setChores([]);
             navigate('/requiresCurrentSchedule/requiresPotentialSchedule/schedulePicker');
         } catch (e) {
-            alert('Error submitting schedule: ' + e);
+            showPopup('Error submitting schedule: ' + e);
         }
     };
 
     const handleMeeting = () => {
         if (!name || !recurrence || !startDateTime || !endDateTime || !location) {
-            alert('Please fill in all fields.');
+            showPopup('Please fill in all fields.');
             return;
         }
         if (startDateTime >= endDateTime) {
-            alert('End time must be after start time.');
+            showPopup('End time must be after start time.');
             return;
         }
         // Validate repeat end for recurring patterns (daily or specific weekdays)
         const recurringCodes = ["daily","mon","tue","wed","thu","fri","sat","sun"]; 
         if (recurringCodes.includes(recurrence) && meetingRepeatEnd <= startDateTime) {
-            alert('Repeat end date must be after start date for recurring meetings.');
+            showPopup('Repeat end date must be after start date for recurring meetings.');
             return;
         }
-        alert('Meeting added successfully!');
+        showPopup('Meeting added successfully!');
         console.log("Start time: " + startDateTime.toString());
         console.log("End time: " + endDateTime.toString());
         console.log("Meeting name: " + name);
@@ -275,19 +266,19 @@ const EventSelection: React.FC = () => {
     }
     const handleAssignment = () => {
         if (assignment === '' || assignmentEffort === '' || date === null) {
-            alert('Please fill in all fields.');
+            showPopup('Please fill in all fields.');
             return;
         }
         const currentDate = new Date();
         if (date < currentDate) {
-            alert('Please select a valid date and time.');
+            showPopup('Please select a valid date and time.');
             return;
         }
         if (isNaN(Number(assignmentEffort)) || Number(assignmentEffort) <= 0) {
-            alert('Effort must be a positive number.');
+            showPopup('Effort must be a positive number.');
             return;
         }
-        alert('Assignment added successfully!');
+        showPopup('Assignment added successfully!');
         const newAssignment = {
             name: assignment,
             deadline: date.toISOString(),
@@ -300,15 +291,15 @@ const EventSelection: React.FC = () => {
     }
     const handleChore = () => {
         if (chore === '' || choreEffort === '' || !choreWindowStart || !choreWindowEnd) {
-            alert('Please fill in all fields.');
+            showPopup('Please fill in all fields.');
             return;
         }
         if (choreWindowStart >= choreWindowEnd) {
-            alert('End time must be after start time.');
+            showPopup('End time must be after start time.');
             return;
         }
         if (isNaN(Number(choreEffort)) || Number(choreEffort) <= 0) {
-            alert('Effort must be a positive number.');
+            showPopup('Effort must be a positive number.');
             return;
         }
         // Validate optional recurrence days (0..6). Negative not allowed; greater than 6 not allowed.
@@ -316,16 +307,16 @@ const EventSelection: React.FC = () => {
         if (choreRecurDays !== '') {
             const n = Math.floor(Number(choreRecurDays));
             if (isNaN(n) || n < 0) {
-                alert('Recurrence days must be a non-negative integer (max 6).');
+                showPopup('Recurrence days must be a non-negative integer (max 6).');
                 return;
             }
             if (n > 6) {
-                alert('Recurrence days cannot be greater than 6.');
+                showPopup('Recurrence days cannot be greater than 6.');
                 return;
             }
             recurDaysNum = n;
         }
-        alert('Chore added successfully!');
+        showPopup('Chore added successfully!');
         const newChore = {
             name: chore,
             windowStart: choreWindowStart.toISOString(),
@@ -429,16 +420,16 @@ const EventSelection: React.FC = () => {
     const handleEditMeeting = () => {
         if (editMode && editMode.type === 'meeting') {
             if (!name || !recurrence || !startDateTime || !endDateTime || !location) {
-                alert('Please fill in all fields.');
+                showPopup('Please fill in all fields.');
                 return;
             }
             if (startDateTime >= endDateTime) {
-                alert('End time must be after start time.');
+                showPopup('End time must be after start time.');
                 return;
             }
             const recurringCodes = ["daily","mon","tue","wed","thu","fri","sat","sun"]; 
             if (recurringCodes.includes(recurrence) && meetingRepeatEnd <= startDateTime) {
-                alert('Repeat end date must be after start date for recurring meetings.');
+                showPopup('Repeat end date must be after start date for recurring meetings.');
                 return;
             }
             // Update meetings state
@@ -453,12 +444,6 @@ const EventSelection: React.FC = () => {
                 meetingRepeatEnd: recurringCodes.includes(recurrence) ? meetingRepeatEnd.toISOString() : undefined,
             };
             setMeetings(meetings.map((m, i) => i === editMode.index ? updatedMeeting : m));
-            const start_end_times = generateMeetingOccurrences(
-                startDateTime,
-                endDateTime,
-                recurrence && typeof recurrence === "string" ? recurrence.toLowerCase() : null,
-                meetingRepeatEnd
-            );
             setEditMode(null);
             setName('');
             setStartDateTime(new Date());
@@ -466,17 +451,17 @@ const EventSelection: React.FC = () => {
             setRecurrence(null);
             setLocation('');
             setMeetingRepeatEnd(new Date());
-            alert('Meeting updated!');
+            showPopup('Meeting updated!');
         }
     };
     const handleEditAssignment = () => {
         if (editMode && editMode.type === 'assignment') {
             if (assignment === '' || assignmentEffort === '' || date === null) {
-                alert('Please fill in all fields.');
+                showPopup('Please fill in all fields.');
                 return;
             }
             if (isNaN(Number(assignmentEffort)) || Number(assignmentEffort) <= 0) {
-                alert('Effort must be a positive number.');
+                showPopup('Effort must be a positive number.');
                 return;
             }
             const updatedAssignment = {
@@ -489,21 +474,21 @@ const EventSelection: React.FC = () => {
             setAssignment('');
             setAssignmentEffort('');
             setDate(new Date());
-            alert('Assignment updated!');
+            showPopup('Assignment updated!');
         }
     };
     const handleEditChore = () => {
         if (editMode && editMode.type === 'chore') {
             if (chore === '' || choreEffort === '' || !choreWindowStart || !choreWindowEnd) {
-                alert('Please fill in all fields.');
+                showPopup('Please fill in all fields.');
                 return;
             }
             if (choreWindowStart >= choreWindowEnd) {
-                alert('End time must be after start time.');
+                showPopup('End time must be after start time.');
                 return;
             }
             if (isNaN(Number(choreEffort)) || Number(choreEffort) <= 0) {
-                alert('Effort must be a positive number.');
+                showPopup('Effort must be a positive number.');
                 return;
             }
             // Validate optional recurrence days for edit as well
@@ -511,11 +496,11 @@ const EventSelection: React.FC = () => {
             if (choreRecurDays !== '') {
                 const n = Math.floor(Number(choreRecurDays));
                 if (isNaN(n) || n < 0) {
-                    alert('Recurrence days must be a non-negative integer (max 6).');
+                    showPopup('Recurrence days must be a non-negative integer (max 6).');
                     return;
                 }
                 if (n > 6) {
-                    alert('Recurrence days cannot be greater than 6.');
+                    showPopup('Recurrence days cannot be greater than 6.');
                     return;
                 }
                 recurDaysNum = n;
@@ -534,7 +519,7 @@ const EventSelection: React.FC = () => {
             setChoreWindowStart(new Date());
             setChoreWindowEnd(new Date());
             setChoreRecurDays('');
-            alert('Chore updated!');
+            showPopup('Chore updated!');
         }
     };
     //Function to handle editing or deleting a meeting:
