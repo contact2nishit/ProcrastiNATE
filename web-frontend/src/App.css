@@ -2,6 +2,28 @@
   text-align: center;
 }
 
+@keyframes sunRayShimmer {
+  0% { 
+    opacity: 0.4; 
+    transform: translateX(-50%) scaleY(1); 
+  }
+  100% { 
+    opacity: 0.8; 
+    transform: translateX(-50%) scaleY(1.2); 
+  }
+}
+
+@keyframes wingFlap {
+  0% { transform: rotateY(0deg); }
+  50% { transform: rotateY(-30deg); }
+  100% { transform: rotateY(0deg); }
+}
+
+@keyframes birdFly {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;

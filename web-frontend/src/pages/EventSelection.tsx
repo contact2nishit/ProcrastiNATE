@@ -662,10 +662,61 @@ const EventSelection: React.FC = () => {
         );
     };
 
+    const [showMeetingInfo, setShowMeetingInfo] = useState(false);
+    const [showAssignmentInfo, setShowAssignmentInfo] = useState(false);
+    const [showChoreInfo, setShowChoreInfo] = useState(false);
+    const [showEventsInfo, setShowEventsInfo] = useState(false);
+
+    const InfoModal: React.FC<{ show: boolean; onClose: () => void; title: string; content: string; gradient: string; }> = ({ show, onClose, title, content, gradient }) => {
+        if (!show) return null;
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className={`relative rounded-3xl p-6 w-full max-w-lg border-4 border-orange-400 shadow-xl ${gradient}`} style={{ fontFamily: 'Pixelify Sans, monospace' }}>
+                    <h3 className="text-2xl font-bold text-teal-800 mb-4">{title}</h3>
+                    <p className="text-teal-800 text-lg leading-snug whitespace-pre-line">{content}</p>
+                    <button
+                        onClick={onClose}
+                        className="mt-6 w-full bg-gradient-to-r from-teal-500 to-blue-500 text-white font-bold py-2 px-4 rounded-2xl hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200 shadow-lg"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="min-h-screen flex flex-col relative" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
-            {/* Removed per-page background & clouds; using global App background */}
+            {/* Info Modals */}
+            <InfoModal
+                show={showMeetingInfo}
+                onClose={() => setShowMeetingInfo(false)}
+                title="Meetings"
+                content={"Meetings are fixed blocks of times that you cannot do other work in. Examples of this are work meetings, classes, other reservations. You can also schedule recurring meetings easily. Check the Events tab once you schedule a meeting!"}
+                gradient="bg-gradient-to-br from-blue-200 to-blue-300"
+            />
+            <InfoModal
+                show={showAssignmentInfo}
+                onClose={() => setShowAssignmentInfo(false)}
+                title="Assignments"
+                content={"This is work that you need to get done on a hard deadline. Examples include homework, work deadlines, and other commitments. Checkout the events tab too see all assignments you select!"}
+                gradient="bg-gradient-to-br from-yellow-200 to-yellow-300"
+            />
+            <InfoModal
+                show={showChoreInfo}
+                onClose={() => setShowChoreInfo(false)}
+                title="Chores"
+                content={"A piece of work that is not on priority, though it must be done eventually. You want to get it done between a specific window. These can be recurring, like home chores. You can see all selected chores in the events tab!"}
+                gradient="bg-gradient-to-br from-green-200 to-green-300"
+            />
+            <InfoModal
+                show={showEventsInfo}
+                onClose={() => setShowEventsInfo(false)}
+                title="Events"
+                content={"All you selected events can be seen here. Submit this to generate the potential schedules you can pick from. No events will be schedule between 11 pm and 5 am. You can also edit or delete events from here."}
+                gradient="bg-gradient-to-br from-stone-200 to-stone-300"
+            />
+            {/* Existing modal for edit/delete */}
             {renderModal()}
             {/* Tab Navigation */}
             <div className="relative z-10 px-4 pt-6">
@@ -682,7 +733,8 @@ const EventSelection: React.FC = () => {
                             style={{ fontFamily: 'Pixelify Sans, monospace' }}
                             onClick={() => setSelected(item.label)}
                         >
-                            <item.icon className="text-lg" />
+                            {/* <item.icon className="text-lg" /> */}
+                            <item.icon size={20} />
                             <span className="hidden sm:inline">{item.label}</span>
                         </button>
                     ))}
@@ -692,7 +744,15 @@ const EventSelection: React.FC = () => {
             {/* Meeting Tab */}
             {selected === 'Meeting' && (
                 <div className="flex-1 relative z-10 px-4 pb-4">
-                    <div className="bg-gradient-to-br from-blue-200 to-blue-300 rounded-3xl p-6 border-4 border-orange-400 shadow-lg">
+                    <div className="bg-gradient-to-br from-blue-200 to-blue-300 rounded-3xl p-6 border-4 border-orange-400 shadow-lg relative">
+                        {/* Info button */}
+                        <button
+                            type="button"
+                            aria-label="Meeting information"
+                            onClick={() => setShowMeetingInfo(true)}
+                            className="absolute top-3 left-3 w-9 h-9 flex items-center justify-center rounded-full bg-blue-400 text-teal-900 font-extrabold border-2 border-blue-600 shadow hover:scale-110 hover:bg-blue-500 transition"
+                        >?
+                        </button>
                         <h2 className="text-3xl font-bold text-teal-800 text-center mb-6" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
                             {editMode && editMode.type === 'meeting' ? 'Edit Meeting' : 'Set up Meeting'}
                         </h2>
@@ -808,7 +868,14 @@ const EventSelection: React.FC = () => {
             {/* Assignment Tab */}
             {selected === "Assignment" && (
                 <div className="flex-1 relative z-10 px-4 pb-4">
-                    <div className="bg-gradient-to-br from-yellow-200 to-yellow-300 rounded-3xl p-6 border-4 border-orange-400 shadow-lg">
+                    <div className="bg-gradient-to-br from-yellow-200 to-yellow-300 rounded-3xl p-6 border-4 border-orange-400 shadow-lg relative">
+                        <button
+                            type="button"
+                            aria-label="Assignment information"
+                            onClick={() => setShowAssignmentInfo(true)}
+                            className="absolute top-3 left-3 w-9 h-9 flex items-center justify-center rounded-full bg-yellow-400 text-teal-900 font-extrabold border-2 border-yellow-600 shadow hover:scale-110 hover:bg-yellow-500 transition"
+                        >?
+                        </button>
                         <h2 className="text-3xl font-bold text-teal-800 text-center mb-6" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
                             {editMode && editMode.type === 'assignment' ? 'Edit Assignment' : 'Set up Assignment'}
                         </h2>
@@ -881,7 +948,14 @@ const EventSelection: React.FC = () => {
             {/* Chore/Study Tab */}
             {selected === "Chore/Study" && (
                 <div className="flex-1 relative z-10 px-4 pb-4">
-                    <div className="bg-gradient-to-br from-green-200 to-green-300 rounded-3xl p-6 border-4 border-orange-400 shadow-lg">
+                    <div className="bg-gradient-to-br from-green-200 to-green-300 rounded-3xl p-6 border-4 border-orange-400 shadow-lg relative">
+                        <button
+                            type="button"
+                            aria-label="Chore information"
+                            onClick={() => setShowChoreInfo(true)}
+                            className="absolute top-3 left-3 w-9 h-9 flex items-center justify-center rounded-full bg-green-400 text-teal-900 font-extrabold border-2 border-green-600 shadow hover:scale-110 hover:bg-green-500 transition"
+                        >?
+                        </button>
                         <h2 className="text-3xl font-bold text-teal-800 text-center mb-6" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
                             {editMode && editMode.type === 'chore' ? 'Edit Chore/Study' : 'Set up Chore/Study'}
                         </h2>
@@ -965,7 +1039,16 @@ const EventSelection: React.FC = () => {
             {/* Events Tab */}
             {selected === "Events" && (
                 <div className="flex-1 relative z-10 px-4 pb-4">
-                    <h2 className="text-3xl font-bold text-teal-800 text-center mb-6 pt-4" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Events</h2>
+                    <h2 className="text-3xl font-bold text-teal-800 text-center mb-6 pt-4 relative" style={{ fontFamily: 'Pixelify Sans, monospace' }}>
+                        <button
+                            type="button"
+                            aria-label="Events information"
+                            onClick={() => setShowEventsInfo(true)}
+                            className="absolute -left-2 top-0 w-9 h-9 flex items-center justify-center rounded-full bg-stone-400 text-teal-900 font-extrabold border-2 border-stone-500 shadow hover:scale-110 hover:bg-stone-500 transition"
+                        >?
+                        </button>
+                        Events
+                    </h2>
 
                     {/* Meetings section */}
                     <h3 className="text-2xl font-semibold text-teal-800 mb-4" style={{ fontFamily: 'Pixelify Sans, monospace' }}>Meetings:</h3>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Login from './pages/Login';
@@ -16,6 +16,7 @@ import { TimeOfDayThemeProvider, useTimeOfDayTheme } from './context/TimeOfDayTh
 import DayBackground from './components/backgrounds/DayBackground';
 import NightBackground from './components/backgrounds/NightBackground';
 import TransitionBackground from './components/backgrounds/TransitionBackground';
+import nateFace from './assets/Nate.png';
 
 
 // Removed getTimeOfDayPhase and internal interval logic; now handled by context provider
@@ -106,6 +107,16 @@ const AppShell: React.FC = () => {
 };
 
 const App: React.FC = () => {
+    useEffect(() => {
+        let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+        }
+        link.type = 'image/png';
+        link.href = nateFace;
+    }, []);
     return (
         <TimeOfDayThemeProvider>
             <AppShell />
