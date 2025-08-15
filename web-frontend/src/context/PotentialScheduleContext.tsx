@@ -49,14 +49,14 @@ export type PotentialSchedulesData = {
 
 
 export type PotentialScheduleContextType = {
-  potentialSchedules: PotentialSchedulesData | null;
+  potentialSchedules: PotentialSchedulesData | undefined;
   setPotentialSchedules: (data: PotentialSchedulesData) => void;
 };
 
 const PotentialScheduleContext = createContext<PotentialScheduleContextType | undefined>(undefined);
 
 export const PotentialScheduleProvider = ({ children }: { children: ReactNode }) => {
-  const [potentialSchedules, setPotentialSchedules] = useState<PotentialSchedulesData | null>(null);
+  const [potentialSchedules, setPotentialSchedules] = useState<PotentialSchedulesData | undefined>(undefined);
   return (
     <PotentialScheduleContext.Provider
       value={{

@@ -13,7 +13,7 @@ const CalendarViewPotential = () => {
     const [referenceDate, setReferenceDate] = useState(new Date());
     const extractSlots = (scheduleIdx: number): Slot[] => {
         const allSlots: Slot[] = [];
-        const schedule = potentialSchedules.schedules?.[scheduleIdx];
+        const schedule = potentialSchedules?.schedules?.[scheduleIdx];
         if (!schedule) {
             return allSlots;
         }

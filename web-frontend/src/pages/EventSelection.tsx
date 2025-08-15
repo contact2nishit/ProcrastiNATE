@@ -717,7 +717,7 @@ const EventSelection: React.FC = () => {
                             onClick={() => setSelected(item.label)}
                         >
                             {/* <item.icon className="text-lg" /> */}
-                            <item.icon size={20} />
+                            {/*<item.icon size={20} />*/}
                             <span className="hidden sm:inline">{item.label}</span>
                         </button>
                     ))}
