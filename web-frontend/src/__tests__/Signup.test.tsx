@@ -22,7 +22,7 @@ describe('Signup Component', () => {
   });
 
   test('renders signup form elements', () => {
-    renderWithProviders(<Signup />, { withRouter: false });
+  renderWithProviders(<Signup />, { withRouter: false, withTheme: true });
     expect(screen.getByTestId('email-input')).toBeInTheDocument();
     expect(screen.getByTestId('username-input')).toBeInTheDocument();
     expect(screen.getByTestId('password-input')).toBeInTheDocument();
@@ -33,7 +33,7 @@ describe('Signup Component', () => {
   });
 
   test('shows validation error for empty fields', async () => {
-    renderWithProviders(<Signup />, { withRouter: false });
+  renderWithProviders(<Signup />, { withRouter: false, withTheme: true });
     const signupButton = screen.getByTestId('signupButton');
     userEvent.click(signupButton);
     await waitFor(() => {
@@ -42,7 +42,7 @@ describe('Signup Component', () => {
   });
 
   test('shows validation error for password length', async () => {
-    renderWithProviders(<Signup />, { withRouter: false });
+  renderWithProviders(<Signup />, { withRouter: false, withTheme: true });
     const emailInput = screen.getByTestId('email-input');
     const usernameInput = screen.getByTestId('username-input');
     const passwordInput = screen.getByTestId('password-input');
@@ -52,14 +52,18 @@ describe('Signup Component', () => {
     userEvent.type(usernameInput, 'testuser');
     userEvent.type(passwordInput, '123');
     userEvent.type(confirmPasswordInput, '123');
+    // Button is disabled for short passwords; expect inline error message
+    expect(signupButton).toBeDisabled();
+    // Trigger attempted submit to show error state visually (no alert expected)
     userEvent.click(signupButton);
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Password should be at least 8 characters');
+      expect(screen.getByTestId('password-error')).toHaveTextContent('Password must be at least 8 characters.');
     });
+    expect(window.alert).not.toHaveBeenCalled();
   });
 
   test('shows validation error for password mismatch', async () => {
-    renderWithProviders(<Signup />, { withRouter: false });
+  renderWithProviders(<Signup />, { withRouter: false, withTheme: true });
     const emailInput = screen.getByTestId('email-input');
     const usernameInput = screen.getByTestId('username-input');
     const passwordInput = screen.getByTestId('password-input');
@@ -77,7 +81,7 @@ describe('Signup Component', () => {
 
   test('handles successful signup', async () => {
     mockFetch(mockApiResponse.register);
-    renderWithProviders(<Signup />, { withRouter: false });
+  renderWithProviders(<Signup />, { withRouter: false, withTheme: true });
     const emailInput = screen.getByTestId('email-input');
     const usernameInput = screen.getByTestId('username-input');
     const passwordInput = screen.getByTestId('password-input');
@@ -114,7 +118,7 @@ describe('Signup Component', () => {
 
   test('handles signup error', async () => {
     mockFetch({ error: 'Username already exists' }, false, 400);
-    renderWithProviders(<Signup />, { withRouter: false });
+  renderWithProviders(<Signup />, { withRouter: false, withTheme: true });
     const emailInput = screen.getByTestId('email-input');
     const usernameInput = screen.getByTestId('username-input');
     const passwordInput = screen.getByTestId('password-input');
@@ -132,7 +136,7 @@ describe('Signup Component', () => {
   });
 
   test('toggles password visibility', async () => {
-    renderWithProviders(<Signup />, { withRouter: false });
+  renderWithProviders(<Signup />, { withRouter: false, withTheme: true });
     const passwordInput = screen.getByTestId('password-input') as HTMLInputElement;
     const toggleButton = screen.getByTestId('toggle-password-visibility');
     expect(passwordInput.type).toBe('password');

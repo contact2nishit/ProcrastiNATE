@@ -20,11 +20,14 @@ const Profile: React.FC = () => {
     const navigate = useNavigate();
     const { levelInfo, achievementKeys, getBadgeComponent } = useCurrentScheduleContext();
     const earnedMap = levelInfo?.achievements || {};
+    const handleBack = () => {
+        localStorage.removeItem("token");
+        navigate('/');
+    };
     const earnedKeys = useMemo(() => new Set(Object.keys(earnedMap).filter(k => earnedMap[k])), [earnedMap]);
     return (
         <ThemeProvider theme={theme}>
             <div className="min-h-screen flex flex-col" style={{
-                background: 'linear-gradient(135deg, #87CEEB 0%, #E0F6FF 30%, #B8E6FF 60%, #87CEEB 100%)',
                 fontFamily: 'Pixelify Sans, monospace'
             }}>
                 {/* Top bar with back button */}
@@ -38,6 +41,9 @@ const Profile: React.FC = () => {
                         <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 3.172l5.657 5.657a1 1 0 01-1.414 1.414L11 7.414V17a1 1 0 11-2 0V7.414L5.757 10.243A1 1 0 014.343 8.83L10 3.172z" clipRule="evenodd" />
                         </svg>
+                    </button>
+                    <button onClick={handleBack}  className="bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-2xl w-12 h-12 flex items-center justify-center shadow-lg hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200">
+                            Log out
                     </button>
                 </div>
                 <div className="text-center mt-5">

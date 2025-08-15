@@ -10,13 +10,11 @@ const SchedulePicker = () => {
     const { potentialSchedules, setPotentialSchedules } = usePotentialScheduleContext();
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedScheduleIdx, setSelectedScheduleIdx] = useState<number | null>(null);
-
     const mapStatus: { [key: string]: string } = {
         fully_scheduled: "Fully Scheduled",
         partially_scheduled: "Partially Scheduled",
         unschedulable: "Unschedulable",
     };
-
     // Use context for all data
     const parsedData: {
         conflicting_meetings?: string[];
@@ -31,13 +29,10 @@ const SchedulePicker = () => {
         }[];
         meetings?: { name: string; start_end_times: [string, string][] }[];
     } = potentialSchedules || {};
-
     const conflicting_meetings = parsedData.conflicting_meetings || [];
     const schedules = parsedData.schedules || [];
     const meetings = parsedData.meetings || [];
-
     const fmt = (iso: string) => new Date(iso).toLocaleString();
-
     const submitSchedule = async (schedule: any) => {
         try {
             const url = config.backendURL;

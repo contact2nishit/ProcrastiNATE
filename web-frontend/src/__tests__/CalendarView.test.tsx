@@ -2,6 +2,13 @@ import React from 'react';
 import { screen, waitFor } from '@testing-library/react';
 import { renderWithProviders, userEvent, cleanupMocks } from '../test-utils';
 
+// Mock navigation globally so all tests can assert redirects when actions occur
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => {
+  const actual = jest.requireActual('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 // Mock CurrentScheduleContext hook so we can intercept calls and provide slots
 const mockEnsureScheduleRange = jest.fn();
 const mockRefetchSchedule = jest.fn();
@@ -46,6 +53,7 @@ afterAll(() => {
 describe('CalendarView', () => {
   beforeEach(() => {
     cleanupMocks();
+  mockNavigate.mockReset();
     // Freeze time to Mon, Jan 6, 2025
     jest.setSystemTime(new Date('2025-01-06T00:00:00Z'));
 
@@ -66,6 +74,7 @@ describe('CalendarView', () => {
           name: 'HW1',
           start: '2025-01-07T10:00:00+00:00',
           end: '2025-01-07T11:00:00+00:00',
+          id: 'assignment_2_777',
         },
       ],
     };
@@ -106,28 +115,43 @@ describe('CalendarView', () => {
     expect(endArg).toBe(nextEndISO);
   });
 
-  test('clicking Edit on a meeting opens the Update modal', async () => {
+  test('clicking a meeting slot then Update opens the Update modal', async () => {
     renderWithProviders(<CalendarView />, { withRouter: true });
 
     await waitFor(() => expect(mockEnsureScheduleRange).toHaveBeenCalled());
 
-    const editBtn = await screen.findByRole('button', { name: /edit/i });
-    await userEvent.click(editBtn);
+    const eventTile = await screen.findByText('Standup');
+    await userEvent.click(eventTile);
+    const updateBtn = await screen.findByRole('button', { name: /update/i });
+    await userEvent.click(updateBtn);
 
     expect(await screen.findByText(/update meeting/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /submit update/i })).toBeInTheDocument();
   });
 
-  test('clicking Delete on a meeting opens the Delete modal', async () => {
+  test('clicking a meeting slot then Delete opens the Delete modal (Cancel only)', async () => {
     renderWithProviders(<CalendarView />, { withRouter: true });
 
     await waitFor(() => expect(mockEnsureScheduleRange).toHaveBeenCalled());
 
+    const eventTile = await screen.findByText('Standup');
+    await userEvent.click(eventTile);
     const deleteBtn = await screen.findByRole('button', { name: /^delete$/i });
     await userEvent.click(deleteBtn);
 
-    expect(await screen.findByText(/delete meeting/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /delete this occurrence/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /delete all future occurrences/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /cancel/i })).toBeInTheDocument();
+  });
+
+  test('rescheduling an assignment from the popup navigates to reschedule screen', async () => {
+    renderWithProviders(<CalendarView />, { withRouter: true });
+
+    await waitFor(() => expect(mockEnsureScheduleRange).toHaveBeenCalled());
+
+    const assignmentTile = await screen.findByText('HW1');
+    await userEvent.click(assignmentTile);
+    const rescheduleBtn = await screen.findByRole('button', { name: /reschedule/i });
+    await userEvent.click(rescheduleBtn);
+
+  expect(mockNavigate).toHaveBeenCalledWith(expect.stringMatching(/\/requiresCurrentSchedule\/requiresPotentialSchedule\/RescheduleScreen\?id=.+&type=assignment/));
   });
 });

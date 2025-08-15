@@ -11,6 +11,7 @@ import SchedulePicker from './pages/SchedulePicker';
 import EventSelection from './pages/EventSelection';
 import CalendarViewPotential from './pages/CalendarViewPotential';
 import RescheduleScreen from './pages/RescheduleScreen';
+import Profile from './pages/Profile';
 // New: time-of-day context & background components
 import { TimeOfDayThemeProvider, useTimeOfDayTheme } from './context/TimeOfDayThemeContext';
 import DayBackground from './components/backgrounds/DayBackground';
@@ -55,6 +56,13 @@ const AppShell: React.FC = () => {
                                 </CurrentScheduleProvider>
                             </ProtectedRoute>
                         } />
+                        <Route path='requiresCurrentSchedule/Profile' element={
+                            <ProtectedRoute>
+                                <CurrentScheduleProvider>
+                                    <Profile />
+                                </CurrentScheduleProvider>
+                            </ProtectedRoute>  
+                        } />
                         <Route path='requiresCurrentSchedule/requiresPotentialSchedule/EventSelection' element={
                             <ProtectedRoute>
                                 <CurrentScheduleProvider>
@@ -64,6 +72,7 @@ const AppShell: React.FC = () => {
                                 </CurrentScheduleProvider>
                             </ProtectedRoute>
                         } />
+                        
                         <Route path='requiresCurrentSchedule/requiresPotentialSchedule/SchedulePicker' element={
                             <ProtectedRoute>
                                 <CurrentScheduleProvider>

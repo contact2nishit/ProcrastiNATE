@@ -1,7 +1,21 @@
 import React from 'react';
 import { screen, waitFor } from '@testing-library/react';
-import { renderWithProviders, userEvent, mockFetch, cleanupMocks, mockApiResponse, mockSetPotentialSchedules } from '../test-utils';
+import { renderWithProviders, userEvent, mockFetch, cleanupMocks, mockApiResponse } from '../test-utils';
 
+// Local spy to verify calls from the component under test
+const mockSetPotentialSchedulesLocal = jest.fn();
+// Provide a local mock for PotentialScheduleContext so tests can assert setPotentialSchedules.
+// This must be declared before importing the component under test so the mock is used.
+jest.mock('../context/PotentialScheduleContext', () => {
+  const actual = jest.requireActual('../context/PotentialScheduleContext');
+  return {
+    ...actual,
+    usePotentialScheduleContext: () => ({
+      potentialSchedules: { schedules: [], meetings: [], conflicting_meetings: [] },
+  setPotentialSchedules: mockSetPotentialSchedulesLocal,
+    }),
+  };
+});
 import EventSelection from '../pages/EventSelection';
 
 // Helper: find the submit schedule button via test id
@@ -17,7 +31,7 @@ async function findSubmitButton() {
 describe('EventSelection submit flow', () => {
   beforeEach(() => {
     cleanupMocks();
-    mockSetPotentialSchedules.mockClear();
+  mockSetPotentialSchedulesLocal.mockClear();
   });
 
   test('submits schedule and updates PotentialScheduleContext on success', async () => {
@@ -48,8 +62,8 @@ describe('EventSelection submit flow', () => {
     expect(parsed).toHaveProperty('chores');
     expect(parsed).toHaveProperty('tz_offset_minutes');
 
-    await waitFor(() => expect(mockSetPotentialSchedules).toHaveBeenCalledTimes(1));
-    expect(mockSetPotentialSchedules).toHaveBeenCalledWith(mockApiResponse.schedule);
+  await waitFor(() => expect(mockSetPotentialSchedulesLocal).toHaveBeenCalledTimes(1));
+  expect(mockSetPotentialSchedulesLocal).toHaveBeenCalledWith(mockApiResponse.schedule);
   });
 
   test('shows an alert when backend responds with error', async () => {
@@ -69,7 +83,7 @@ describe('EventSelection submit flow', () => {
     // Assert
     await waitFor(() => expect(global.fetch).toHaveBeenCalled());
     await waitFor(() => expect(window.alert).toHaveBeenCalled());
-    expect(mockSetPotentialSchedules).not.toHaveBeenCalled();
+  expect(mockSetPotentialSchedulesLocal).not.toHaveBeenCalled();
   });
 
   test('builds request body from local state (empty arrays OK)', async () => {

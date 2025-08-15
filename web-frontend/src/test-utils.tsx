@@ -2,6 +2,7 @@ import React from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { BrowserRouter, redirect } from 'react-router-dom';
 import { CurrentScheduleProvider } from './context/CurrentScheduleContext';
+import { TimeOfDayThemeProvider } from './context/TimeOfDayThemeContext';
 import { PotentialScheduleProvider } from './context/PotentialScheduleContext';
 import { localStorageMock } from './setupTests';
 
@@ -11,6 +12,7 @@ interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   withCurrentSchedule?: boolean;
   withPotentialSchedule?: boolean;
   initialToken?: string | null;
+  withTheme?: boolean;
 }
 
 export function renderWithProviders(
@@ -19,6 +21,7 @@ export function renderWithProviders(
     withRouter = true,
     withCurrentSchedule = false,
     withPotentialSchedule = false,
+  withTheme = false,
     initialToken,
     ...renderOptions
   }: CustomRenderOptions = {}
@@ -50,6 +53,14 @@ export function renderWithProviders(
         <CurrentScheduleProvider>
           {wrappedChildren}
         </CurrentScheduleProvider>
+      );
+    }
+
+    if (withTheme) {
+      wrappedChildren = (
+        <TimeOfDayThemeProvider>
+          {wrappedChildren}
+        </TimeOfDayThemeProvider>
       );
     }
 
@@ -136,18 +147,8 @@ export function cleanupMocks() {
   (window.alert as jest.Mock).mockClear();
 }
 
-// Rename to start with 'mock' to satisfy Jest's out-of-scope variable rule
+// Optional helper mock exposed for tests that want to spy on setPotentialSchedules
 export const mockSetPotentialSchedules = jest.fn();
-jest.mock('./context/PotentialScheduleContext', () => {
-  const actual = jest.requireActual('./context/PotentialScheduleContext');
-  return {
-    ...actual,
-    usePotentialScheduleContext: () => ({
-      potentialSchedules: { schedules: [] },
-      setPotentialSchedules: mockSetPotentialSchedules,
-    }),
-  };
-});
 
 export * from '@testing-library/react';
 export { default as userEvent } from '@testing-library/user-event';
