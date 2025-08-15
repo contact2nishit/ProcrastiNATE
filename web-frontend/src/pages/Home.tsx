@@ -105,7 +105,11 @@ const Home = () => {
         const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
         const startISO = start.toISOString().replace('Z', '+00:00');
         const endISO = end.toISOString().replace('Z', '+00:00');
-        return currSchedule.slots.filter((slot: any) => slot.start >= startISO && slot.end <= endISO);
+        // Include items that overlap today at either boundary:
+        return currSchedule.slots.filter((slot: any) =>
+            (slot.start >= startISO && slot.start < endISO) ||
+            (slot.end > startISO && slot.end <= endISO)
+        );
     }, [currSchedule.slots]);
     const ensureSchedule = async () => {
         const now = new Date();
