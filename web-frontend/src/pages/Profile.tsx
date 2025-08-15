@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { LinearProgress, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useCurrentScheduleContext } from '../context/CurrentScheduleContext';
+import { useTimeOfDayTheme, TimeOfDayPhase } from '../context/TimeOfDayThemeContext';
 
 const theme = createTheme({
     palette: { primary: { main: '#2563eb' }, secondary: { main: '#16a34a' } },
@@ -19,19 +20,42 @@ const theme = createTheme({
 const Profile: React.FC = () => {
     const navigate = useNavigate();
     const { levelInfo, achievementKeys, getBadgeComponent } = useCurrentScheduleContext();
+    const { phase, mode, setMode, setManualPhase } = useTimeOfDayTheme();
     const earnedMap = levelInfo?.achievements || {};
     const handleBack = () => {
         localStorage.removeItem("token");
         navigate('/');
     };
     const earnedKeys = useMemo(() => new Set(Object.keys(earnedMap).filter(k => earnedMap[k])), [earnedMap]);
+
+    // Slide-from-top mount animation state
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        // Use rAF to ensure class application happens after first paint to trigger transition
+        requestAnimationFrame(() => setMounted(true));
+    }, []);
+
+    const handleThemeSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const val = e.target.value;
+        if (val === 'auto') {
+            setMode('auto');
+        } else {
+            setMode('manual');
+            setManualPhase(val as TimeOfDayPhase);
+        }
+    };
+
     return (
         <ThemeProvider theme={theme}>
-            <div className="min-h-screen flex flex-col" style={{
-                fontFamily: 'Pixelify Sans, monospace'
-            }}>
+            <div
+                className={`min-h-screen flex flex-col relative transform transition-transform duration-500 ease-out ${mounted ? 'translate-y-0' : '-translate-y-full'}`}
+                style={{
+                    fontFamily: 'Pixelify Sans, monospace',
+                    willChange: 'transform'
+                }}
+            >
                 {/* Top bar with back button */}
-                <div className="flex justify-between items-center mt-5 mx-4">
+                <div className="flex justify-start items-center mt-5 mx-4">
                     <button
                         onClick={() => navigate('/requiresCurrentSchedule/Home')}
                         className="bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-2xl w-12 h-12 flex items-center justify-center shadow-lg hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200"
@@ -42,12 +66,22 @@ const Profile: React.FC = () => {
                             <path fillRule="evenodd" d="M10 3.172l5.657 5.657a1 1 0 01-1.414 1.414L11 7.414V17a1 1 0 11-2 0V7.414L5.757 10.243A1 1 0 014.343 8.83L10 3.172z" clipRule="evenodd" />
                         </svg>
                     </button>
-                    <button
-                        onClick={handleBack}
-                        className="bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-2xl px-4 py-2 whitespace-nowrap shadow-lg hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200"
+                </div>
+                {/* Theme selector (top-right) */}
+                <div className="absolute top-5 right-4 flex flex-col items-center gap-1">
+                    <label className="text-xl font-extrabold text-white tracking-wide text-center">
+                        Choose Theme
+                    </label>
+                    <select
+                        value={mode === 'auto' ? 'auto' : phase}
+                        onChange={handleThemeSelect}
+                        className="border-2 border-orange-400 rounded-xl px-4 py-2 text-base bg-white focus:outline-none focus:ring-2 focus:ring-orange-300 shadow-md"
                     >
-                        Log out
-                    </button>
+                        <option value="auto">Auto (Time-Based)</option>
+                        <option value="day">Day</option>
+                        <option value="transition">Transition</option>
+                        <option value="night">Night</option>
+                    </select>
                 </div>
                 <div className="text-center mt-5">
                     <h1 className="text-2xl font-bold text-teal-800" data-testid="profile-title">Your Profile</h1>
@@ -83,6 +117,13 @@ const Profile: React.FC = () => {
                         )
                     })}
                 </div>
+                {/* Fixed bottom-right logout button */}
+                <button
+                    onClick={handleBack}
+                    className="fixed bottom-4 right-4 bg-gradient-to-r from-teal-500 to-blue-500 text-white rounded-2xl px-5 py-3 whitespace-nowrap shadow-lg hover:from-teal-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-200"
+                >
+                    Log out
+                </button>
             </div>
         </ThemeProvider>
     );
