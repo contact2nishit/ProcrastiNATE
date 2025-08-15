@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04-arm64  # Native ARM64 GitHub Actions runner
+    runs-on: ubuntu-22.04-arm64  # Native ARM64 GitHub Actions runner
 
     steps:
       # Checkout code
