@@ -4,6 +4,7 @@ import { BrowserRouter, redirect } from 'react-router-dom';
 import { CurrentScheduleProvider } from './context/CurrentScheduleContext';
 import { TimeOfDayThemeProvider } from './context/TimeOfDayThemeContext';
 import { PotentialScheduleProvider } from './context/PotentialScheduleContext';
+import { PopupProvider } from './context/PopupContext';
 import { localStorageMock } from './setupTests';
 
 // Custom render function that includes providers
@@ -72,7 +73,8 @@ export function renderWithProviders(
       );
     }
 
-    return <>{wrappedChildren}</>;
+    // Always provide PopupProvider so components can use usePopup
+    return <PopupProvider>{wrappedChildren}</PopupProvider>;
   }
 
   return render(ui, { wrapper: Wrapper, ...renderOptions });

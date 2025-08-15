@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import config from '../config';
+import { usePopup } from '../context/PopupContext';
 
 const Signup = () => {
     const navigate = useNavigate();
+    const { showPopup } = usePopup();
 
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
@@ -23,20 +25,20 @@ const Signup = () => {
         const pwd = password; // keep original case
 
         if (!trimmedEmail || !trimmedUsername || !pwd || !confirmPassword) {
-            alert('Please fill in all fields.');
+            showPopup('Please fill in all fields.');
             return;
         }
         if (pwd.length < 8) {
-            alert('Password should be at least 8 characters.');
+            showPopup('Password should be at least 8 characters.');
             return;
         }
         if (pwd !== confirmPassword) {
-            alert('Passwords do not match.');
+            showPopup('Passwords do not match.');
             return;
         }
         try {
             const url = config.backendURL;
-            if (!url) { alert('Backend URL not set.'); return; }
+            if (!url) { showPopup('Backend URL not set.'); return; }
             const response = await fetch(`${url}/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -48,13 +50,13 @@ const Signup = () => {
             });
             if (!response.ok) {
                 const err = await response.text();
-                alert('Registration failed: ' + err);
+                showPopup('Registration failed: ' + err);
                 return;
             }
-            alert('Registration successful!');
+            showPopup('Registration successful!');
             navigate('/');
         } catch (e) {
-            alert('Registration error: ' + e);
+            showPopup('Registration error: ' + e);
         }
     };
 
