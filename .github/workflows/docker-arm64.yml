@@ -3,23 +3,16 @@ name: Build and Push ARM64 Image
 on:
   push:
     branches:
-      - backend-deploy
+      - backend-deploy  # Runs on ANY commit to this branch (pushes, merges, etc.)
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm64  # Native ARM64 GitHub Actions runner
+
     steps:
-      # Checkout the repo
-      - name: Checkout
+      # Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
-
-      # Set up QEMU for ARM64 emulation
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      # Set up Docker Buildx
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
 
       # Login to GitHub Container Registry
       - name: Log in to GHCR
@@ -29,11 +22,9 @@ jobs:
           username: ${{ secrets.USERNAME_GHCR }}
           password: ${{ secrets.GHCR_PAT }}
 
-      # Build and Push Image
-      - name: Build and Push Docker image (ARM64)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/arm64
-          push: true
-          tags: ghcr.io/sai-barath/procrastinate:latest
+      # Build and Push Docker image
+      - name: Build and Push Docker image
+        run: |
+          IMAGE_NAME=ghcr.io/sai-barath/procrastinate:latest
+          docker build -t $IMAGE_NAME .
+          docker push $IMAGE_NAME
