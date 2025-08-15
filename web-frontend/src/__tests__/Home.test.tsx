@@ -293,8 +293,8 @@ describe('Home Component', () => {
     });
 
     await waitFor(() => {
-      // Alert contains earned XP message when no achievements are unlocked
-      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('You earned'));
+      const popup = screen.getByTestId('app-popup-message');
+      expect(popup).toHaveTextContent(/You earned/i);
     });
 
     // Should refetch schedule after completion
@@ -377,9 +377,7 @@ describe('Home Component', () => {
       );
     });
 
-    await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Meeting updated!');
-    });
+  await waitFor(() => expect(screen.getByTestId('app-popup-message')).toHaveTextContent('Meeting updated!'));
 
     // Should refetch schedule after update
     await waitFor(() => {
@@ -427,9 +425,7 @@ describe('Home Component', () => {
       );
     });
 
-    await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Meeting deleted!');
-    });
+  await waitFor(() => expect(screen.getByTestId('app-popup-message')).toHaveTextContent('Meeting deleted!'));
 
     // Should refetch schedule after deletion
     await waitFor(() => {
@@ -565,52 +561,74 @@ describe('Home Component', () => {
     expect(screen.getByTestId('today-schedule-title')).toBeInTheDocument();
   });
 
-  test('filters schedule items to current day only', async () => {
-    const tomorrow = new Date(testDate);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
+  // ...existing code...
+  test('includes items that overlap today at either boundary and excludes fully outside', async () => {
+    const yesterday = new Date(testDate)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const nextDay = new Date(testDate)
+    nextDay.setDate(nextDay.getDate() + 1)
+    // Ensure the non-overlapping future task is well beyond today to avoid edge inclusions
+    const farFuture = new Date(testDate)
+    farFuture.setDate(farFuture.getDate() + 7)
+
+    const withinTodayStart = testDate.toISOString()
+    const withinTodayEnd = new Date(testDate.getTime() + 60 * 60 * 1000).toISOString()
+
+    const crossesFromYesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 30).toISOString()
+    const crossesFromYesterdayEnd = new Date(testDate.getFullYear(), testDate.getMonth(), testDate.getDate(), 0, 30).toISOString()
+
+  const crossesIntoTomorrowStart = new Date(testDate.getFullYear(), testDate.getMonth(), testDate.getDate(), 23, 30).toISOString()
+  const crossesIntoTomorrowEnd = new Date(nextDay.getFullYear(), nextDay.getMonth(), nextDay.getDate(), 0, 30).toISOString()
+
+  const fullyTomorrowStart = farFuture.toISOString()
+  const fullyTomorrowEnd = new Date(farFuture.getTime() + 60 * 60 * 1000).toISOString()
+
     const multiDayResponse = {
       meetings: [],
       assignments: [
         {
           assignment_id: 2,
           name: 'Code Review',
-          schedule: {
-            slots: [
-              { start: testDate.toISOString(), end: new Date(testDate.getTime() + 3600000).toISOString() }
-            ]
-          },
+          schedule: { slots: [{ start: withinTodayStart, end: withinTodayEnd }] },
           ocurrence_ids: [201],
+          completed: [false]
+        },
+        {
+          assignment_id: 5,
+          name: 'Yesterday Spillover',
+          schedule: { slots: [{ start: crossesFromYesterdayStart, end: crossesFromYesterdayEnd }] },
+          ocurrence_ids: [501],
+          completed: [false]
+        },
+        {
+          assignment_id: 6,
+          name: 'Late Night Work',
+          schedule: { slots: [{ start: crossesIntoTomorrowStart, end: crossesIntoTomorrowEnd }] },
+          ocurrence_ids: [601],
           completed: [false]
         },
         {
           assignment_id: 4,
           name: 'Tomorrow Task',
-          schedule: {
-            slots: [
-              { start: tomorrow.toISOString(), end: new Date(tomorrow.getTime() + 3600000).toISOString() }
-            ]
-          },
+          schedule: { slots: [{ start: fullyTomorrowStart, end: fullyTomorrowEnd }] },
           ocurrence_ids: [401],
           completed: [false]
         }
       ],
       chores: []
-    };
-    
-  mockFetch(mockLevelResponse);
-  mockFetch(multiDayResponse);
-    
-    renderWithProviders(<Home />, { 
-      withRouter: false, 
-      withCurrentSchedule: true 
-    });
+    }
+
+    mockFetch(mockLevelResponse)
+    mockFetch(multiDayResponse)
+
+    renderWithProviders(<Home />, { withRouter: false, withCurrentSchedule: true })
 
     await waitFor(() => {
-      expect(screen.getByTestId('item-name-code-review')).toBeInTheDocument();
-    });
+      expect(screen.getByTestId('item-name-code-review')).toBeInTheDocument()
+    })
 
-    // Should not show tomorrow's task
-    expect(screen.queryByTestId('item-name-tomorrow-task')).not.toBeInTheDocument();
+    expect(screen.getByTestId('item-name-yesterday-spillover')).toBeInTheDocument()
+    expect(screen.getByTestId('item-name-late-night-work')).toBeInTheDocument()
+    expect(screen.queryByTestId('item-name-tomorrow-task')).not.toBeInTheDocument()
   });
 });

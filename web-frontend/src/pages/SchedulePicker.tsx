@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import config from '../config';
+import { usePopup } from '../context/PopupContext';
 import { usePotentialScheduleContext } from '../context/PotentialScheduleContext';
 import { useCurrentScheduleContext } from '../context/CurrentScheduleContext';
 
 const SchedulePicker = () => {
     const navigate = useNavigate();
-    const { currSchedule, setCurrSchedule, ensureScheduleRange, refetchSchedule } = useCurrentScheduleContext();
-    const { potentialSchedules, setPotentialSchedules } = usePotentialScheduleContext();
+    const { refetchSchedule } = useCurrentScheduleContext();
+    const { showPopup } = usePopup();
+    const { potentialSchedules } = usePotentialScheduleContext();
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedScheduleIdx, setSelectedScheduleIdx] = useState<number | null>(null);
     const [showInfo, setShowInfo] = useState(false);
@@ -39,7 +41,7 @@ const SchedulePicker = () => {
             const url = config.backendURL;
             const token = localStorage.getItem('token');
             if (!url || !token) {
-                alert('Backend URL or token not set.');
+                showPopup('Backend URL or token not set.');
                 return;
             }
             const response = await fetch(`${url}/setSchedule`, {
@@ -52,15 +54,15 @@ const SchedulePicker = () => {
             });
             if (!response.ok) {
                 const err = await response.text();
-                alert('Failed to set schedule: ' + err);
+                showPopup('Failed to set schedule: ' + err);
                 return;
             }
-            alert('Schedule set successfully!');
+            showPopup('Schedule set successfully!');
             setModalVisible(false);
             await refetchSchedule();
             navigate('/requiresCurrentSchedule/Home');
         } catch (e) {
-            alert('Error setting schedule: ' + e);
+            showPopup('Error setting schedule: ' + e);
         }
     };
 

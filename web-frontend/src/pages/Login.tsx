@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import config from '../config';
+import { usePopup } from '../context/PopupContext';
 import LoadingScreen from '../components/LoadingScreen';
 
 const Login = () => {
@@ -8,6 +9,7 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const backendURL = config.backendURL;
+    const { showPopup } = usePopup();
     const navigate = useNavigate();
 
     const showLoadingAndNavigate = () => {
@@ -21,7 +23,7 @@ const Login = () => {
         e.preventDefault();
         try {
             if (!backendURL) {
-                alert('Backend URL not set.');
+                showPopup('Backend URL not set.');
                 return;
             }
             const formBody = `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
@@ -32,7 +34,7 @@ const Login = () => {
             });
             if (!response.ok) {
                 const err = await response.text();
-                alert('Login failed: ' + err);
+                showPopup('Login failed: ' + err);
                 return;
             }
             const data = await response.json();
@@ -41,7 +43,7 @@ const Login = () => {
             }
             showLoadingAndNavigate();
         } catch (e) {
-            alert('Login error: ' + e);
+            showPopup('Login error: ' + e);
         }
     };
 
@@ -52,14 +54,14 @@ const Login = () => {
     const handleGoogleLogin = async () => {
         try {
             if (!backendURL) {
-                alert('Backend URL not set.');
+                showPopup('Backend URL not set.');
                 return;
             }
             const url = new URL(`${backendURL}/login/google`);
             url.searchParams.set("platform", "web");
             const resp = await fetch(url.toString(), { credentials: 'include' });
             if (!resp.ok) {
-                alert('Failed to get Google login URL');
+                showPopup('Failed to get Google login URL');
                 return;
             }
             const data = await resp.json();
@@ -75,7 +77,7 @@ const Login = () => {
                 } else if (event.data.type === 'OAUTH_ERROR') {
                     popup?.close();
                     window.removeEventListener('message', messageHandler);
-                    alert('Google login failed: ' + (event.data.message || 'Unknown error'));
+                    showPopup('Google login failed: ' + (event.data.message || 'Unknown error'));
                 }
             };
             window.addEventListener('message', messageHandler);
@@ -83,7 +85,7 @@ const Login = () => {
                 if (popup?.closed) {
                     clearInterval(checkClosed);
                     window.removeEventListener('message', messageHandler);
-                    alert('Google login was cancelled');
+                    showPopup('Google login was cancelled');
                 }
             }, 1000);
             setTimeout(() => {
@@ -91,11 +93,11 @@ const Login = () => {
                     popup.close();
                     clearInterval(checkClosed);
                     window.removeEventListener('message', messageHandler);
-                    alert('Google login timed out');
+                    showPopup('Google login timed out');
                 }
             }, 5 * 60 * 1000);
         } catch (e) {
-            alert('Google login error: ' + e);
+            showPopup('Google login error: ' + e);
         }
     };
 

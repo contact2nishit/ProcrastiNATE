@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { usePotentialScheduleContext } from '../context/PotentialScheduleContext';
+import { usePopup } from '../context/PopupContext';
 import config from '../config';
 
 const RescheduleScreen = () => {
     const navigate = useNavigate();
+    const { showPopup } = usePopup();
     const [searchParams] = useSearchParams();
     const id = searchParams.get('id');
     const type = searchParams.get('type');
@@ -24,7 +26,7 @@ const RescheduleScreen = () => {
             const url = config.backendURL;
             const token = localStorage.getItem('token');
             if (!url || !token) {
-                alert('Missing backend URL or token.');
+                showPopup('Missing backend URL or token.');
                 return;
             }
             const tz_offset_minutes = -new Date().getTimezoneOffset();
@@ -51,15 +53,15 @@ const RescheduleScreen = () => {
             });
             if (!response.ok) {
                 const err = await response.text();
-                alert('Failed to reschedule: ' + err);
+                showPopup('Failed to reschedule: ' + err);
                 return;
             }
             const data = await response.json();
             setPotentialSchedules(data);
-            alert('Rescheduled successfully!');
+            showPopup('Rescheduled successfully!');
             navigate('/requiresCurrentSchedule/requiresPotentialSchedule/schedulePicker');
         } catch (e) {
-            alert('Failed to reschedule: ' + e);
+            showPopup('Failed to reschedule: ' + e);
         } finally {
             setLoading(false);
         }

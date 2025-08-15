@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders, mockFetch, cleanupMocks } from '../test-utils';
 import { localStorageMock } from '../setupTests';
@@ -136,8 +136,8 @@ describe('RescheduleScreen Component', () => {
     
     // Find the datetime input for end date
     const endDateInput = screen.getByDisplayValue(/^[\d]{4}-[\d]{2}-[\d]{2}T[\d]{2}:[\d]{2}$/);
-    userEvent.clear(endDateInput);
-    userEvent.type(endDateInput, newDateString);
+    // Use change event for datetime-local inputs (typing can be flaky in JSDOM)
+    fireEvent.change(endDateInput, { target: { value: newDateString } });
 
     await waitFor(() => {
       expect(screen.getByDisplayValue(newDateString)).toBeInTheDocument();
@@ -212,11 +212,9 @@ describe('RescheduleScreen Component', () => {
     expect(typeof sent.tz_offset_minutes).toBe('number');
     expect(typeof sent.new_window_end).toBe('string');
 
-    await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Rescheduled successfully!');
-      expect(mockSetPotentialSchedules).toHaveBeenCalledWith(mockRescheduleResponse);
-      expect(mockNavigate).toHaveBeenCalledWith('/requiresCurrentSchedule/requiresPotentialSchedule/schedulePicker');
-    });
+  await waitFor(() => expect(screen.getByTestId('app-popup-message')).toHaveTextContent('Rescheduled successfully!'));
+  expect(mockSetPotentialSchedules).toHaveBeenCalledWith(mockRescheduleResponse);
+  expect(mockNavigate).toHaveBeenCalledWith('/requiresCurrentSchedule/requiresPotentialSchedule/schedulePicker');
   });
 
   test('submits chore reschedule with correct parameters', async () => {
@@ -281,9 +279,7 @@ describe('RescheduleScreen Component', () => {
     const submitButton = screen.getByText('Submit');
     userEvent.click(submitButton);
 
-    await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Failed to reschedule:'));
-    });
+  await waitFor(() => expect(screen.getByTestId('app-popup-message')).toHaveTextContent(/Failed to reschedule:/));
   });
 
   test('handles missing backend URL or token', async () => {
@@ -296,9 +292,7 @@ describe('RescheduleScreen Component', () => {
     const submitButton = screen.getByText('Submit');
     userEvent.click(submitButton);
 
-    await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Missing backend URL or token.');
-    });
+  await waitFor(() => expect(screen.getByTestId('app-popup-message')).toHaveTextContent('Missing backend URL or token.'));
   });
 
   test('shows loading state during submission', async () => {
@@ -339,9 +333,7 @@ describe('RescheduleScreen Component', () => {
     const submitButton = screen.getByText('Submit');
     userEvent.click(submitButton);
 
-    await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining('Failed to reschedule: Error: Network error'));
-    });
+  await waitFor(() => expect(screen.getByTestId('app-popup-message')).toHaveTextContent(/Failed to reschedule: Error: Network error/));
   });
 
   test('includes timezone offset in submission', async () => {

@@ -281,7 +281,7 @@ describe('SchedulePicker Component', () => {
     const goBackButton = screen.getByTestId('go-back-button');
     fireEvent.click(goBackButton);
     
-    expect(mockNavigate).toHaveBeenCalledWith(-1);
+    expect(mockNavigate).toHaveBeenCalledWith("/requiresCurrentSchedule/Home");
   });
 
   it('handles API error when submitting schedule', async () => {

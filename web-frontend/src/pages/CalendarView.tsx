@@ -3,11 +3,13 @@ import { Slot, getStartOfWeek } from '../calendarUtils';
 import CalendarWeekView from '../components/CalendarWeekView';
 import config from '../config';
 import { useCurrentScheduleContext } from '../context/CurrentScheduleContext';
+import { usePopup } from '../context/PopupContext';
 import { useNavigate } from 'react-router-dom';
 
 
 const CalendarView = () => {
-    const { currSchedule, setCurrSchedule, ensureScheduleRange, refetchSchedule } = useCurrentScheduleContext();
+    const { currSchedule, ensureScheduleRange, refetchSchedule } = useCurrentScheduleContext();
+    const { showPopup } = usePopup();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [referenceDate, setReferenceDate] = useState(new Date()); // controls the week shown
@@ -24,7 +26,7 @@ const CalendarView = () => {
             const url = config.backendURL;
             const token = localStorage.getItem('token');
             if (!url || !token) {
-                alert('Backend URL or token not set.');
+                showPopup('Backend URL or token not set.');
                 setLoading(false);
                 return;
             }
@@ -36,16 +38,16 @@ const CalendarView = () => {
             });
             if (!response.ok) {
                 const err = await response.text();
-                alert('Failed to sync Google Calendar: ' + err);
+                showPopup('Failed to sync Google Calendar: ' + err);
                 setLoading(false);
                 return;
             }
             const data = await response.json();
-            alert(data.message || 'Google Calendar synced!');
+            showPopup(data.message || 'Google Calendar synced!');
             // Refetch the schedule after sync
             await refetchSchedule();
         } catch (e) {
-            alert('Failed to sync Google Calendar: ' + e);
+            showPopup('Failed to sync Google Calendar: ' + e);
         } finally {
             setLoading(false);
         }
@@ -94,10 +96,10 @@ const CalendarView = () => {
             });
             if (!response.ok) {
                 const err = await response.text();
-                window.alert('Failed to update meeting: ' + err);
+                showPopup('Failed to update meeting: ' + err);
                 return;
             }
-            window.alert('Meeting updated!');
+            showPopup('Meeting updated!');
             setModalVisible(false);
             setUpdateName('');
             setUpdateLoc('');
@@ -106,7 +108,7 @@ const CalendarView = () => {
             await refetchSchedule();
             await fetchSchedule();
         } catch (e) {
-            window.alert('Failed to update meeting: ' + e);
+            showPopup('Failed to update meeting: ' + e);
         }
     };
 
@@ -130,16 +132,16 @@ const CalendarView = () => {
             });
             if (!response.ok) {
                 const err = await response.text();
-                window.alert('Failed to delete meeting: ' + err);
+                showPopup('Failed to delete meeting: ' + err);
                 return;
             }
-            window.alert(removeAllFuture ? 'All future occurrences deleted!' : 'Meeting deleted!');
+            showPopup(removeAllFuture ? 'All future occurrences deleted!' : 'Meeting deleted!');
             setModalVisible(false);
             setSelectedMeeting(null);
             await refetchSchedule();
             await fetchSchedule();
         } catch (e) {
-            window.alert('Failed to delete meeting: ' + e);
+            showPopup('Failed to delete meeting: ' + e);
         }
     };
 
@@ -161,14 +163,14 @@ const CalendarView = () => {
             });
             if (!response.ok) {
                 const err = await response.text();
-                window.alert(`Failed to delete ${type}: ` + err);
+                showPopup(`Failed to delete ${type}: ` + err);
                 return;
             }
-            window.alert(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted!`);
+            showPopup(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted!`);
             await refetchSchedule();
             await fetchSchedule();
         } catch (e) {
-            window.alert('Delete error: ' + e);
+            showPopup('Delete error: ' + e);
         }
     };
 
