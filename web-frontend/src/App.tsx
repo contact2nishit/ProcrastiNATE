@@ -19,6 +19,7 @@ import DayBackground from './components/backgrounds/DayBackground';
 import NightBackground from './components/backgrounds/NightBackground';
 import TransitionBackground from './components/backgrounds/TransitionBackground';
 import nateFace from './assets/Nate.png';
+import PrivacyPolicy from './pages/Pp';
 
 
 // Removed getTimeOfDayPhase and internal interval logic; now handled by context provider
@@ -49,6 +50,7 @@ const AppShell: React.FC = () => {
             <div className="app-content-wrapper">
                 <Router>
                     <Routes>
+                        <Route path="/pp" element={<PrivacyPolicy />} />
                         <Route path="/" element={<Login />} />
                         <Route path="/signup" element={<Signup />} />
                         <Route path='/requiresCurrentSchedule/Home' element={

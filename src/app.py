@@ -150,9 +150,7 @@ async def login_google(request: Request, platform: str):
         scopes=[
             "https://www.googleapis.com/auth/calendar.readonly",
             "https://www.googleapis.com/auth/calendar.events.readonly",
-            "openid",
             "https://www.googleapis.com/auth/userinfo.email",
-            "https://www.googleapis.com/auth/userinfo.profile",
         ],
     )
     flow.redirect_uri = GOOGLE_REDIRECT_URI
@@ -193,10 +191,8 @@ async def google_callback(request: Request):
         "client_secret.json",
         scopes=[
             "https://www.googleapis.com/auth/calendar.readonly",
-            "https://www.googleapis.com/auth/calendar.events.readonly",
-            "openid",
-            "https://www.googleapis.com/auth/userinfo.email",
-            "https://www.googleapis.com/auth/userinfo.profile",
+            "https://www.googleapis.com/auth/calendar.events.readonly"
+            "https://www.googleapis.com/auth/userinfo.email"
         ],
     )
     flow.redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
