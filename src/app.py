@@ -46,6 +46,7 @@ async def lifespan(app: FastAPI):
     await app.state.pool.close()
 
 if IS_PROD == "yes":
+    print("NOT ALLOWING OTHER ORIGINS")
     origins = ["https://www.end-procrastination.com"]
 else:
     origins = ["https://www.end-procrastination.com", "http://localhost:3000"]
@@ -1513,7 +1514,4 @@ if __name__ == "__main__":
         port=8000,
         ssl_certfile="/certs/fullchain.pem",
         ssl_keyfile="/certs/privkey.pem",
-        docs_url=None, 
-        redoc_url=None, 
-        openapi_url=None
     )
