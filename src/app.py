@@ -33,6 +33,7 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 SESSION_SECRET = os.getenv("SESSION_SECRET_KEY")
+IS_PROD = os.getenv("IS_PROD")
 
 
 @asynccontextmanager
@@ -44,11 +45,15 @@ async def lifespan(app: FastAPI):
     yield
     await app.state.pool.close()
 
+if IS_PROD == "yes":
+    origins = ["https://www.end-procrastination.com"]
+else:
+    origins = ["https://www.end-procrastination.com", "http://localhost:3000"]
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://www.end-procrastination.com", "http://localhost:3000"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["authorization", "content-type"],
@@ -1507,5 +1512,8 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8000,
         ssl_certfile="/certs/fullchain.pem",
-        ssl_keyfile="/certs/privkey.pem"
+        ssl_keyfile="/certs/privkey.pem",
+        docs_url=None, 
+        redoc_url=None, 
+        openapi_url=None
     )
