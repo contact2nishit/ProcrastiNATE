@@ -1,6 +1,7 @@
 # ProcrastiNATE #
 ProcrastiNATE - An app to stop people from procrastinating
 
+# Check it out at https://end-procrastination.com #
 # Dev env setup #
 
 `npm i`
